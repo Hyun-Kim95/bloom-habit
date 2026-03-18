@@ -1,8 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { HabitTemplate as HabitTemplateEntity, Notice as NoticeEntity, SystemConfig as SystemConfigEntity } from '../entities';
+import { HabitTemplate as HabitTemplateEntity, Inquiry as InquiryEntity, Notice as NoticeEntity, SystemConfig as SystemConfigEntity, User as UserEntity } from '../entities';
+
+export interface InquiryAdminDto {
+  id: string;
+  userId: string;
+  userEmail: string | null;
+  userDisplayName: string | null;
+  subject: string;
+  body: string;
+  status: string;
+  adminReply: string | null;
+  repliedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface HabitTemplateDto {
   id: string;
@@ -38,6 +52,10 @@ export class AdminDataService {
     private readonly noticeRepo: Repository<NoticeEntity>,
     @InjectRepository(SystemConfigEntity)
     private readonly configRepo: Repository<SystemConfigEntity>,
+    @InjectRepository(InquiryEntity)
+    private readonly inquiryRepo: Repository<InquiryEntity>,
+    @InjectRepository(UserEntity)
+    private readonly userRepo: Repository<UserEntity>,
   ) {}
 
   async listTemplates(): Promise<HabitTemplateDto[]> {
@@ -178,5 +196,58 @@ export class AdminDataService {
     for (const [k, v] of Object.entries(body)) {
       await this.setConfig(k, typeof v === 'string' ? v : JSON.stringify(v));
     }
+  }
+
+  async listInquiries(): Promise<InquiryAdminDto[]> {
+    const list = await this.inquiryRepo.find({
+      order: { createdAt: 'DESC' },
+    });
+    const userIds = [...new Set(list.map((i) => i.userId))];
+    const users = userIds.length
+      ? await this.userRepo.find({ where: { id: In(userIds) } })
+      : [];
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    return list.map((i) => {
+      const u = userMap.get(i.userId);
+      return {
+        id: i.id,
+        userId: i.userId,
+        userEmail: u?.email ?? null,
+        userDisplayName: u?.displayName ?? null,
+        subject: i.subject,
+        body: i.body,
+        status: i.status,
+        adminReply: i.adminReply ?? null,
+        repliedAt: i.repliedAt?.toISOString() ?? null,
+        createdAt: i.createdAt.toISOString(),
+        updatedAt: i.updatedAt.toISOString(),
+      };
+    });
+  }
+
+  async updateInquiryReply(
+    id: string,
+    body: { adminReply?: string; status?: string },
+  ): Promise<InquiryAdminDto | undefined> {
+    const i = await this.inquiryRepo.findOne({ where: { id } });
+    if (!i) return undefined;
+    if (body.adminReply != null) i.adminReply = body.adminReply;
+    if (body.status != null) i.status = body.status;
+    if (body.adminReply != null) i.repliedAt = new Date();
+    await this.inquiryRepo.save(i);
+    const u = await this.userRepo.findOne({ where: { id: i.userId } });
+    return {
+      id: i.id,
+      userId: i.userId,
+      userEmail: u?.email ?? null,
+      userDisplayName: u?.displayName ?? null,
+      subject: i.subject,
+      body: i.body,
+      status: i.status,
+      adminReply: i.adminReply ?? null,
+      repliedAt: i.repliedAt?.toISOString() ?? null,
+      createdAt: i.createdAt.toISOString(),
+      updatedAt: i.updatedAt.toISOString(),
+    };
   }
 }

@@ -11,6 +11,7 @@ import '../../features/home/presentation/home_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/statistics/presentation/statistics_screen.dart';
+import '../../features/inquiries/presentation/inquiries_screen.dart';
 import 'app_providers.dart';
 import 'main_shell.dart';
 
@@ -24,6 +25,7 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String account = '/account';
   static const String statistics = '/statistics';
+  static const String inquiries = '/inquiries';
 }
 
 GoRouter createAppRouter(WidgetRef ref) {
@@ -39,6 +41,12 @@ GoRouter createAppRouter(WidgetRef ref) {
       }
       if (!restored && !isPublic) {
         return AppRoutes.login;
+      }
+      if (path == AppRoutes.onboarding && !restored) {
+        final settings = await ref.read(appSettingsProvider.future);
+        if (settings.hasSeenOnboarding && settings.showOnboardingOnlyFirstLaunch) {
+          return AppRoutes.login;
+        }
       }
       return null;
     },
@@ -105,6 +113,10 @@ GoRouter createAppRouter(WidgetRef ref) {
       GoRoute(
         path: AppRoutes.account,
         builder: (_, __) => const AccountScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.inquiries,
+        builder: (_, __) => const InquiriesScreen(),
       ),
     ],
     errorBuilder: (_, state) => Scaffold(

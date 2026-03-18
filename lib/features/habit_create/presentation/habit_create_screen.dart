@@ -15,6 +15,60 @@ class HabitCreateScreen extends ConsumerStatefulWidget {
   ConsumerState<HabitCreateScreen> createState() => _HabitCreateScreenState();
 }
 
+/// 목표 유형 (서버 goalType)
+const _goalTypes = [
+  ('completion', '완료 여부'),
+  ('count', '횟수'),
+  ('duration', '시간'),
+  ('number', '수치'),
+];
+
+/// 색상 프리셋 (hex without #)
+const _colorPresets = [
+  '22C55E', // primary green
+  '3B82F6', // blue
+  'F59E0B', // amber
+  'EF4444', // red
+  '8B5CF6', // violet
+  'EC4899', // pink
+  '14B8A6', // teal
+  '6B7280', // gray
+];
+
+/// 아이콘 이름 (Material Icons)
+const _iconNames = [
+  'fitness_center',
+  'menu_book',
+  'local_drink',
+  'self_improvement',
+  'bedtime',
+  'eco',
+  'psychology',
+  'work',
+  'volunteer_activism',
+  'star',
+  'check_circle',
+  'flag',
+];
+
+IconData _iconDataFromName(String name) {
+  switch (name) {
+    case 'fitness_center': return Icons.fitness_center;
+    case 'menu_book': return Icons.menu_book;
+    case 'local_drink': return Icons.local_drink;
+    case 'self_improvement': return Icons.self_improvement;
+    case 'bedtime': return Icons.bedtime;
+    case 'eco': return Icons.eco;
+    case 'psychology': return Icons.psychology;
+    case 'work': return Icons.work;
+    case 'volunteer_activism': return Icons.volunteer_activism;
+    case 'star': return Icons.star;
+    case 'check_circle': return Icons.check_circle;
+    case 'flag': return Icons.flag;
+    default: return Icons.star;
+  }
+}
+
 class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
   final _nameController = TextEditingController();
   bool _loading = false;
@@ -24,6 +78,11 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
   int _reminderMinute = 0;
   List<String> _categories = [];
   String? _selectedCategory;
+  String _goalType = 'completion';
+  double? _goalValue;
+  DateTime _startDate = DateTime.now();
+  String? _colorHex;
+  String? _iconName;
 
   @override
   void initState() {
@@ -67,7 +126,11 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
       final created = await ref.read(habitRepositoryProvider).createHabit(
             name: name,
             category: _selectedCategory?.trim().isEmpty == true ? null : _selectedCategory,
-            startDate: DateTime.now(),
+            goalType: _goalType,
+            goalValue: _goalValue,
+            startDate: _startDate,
+            colorHex: _colorHex,
+            iconName: _iconName,
           );
       if (mounted && created.serverId != null) {
         if (_reminderEnabled) {
@@ -170,6 +233,135 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                 ),
               ],
               onChanged: (v) => setState(() => _selectedCategory = v),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              '목표 유형',
+              style: GoogleFonts.dmSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+              ),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: _goalType,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radius)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radius),
+                  borderSide: BorderSide(color: AppColors.input),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              ),
+              items: _goalTypes
+                  .map((e) => DropdownMenuItem(value: e.$1, child: Text(e.$2, style: GoogleFonts.dmSans())))
+                  .toList(),
+              onChanged: (v) => setState(() => _goalType = v ?? 'completion'),
+            ),
+            if (_goalType != 'completion') ...[
+              const SizedBox(height: 12),
+              TextFormField(
+                initialValue: _goalValue?.toInt().toString(),
+                decoration: InputDecoration(
+                  labelText: _goalType == 'count' ? '목표 횟수 (예: 3)' : _goalType == 'duration' ? '목표 분 (예: 30)' : '목표 수치',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radius)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (v) {
+                  final n = double.tryParse(v.trim());
+                  setState(() => _goalValue = n);
+                },
+              ),
+            ],
+            const SizedBox(height: 20),
+            Text(
+              '시작일',
+              style: GoogleFonts.dmSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                '${_startDate.year}.${_startDate.month.toString().padLeft(2, '0')}.${_startDate.day.toString().padLeft(2, '0')}',
+                style: GoogleFonts.dmSans(fontSize: 16),
+              ),
+              trailing: const Icon(Icons.calendar_today, color: AppColors.primary),
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _startDate,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                );
+                if (picked != null && mounted) setState(() => _startDate = picked);
+              },
+            ),
+            const SizedBox(height: 20),
+            Text(
+              '색상 (선택)',
+              style: GoogleFonts.dmSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                ..._colorPresets.map((hex) {
+                  final selected = _colorHex == hex;
+                  return GestureDetector(
+                    onTap: () => setState(() => _colorHex = _colorHex == hex ? null : hex),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Color(int.parse('FF$hex', radix: 16)),
+                        shape: BoxShape.circle,
+                        border: selected ? Border.all(color: isDark ? Colors.white : Colors.black, width: 2) : null,
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Text(
+              '아이콘 (선택)',
+              style: GoogleFonts.dmSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _iconNames.map((name) {
+                final iconData = _iconDataFromName(name);
+                final selected = _iconName == name;
+                return GestureDetector(
+                  onTap: () => setState(() => _iconName = _iconName == name ? null : name),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: selected ? AppColors.primary.withValues(alpha: 0.2) : AppColors.muted.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(AppTheme.radius),
+                    ),
+                    child: Icon(iconData, color: selected ? AppColors.primary : AppColors.mutedForeground, size: 24),
+                  ),
+                );
+              }).toList(),
             ),
             const SizedBox(height: 24),
             Card(

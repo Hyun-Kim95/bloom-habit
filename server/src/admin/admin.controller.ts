@@ -6,20 +6,22 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import { AuthModule } from '../auth/auth.module';
 import { AuthService } from '../auth/auth.service';
 import { HabitsService } from '../habits/habits.service';
 import { AdminAuthService } from './admin-auth.service';
-import { AdminDataService, HabitTemplateDto, NoticeDto } from './admin-data.service';
+import { AdminDataService, HabitTemplateDto, InquiryAdminDto, NoticeDto } from './admin-data.service';
 import { AdminGuard } from './admin.guard';
+import { AdminStatsService } from './admin-stats.service';
 
 @Controller('admin')
 export class AdminController {
   constructor(
     private readonly adminAuth: AdminAuthService,
     private readonly adminData: AdminDataService,
+    private readonly adminStats: AdminStatsService,
     private readonly auth: AuthService,
     private readonly habits: HabitsService,
   ) {}
@@ -62,6 +64,17 @@ export class AdminController {
       totalHabits: counts.totalHabits,
       totalRecords: counts.totalRecords,
     };
+  }
+
+  @Get('stats/over-time')
+  @UseGuards(AdminGuard)
+  async statsOverTime(@Query('from') from?: string, @Query('to') to?: string) {
+    const toDate = new Date();
+    const fromDate = new Date(toDate);
+    fromDate.setDate(fromDate.getDate() - 90);
+    const fromStr = from ?? fromDate.toISOString().slice(0, 10);
+    const toStr = to ?? toDate.toISOString().slice(0, 10);
+    return this.adminStats.getStatsOverTime(fromStr, toStr);
   }
 
   @Get('habit-templates')
@@ -131,5 +144,22 @@ export class AdminController {
   async patchConfig(@Body() body: Record<string, string>) {
     await this.adminData.patchConfig(body);
     return this.adminData.getAllConfig();
+  }
+
+  @Get('inquiries')
+  @UseGuards(AdminGuard)
+  async listInquiries(): Promise<InquiryAdminDto[]> {
+    return this.adminData.listInquiries();
+  }
+
+  @Patch('inquiries/:id')
+  @UseGuards(AdminGuard)
+  async updateInquiryReply(
+    @Param('id') id: string,
+    @Body() body: { adminReply?: string; status?: string },
+  ) {
+    const r = await this.adminData.updateInquiryReply(id, body);
+    if (!r) return { statusCode: 404, message: 'Not found' };
+    return r;
   }
 }

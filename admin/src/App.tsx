@@ -6,6 +6,7 @@ import HabitCategories from './pages/HabitCategories'
 import HabitTemplates from './pages/HabitTemplates'
 import Login from './pages/Login'
 import Notices from './pages/Notices'
+import Inquiries from './pages/Inquiries'
 import SystemConfig from './pages/SystemConfig'
 import Users from './pages/Users'
 
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="habit-templates" element={<HabitTemplates />} />
           <Route path="habit-categories" element={<HabitCategories />} />
           <Route path="notices" element={<Notices />} />
+          <Route path="inquiries" element={<Inquiries />} />
           <Route path="system-config" element={<SystemConfig />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

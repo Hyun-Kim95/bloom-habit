@@ -8,6 +8,7 @@ import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from './config/config.module';
 import { HabitsModule } from './habits/habits.module';
+import { InquiriesModule } from './inquiries/inquiries.module';
 import { SyncModule } from './sync/sync.module';
 import {
   User,
@@ -18,6 +19,7 @@ import {
   Notice,
   SystemConfig,
   AiFeedbackLog,
+  Inquiry,
 } from './entities';
 
 @Module({
@@ -35,6 +37,7 @@ import {
         Notice,
         SystemConfig,
         AiFeedbackLog,
+        Inquiry,
       ],
       synchronize: process.env.NODE_ENV !== 'production',
       extra: {
@@ -45,6 +48,7 @@ import {
     }),
     AuthModule,
     HabitsModule,
+    InquiriesModule,
     SyncModule,
     AdminModule,
   ],

@@ -84,6 +84,13 @@ export class HabitsController {
     }
   }
 
+  @Patch(':id/archive')
+  async archive(@Req() req: ReqWithUser, @Param('id') id: string) {
+    const h = await this.habits.archive(id, req.userId);
+    if (!h) return { statusCode: 404, message: 'Not found' };
+    return h;
+  }
+
   @Patch(':id')
   async update(
     @Req() req: ReqWithUser,
@@ -121,6 +128,29 @@ export class HabitsController {
     const r = await this.habits.addRecord(habitId, req.userId, body);
     if (!r) return { statusCode: 404, message: 'Habit not found' };
     return r;
+  }
+
+  @Patch(':habitId/records/:recordId')
+  async updateRecord(
+    @Req() req: ReqWithUser,
+    @Param('habitId') habitId: string,
+    @Param('recordId') recordId: string,
+    @Body() body: { completed?: boolean; value?: number },
+  ) {
+    const r = await this.habits.updateRecord(habitId, recordId, req.userId, body);
+    if (!r) return { statusCode: 404, message: 'Not found' };
+    return r;
+  }
+
+  @Delete(':habitId/records/:recordId')
+  async deleteRecord(
+    @Req() req: ReqWithUser,
+    @Param('habitId') habitId: string,
+    @Param('recordId') recordId: string,
+  ) {
+    const ok = await this.habits.deleteRecord(habitId, recordId, req.userId);
+    if (!ok) return { statusCode: 404, message: 'Not found' };
+    return { ok: true };
   }
 
   @Post(':habitId/records/:recordId/ai-feedback')

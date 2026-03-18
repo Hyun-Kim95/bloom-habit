@@ -8,6 +8,7 @@ abstract class ApiEndpoints {
   static const String me = '/me';
   static const String habitCategories = '/habits/categories';
   static String habits([String? id]) => id == null ? '/habits' : '/habits/$id';
+  static String habitArchive(String habitId) => '/habits/$habitId/archive';
   static String habitRecords(String habitId, [String? recordId]) =>
       recordId == null
           ? '/habits/$habitId/records'
@@ -21,4 +22,5 @@ abstract class ApiEndpoints {
   static const String notificationSettings = '/notification-settings';
   static const String sync = '/sync';
   static const String syncPush = '/sync/push';
+  static const String inquiries = '/inquiries';
 }

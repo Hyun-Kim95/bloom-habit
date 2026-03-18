@@ -2,14 +2,19 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 
 const KNOWN_KEYS = {
+  ai_prompt_template: 'AI 프롬프트 ({{habitName}} 사용 가능)',
   ai_fallback_messages: 'AI Fallback 문구 (JSON 배열, 한 줄에 하나)',
   ai_daily_limit: '일일 AI 코멘트 호출 상한 (회원당, 숫자)',
   app_jwt_expires_seconds: '앱 JWT 만료 시간 (초, 예: 604800=7일)',
 } as const
 
+const DEFAULT_PROMPT =
+  '사용자가 오늘 "{{habitName}}" 습관을 완료했습니다. 한 문장으로 짧고 따뜻한 격려 한마디만 한국어로 답해 주세요. 이모지 없이.'
+
 export default function SystemConfig() {
   const [config, setConfig] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
+  const [aiPromptTemplate, setAiPromptTemplate] = useState(DEFAULT_PROMPT)
   const [aiFallback, setAiFallback] = useState('')
   const [aiDailyLimit, setAiDailyLimit] = useState('30')
   const [appJwtExpires, setAppJwtExpires] = useState('604800')
@@ -18,6 +23,7 @@ export default function SystemConfig() {
   useEffect(() => {
     api.getConfig().then((c) => {
       setConfig(c)
+      setAiPromptTemplate(c.ai_prompt_template?.trim() || DEFAULT_PROMPT)
       try {
         const arr = JSON.parse(c.ai_fallback_messages ?? '[]') as string[]
         setAiFallback(Array.isArray(arr) ? arr.join('\n') : '')
@@ -34,6 +40,7 @@ export default function SystemConfig() {
     try {
       const lines = aiFallback.split('\n').map((s) => s.trim()).filter(Boolean)
       const body: Record<string, string> = {
+        ai_prompt_template: aiPromptTemplate.trim() || DEFAULT_PROMPT,
         ai_fallback_messages: JSON.stringify(lines),
         ai_daily_limit: aiDailyLimit.trim() || '30',
         app_jwt_expires_seconds: appJwtExpires.trim() || '604800',
@@ -54,6 +61,18 @@ export default function SystemConfig() {
       <h2 className="text-lg font-semibold text-foreground">AI 문구 / 시스템 설정</h2>
 
       <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-foreground">
+            {KNOWN_KEYS.ai_prompt_template}
+          </label>
+          <textarea
+            value={aiPromptTemplate}
+            onChange={(e) => setAiPromptTemplate(e.target.value)}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground font-mono text-sm"
+            rows={4}
+            placeholder={DEFAULT_PROMPT}
+          />
+        </div>
         <div>
           <label className="block text-sm font-medium text-foreground">
             {KNOWN_KEYS.ai_fallback_messages}

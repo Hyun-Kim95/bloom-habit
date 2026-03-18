@@ -1,21 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
 
-class OnboardingScreen extends StatefulWidget {
+/// Figma 스타일 온보딩: 프레임 단위 레이아웃, 일러스트 영역 + 타이포 + CTA
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _pageController = PageController();
   int _currentPage = 0;
   static const _pages = 3;
+
+  Future<void> _completeOnboarding() async {
+    final settings = await ref.read(appSettingsProvider.future);
+    await settings.setOnboardingSeen(true);
+    if (!mounted) return;
+    context.go(AppRoutes.login);
+  }
 
   @override
   void dispose() {
@@ -26,19 +36,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? AppColors.backgroundDark : AppColors.background;
+    final fg = isDark ? AppColors.foregroundDark : AppColors.foreground;
+    final muted = AppColors.mutedForeground;
+    final primary = isDark ? AppColors.primaryDark : AppColors.primary;
+    final dotInactive = isDark ? AppColors.borderDark : AppColors.border;
+
     return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
+      backgroundColor: bg,
       body: SafeArea(
         child: Column(
           children: [
+            // 상단: 건너뛰기
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () => context.go(AppRoutes.login),
+                  onPressed: _completeOnboarding,
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.mutedForeground,
+                    foregroundColor: muted,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                   child: Text(
                     '건너뛰기',
@@ -47,32 +65,49 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
             ),
+            // 프레임 영역: PageView
             Expanded(
               child: PageView(
                 controller: _pageController,
                 onPageChanged: (i) => setState(() => _currentPage = i),
-                children: const [
-                  _OnboardingPage(
+                children: [
+                  _OnboardingFrame(
+                    illustration: _OnboardingIllustration(
+                      icon: Icons.eco_rounded,
+                      color: primary,
+                      backgroundColor: primary.withValues(alpha: 0.12),
+                    ),
                     title: 'Bloom Habit',
-                    subtitle: '작은 습관이 인생을 바꿉니다.',
+                    subtitle: '작은 습관이 인생을 바꿉니다',
                     body: '매일 조금씩 기록하고, 꾸준함을 키워 보세요.',
-                    icon: Icons.eco,
+                    isDark: isDark,
                   ),
-                  _OnboardingPage(
+                  _OnboardingFrame(
+                    illustration: _OnboardingIllustration(
+                      icon: Icons.check_circle_outline_rounded,
+                      color: primary,
+                      backgroundColor: primary.withValues(alpha: 0.12),
+                    ),
                     title: '습관 기록',
                     subtitle: '오늘 한 일을 간단히 체크',
                     body: '완료할 때마다 기록하면 연속 달성일과 통계를 볼 수 있어요.',
-                    icon: Icons.check_circle_outline,
+                    isDark: isDark,
                   ),
-                  _OnboardingPage(
+                  _OnboardingFrame(
+                    illustration: _OnboardingIllustration(
+                      icon: Icons.rocket_launch_rounded,
+                      color: primary,
+                      backgroundColor: primary.withValues(alpha: 0.12),
+                    ),
                     title: '시작하기',
-                    subtitle: '지금 바로 첫 습관을 만들어 보세요.',
+                    subtitle: '지금 바로 첫 습관을 만들어 보세요',
                     body: '로그인 후 습관을 추가하고, 오늘부터 기록을 시작해요.',
-                    icon: Icons.rocket_launch_outlined,
+                    isDark: isDark,
                   ),
                 ],
               ),
             ),
+            // 하단: 인디케이터 + 버튼
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
               child: Row(
@@ -80,15 +115,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ...List.generate(
                     _pages,
                     (i) => AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
+                      duration: const Duration(milliseconds: 250),
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       width: i == _currentPage ? 24 : 8,
                       height: 8,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(4),
-                        color: i == _currentPage
-                            ? AppColors.primary
-                            : (isDark ? AppColors.borderDark : AppColors.border),
+                        color: i == _currentPage ? primary : dotInactive,
                       ),
                     ),
                   ),
@@ -101,15 +134,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           curve: Curves.easeInOut,
                         );
                       } else {
-                        context.go(AppRoutes.login);
+                        _completeOnboarding();
                       }
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(
-                        _currentPage >= _pages - 1 ? '시작하기' : '다음',
-                        style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: primary,
+                      foregroundColor: isDark ? AppColors.primaryForegroundDark : AppColors.primaryForeground,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radius),
                       ),
+                    ),
+                    child: Text(
+                      _currentPage >= _pages - 1 ? '시작하기' : '다음',
+                      style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
@@ -122,45 +160,42 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-class _OnboardingPage extends StatelessWidget {
-  const _OnboardingPage({
+/// 한 페이지 프레임: 일러스트 영역 + 타이포
+class _OnboardingFrame extends StatelessWidget {
+  const _OnboardingFrame({
+    required this.illustration,
     required this.title,
     required this.subtitle,
     required this.body,
-    required this.icon,
+    required this.isDark,
   });
 
+  final Widget illustration;
   final String title;
   final String subtitle;
   final String body;
-  final IconData icon;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final fg = isDark ? AppColors.foregroundDark : AppColors.foreground;
     final muted = AppColors.mutedForeground;
-    return Padding(
+
+    return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppColors.accent.withValues(alpha: isDark ? 0.3 : 1),
-              borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-            ),
-            child: Icon(icon, size: 40, color: AppColors.primary),
-          ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+          illustration,
+          const SizedBox(height: 40),
           Text(
             title,
             style: GoogleFonts.lora(
-              fontSize: 26,
-              fontWeight: FontWeight.w600,
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
               color: fg,
+              height: 1.2,
             ),
             textAlign: TextAlign.center,
           ),
@@ -168,13 +203,13 @@ class _OnboardingPage extends StatelessWidget {
           Text(
             subtitle,
             style: GoogleFonts.dmSans(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: muted,
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: fg,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           Text(
             body,
             style: GoogleFonts.dmSans(
@@ -184,7 +219,44 @@ class _OnboardingPage extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+}
+
+/// 일러스트 영역: 원형 배경 + 아이콘 (Figma 프레임 느낌)
+class _OnboardingIllustration extends StatelessWidget {
+  const _OnboardingIllustration({
+    required this.icon,
+    required this.color,
+    required this.backgroundColor,
+  });
+
+  final IconData icon;
+  final Color color;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 160,
+        height: 160,
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.15),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Icon(icon, size: 72, color: color),
       ),
     );
   }

@@ -7,11 +7,59 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
 
-class AccountScreen extends ConsumerWidget {
+class AccountScreen extends ConsumerStatefulWidget {
   const AccountScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AccountScreen> createState() => _AccountScreenState();
+}
+
+class _AccountScreenState extends ConsumerState<AccountScreen> {
+  bool _withdrawing = false;
+
+  Future<void> _withdraw() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('회원 탈퇴'),
+        content: const Text(
+          '탈퇴하면 모든 습관·기록 데이터가 삭제되며 복구할 수 없습니다.\n정말 탈퇴할까요?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.destructive),
+            child: const Text('탈퇴'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _withdrawing = true);
+    try {
+      final auth = ref.read(authRepositoryProvider);
+      final habitRepo = ref.read(habitRepositoryProvider);
+      await auth.deleteAccount();
+      await habitRepo.clearAllLocalData();
+      if (!mounted) return;
+      ref.invalidate(sessionRestoredProvider);
+      context.go(AppRoutes.login);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _withdrawing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('탈퇴 처리 중 오류가 났어요. ${e.toString().split('\n').first}')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
@@ -66,14 +114,35 @@ class AccountScreen extends ConsumerWidget {
           SizedBox(
             height: 52,
             child: OutlinedButton.icon(
-              onPressed: () async {
-                await ref.read(authRepositoryProvider).logout();
-                if (!context.mounted) return;
-                ref.invalidate(sessionRestoredProvider);
-                context.go(AppRoutes.login);
-              },
+              onPressed: _withdrawing
+                  ? null
+                  : () async {
+                      await ref.read(authRepositoryProvider).logout();
+                      if (!context.mounted) return;
+                      ref.invalidate(sessionRestoredProvider);
+                      context.go(AppRoutes.login);
+                    },
               icon: const Icon(Icons.logout, size: 20),
               label: const Text('로그아웃'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.destructive,
+                side: const BorderSide(color: AppColors.destructive),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: _withdrawing ? null : _withdraw,
+              icon: _withdrawing
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.person_off_outlined, size: 20),
+              label: Text(_withdrawing ? '탈퇴 처리 중…' : '회원 탈퇴'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.destructive,
                 side: const BorderSide(color: AppColors.destructive),

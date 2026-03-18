@@ -1,7 +1,9 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 
+import '../settings/app_settings.dart';
 import '../../data/local/entity/local_habit.dart';
 
 /// 습관별 리마인더 알림 (로컬)
@@ -64,9 +66,14 @@ class NotificationService {
     return d;
   }
 
-  /// 알림 켜진 습관들 기준으로 전체 스케줄 갱신
+  /// 알림 켜진 습관들 기준으로 전체 스케줄 갱신 (전역 알림 off면 스케줄 안 함)
   Future<void> rescheduleFromHabits(List<LocalHabit> habits) async {
     await init();
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(keyNotificationsEnabled) == false) {
+      await _plugin.cancelAll();
+      return;
+    }
     await _plugin.cancelAll();
     const androidDetails = AndroidNotificationDetails(
       _channelId,

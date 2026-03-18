@@ -189,6 +189,31 @@ export class HabitsService {
     return toRecordDto(record);
   }
 
+  async updateRecord(
+    habitId: string,
+    recordId: string,
+    userId: string,
+    body: { completed?: boolean; value?: number },
+  ): Promise<RecordDto | undefined> {
+    const r = await this.recordRepo.findOne({ where: { id: recordId, habitId } });
+    if (!r) return undefined;
+    const h = await this.habitRepo.findOne({ where: { id: habitId, userId } });
+    if (!h) return undefined;
+    if (body.completed !== undefined) r.completed = body.completed;
+    if (body.value !== undefined) r.value = body.value;
+    await this.recordRepo.save(r);
+    return toRecordDto(r);
+  }
+
+  async deleteRecord(habitId: string, recordId: string, userId: string): Promise<boolean> {
+    const r = await this.recordRepo.findOne({ where: { id: recordId, habitId } });
+    if (!r) return false;
+    const h = await this.habitRepo.findOne({ where: { id: habitId, userId } });
+    if (!h) return false;
+    await this.recordRepo.remove(r);
+    return true;
+  }
+
   async getSyncPayload(userId: string, _since?: string): Promise<{ habits: HabitDto[]; records: RecordDto[] }> {
     const habitList = await this.list(userId, true);
     const habitIds = habitList.map((h) => h.id);
@@ -201,6 +226,30 @@ export class HabitsService {
       .orderBy('r.recordDate', 'ASC')
       .getMany();
     return { habits: habitList, records: recordList.map(toRecordDto) };
+  }
+
+  /** 최근 7일 완료 기록 수 (레벨 산정용) */
+  async getCompletedCountLast7Days(userId: string): Promise<number> {
+    const habits = await this.habitRepo
+      .createQueryBuilder('h')
+      .select('h.id')
+      .where('h.userId = :userId', { userId })
+      .andWhere('h.archivedAt IS NULL')
+      .getMany();
+    const habitIds = habits.map((h) => h.id);
+    if (habitIds.length === 0) return 0;
+    const from = new Date();
+    from.setDate(from.getDate() - 6);
+    const fromStr = from.toISOString().slice(0, 10);
+    const toStr = new Date().toISOString().slice(0, 10);
+    const count = await this.recordRepo
+      .createQueryBuilder('r')
+      .where('r.habitId IN (:...ids)', { ids: habitIds })
+      .andWhere('r.recordDate >= :from', { from: fromStr })
+      .andWhere('r.recordDate <= :to', { to: toStr })
+      .andWhere('r.completed = :completed', { completed: true })
+      .getCount();
+    return count;
   }
 
   /** 관리자용: 전체 습관/기록 수 */

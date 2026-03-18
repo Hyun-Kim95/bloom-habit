@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { sign as signJwt } from './jwt-simple';
-import { User } from '../entities';
+import { User, Habit, HabitRecord, AiFeedbackLog } from '../entities';
 import { ConfigService } from '../config/config.service';
 
 const DEFAULT_JWT_EXPIRES_SEC = 7 * 24 * 3600; // 7일
@@ -12,6 +12,12 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(Habit)
+    private readonly habitRepo: Repository<Habit>,
+    @InjectRepository(HabitRecord)
+    private readonly recordRepo: Repository<HabitRecord>,
+    @InjectRepository(AiFeedbackLog)
+    private readonly feedbackRepo: Repository<AiFeedbackLog>,
     private readonly config: ConfigService,
   ) {}
 
@@ -67,6 +73,22 @@ export class AuthService {
   }
 
   async logout(_userId: string) {}
+
+  /** 회원 탈퇴: 연관 데이터 삭제 후 사용자 삭제 (정책: 탈퇴 즉시 삭제) */
+  async deleteUser(userId: string): Promise<void> {
+    await this.feedbackRepo.delete({ userId });
+    const habits = await this.habitRepo.find({ where: { userId } });
+    const habitIds = habits.map((h) => h.id);
+    if (habitIds.length > 0) {
+      await this.recordRepo
+        .createQueryBuilder()
+        .delete()
+        .where('habitId IN (:...ids)', { ids: habitIds })
+        .execute();
+    }
+    await this.habitRepo.delete({ userId });
+    await this.userRepo.delete({ id: userId });
+  }
 
   /** 관리자용: 앱 가입 사용자 목록 (가입일 포함) */
   async getAppUsers(): Promise<

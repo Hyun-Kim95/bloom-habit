@@ -131,6 +131,27 @@ class AuthRepository {
     _api.setAccessToken(null);
   }
 
+  /// 회원 탈퇴: 서버에서 계정·데이터 삭제 후 로컬 토큰 제거
+  Future<void> deleteAccount() async {
+    await _api.dio.delete(ApiEndpoints.me);
+    await _storage.clear();
+    _api.setAccessToken(null);
+  }
+
+  /// 레벨 정보 (GET /me/level)
+  Future<({int level, String title})?> getLevel() async {
+    try {
+      final res = await _api.dio.get<Map<String, dynamic>>(ApiEndpoints.meLevel);
+      if (res.data == null) return null;
+      final level = res.data!['level'] as num?;
+      final title = res.data!['title'] as String?;
+      if (level == null) return null;
+      return (level: level.toInt(), title: title ?? 'New Planter');
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// 저장된 토큰으로 로그인 상태 복원
   Future<bool> restoreSession() async {
     final access = await _storage.getAccessToken();

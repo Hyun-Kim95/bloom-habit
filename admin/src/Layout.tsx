@@ -8,6 +8,7 @@ const nav = [
   { path: '/habit-templates', label: '습관 템플릿' },
   { path: '/habit-categories', label: '습관 카테고리' },
   { path: '/notices', label: '공지 관리' },
+  { path: '/inquiries', label: '문의' },
   { path: '/system-config', label: 'AI 문구 / 설정' },
 ]
 

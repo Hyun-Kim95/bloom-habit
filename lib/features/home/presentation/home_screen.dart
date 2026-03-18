@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:lottie/lottie.dart';
+
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/notifications/notification_service.dart';
+import '../../../core/utils/habit_icon_color.dart';
+import '../../../core/widget/home_widget_update.dart';
 import '../../../data/local/entity/local_habit.dart';
 
 /// Figma Home Dashboard (New Style) 색상
@@ -35,6 +40,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   List<LocalHabit> _habits = [];
   Map<String, bool> _todayCompleted = {};
   Set<String> _heatmapDates = {};
+  int? _level;
+  String? _levelTitle;
   bool _loading = true;
   String? _error;
 
@@ -60,19 +67,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
     try {
       final repo = ref.read(habitRepositoryProvider);
+      final authRepo = ref.read(authRepositoryProvider);
       await repo.syncFromServer();
       if (!mounted) return;
       final habits = await repo.getActiveHabits();
       final completed = await repo.getTodayCompletedByHabit();
       final heatmapDates = await repo.getLast28DaysCompletedDates();
+      final levelData = await authRepo.getLevel();
       if (mounted) {
         setState(() {
           _habits = habits;
           _todayCompleted = completed;
           _heatmapDates = heatmapDates;
+          _level = levelData?.level;
+          _levelTitle = levelData?.title;
           _loading = false;
         });
         _rescheduleRemindersOnce(habits);
+        final completedCount = completed.values.where((v) => v).length;
+        updateHomeWidget(todayCompleted: completedCount, totalHabits: habits.length);
       }
     } catch (e) {
       if (mounted) {
@@ -132,8 +145,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
                             children: [
                               _LevelProgressCard(
-                                completedToday: _todayCompleted.length,
+                                completedToday: _todayCompleted.values.where((v) => v).length,
                                 totalHabits: _habits.length,
+                                level: _level,
+                                levelTitle: _levelTitle,
                                 cardColor: cardColor,
                                 border: border,
                                 primary: primary,
@@ -189,6 +204,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       });
       final repo = ref.read(habitRepositoryProvider);
       final record = await repo.recordToday(sid);
+      final settings = ref.read(appSettingsProvider).value;
+      if (settings?.hapticEnabled ?? true) HapticFeedback.mediumImpact();
+      if (settings?.soundEnabled ?? true) SystemSound.play(SystemSoundType.click);
       final comment = await repo.requestAiFeedback(sid, record.serverId ?? '');
       if (!context.mounted) return;
       // 서버/로컬 반영 후 목록·히트맵 다시 불러와서 화면 갱신
@@ -216,7 +234,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const Text('오늘 완료했어요!'),
           ],
         ),
-        content: Text(comment),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: 100,
+                width: 100,
+                child: Lottie.network(
+                  'https://assets2.lottiefiles.com/packages/lf20_yqcyqv2y.json',
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Icon(Icons.check_circle, size: 64, color: AppColors.primary),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(comment),
+            ],
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -291,6 +326,8 @@ class _LevelProgressCard extends StatelessWidget {
   const _LevelProgressCard({
     required this.completedToday,
     required this.totalHabits,
+    this.level,
+    this.levelTitle,
     required this.cardColor,
     required this.border,
     required this.primary,
@@ -302,6 +339,8 @@ class _LevelProgressCard extends StatelessWidget {
 
   final int completedToday;
   final int totalHabits;
+  final int? level;
+  final String? levelTitle;
   final Color cardColor;
   final Color border;
   final Color primary;
@@ -314,7 +353,8 @@ class _LevelProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = totalHabits > 0 ? totalHabits : 1;
     final pct = (completedToday / total * 100).round().clamp(0, 100);
-    final level = (completedToday >= 7 ? 3 : (completedToday >= 3 ? 2 : 1));
+    final resolvedLevel = level ?? (completedToday >= 7 ? 3 : (completedToday >= 3 ? 2 : 1));
+    final resolvedTitle = levelTitle ?? (resolvedLevel >= 3 ? 'Budding Gardener' : (resolvedLevel >= 2 ? 'Growing Seed' : 'New Planter'));
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -352,7 +392,7 @@ class _LevelProgressCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          'LVL $level',
+                          'LVL $resolvedLevel',
                           style: GoogleFonts.dmSans(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
@@ -369,7 +409,7 @@ class _LevelProgressCard extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      level >= 3 ? 'Budding Gardener' : (level >= 2 ? 'Growing Seed' : 'New Planter'),
+                      resolvedTitle,
                       style: GoogleFonts.lora(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -579,14 +619,14 @@ class _DashboardHabitCard extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: iconBg,
+                    color: habitColorFromHex(habit.colorHex, fallback: iconBg).withValues(alpha: 0.25),
                     borderRadius: BorderRadius.circular(AppTheme.radius),
                   ),
                   alignment: Alignment.center,
                   child: Icon(
-                    Icons.eco_outlined,
+                    habitIconFromName(habit.iconName),
                     size: 20,
-                    color: primary,
+                    color: habitColorFromHex(habit.colorHex, fallback: primary),
                   ),
                 ),
                 const SizedBox(width: 16),

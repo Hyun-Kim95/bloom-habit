@@ -123,6 +123,11 @@ export class AiFeedbackService {
       return FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)];
     }
     const habitName = habit?.name ?? '습관';
+    const rawTemplate = await this.config.get('ai_prompt_template');
+    const template =
+      rawTemplate?.trim() ||
+      '사용자가 오늘 "{{habitName}}" 습관을 완료했습니다. 한 문장으로 짧고 따뜻한 격려 한마디만 한국어로 답해 주세요. 이모지 없이.';
+    const content = template.replace(/\{\{habitName\}\}/g, habitName);
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -132,12 +137,7 @@ export class AiFeedbackService {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         max_tokens: 80,
-        messages: [
-          {
-            role: 'user',
-            content: `사용자가 오늘 "${habitName}" 습관을 완료했습니다. 한 문장으로 짧고 따뜻한 격려 한마디만 한국어로 답해 주세요. 이모지 없이.`,
-          },
-        ],
+        messages: [{ role: 'user', content }],
       }),
     });
     if (!res.ok) {

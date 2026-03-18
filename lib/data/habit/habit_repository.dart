@@ -5,6 +5,18 @@ import '../local/entity/local_habit_record.dart';
 import '../local/entity/local_habit.dart';
 import '../../core/network/api_endpoints.dart';
 
+/// 기록 요약 (히스토리 목록용)
+class RecordSummary {
+  const RecordSummary({
+    required this.recordDate,
+    required this.completed,
+    this.recordId,
+  });
+  final String recordDate;
+  final bool completed;
+  final String? recordId;
+}
+
 /// AI 피드백 한 건 (통계 목록용)
 class AiFeedbackItem {
   const AiFeedbackItem({
@@ -31,6 +43,15 @@ class HabitRepository {
 
   final Dio _dio;
   final Future<Isar> _isarFuture;
+
+  /// 회원 탈퇴 등 시 로컬 습관·기록 전체 삭제
+  Future<void> clearAllLocalData() async {
+    final isar = await _isarFuture;
+    await isar.writeTxn(() async {
+      await isar.localHabits.clear();
+      await isar.localHabitRecords.clear();
+    });
+  }
 
   /// 서버에서 풀 후 로컬에 저장
   Future<void> syncFromServer() async {
@@ -153,6 +174,25 @@ class HabitRepository {
     return map;
   }
 
+  /// 지난 N일 동안 습관별 완료한 날 수 (통계 일/주/월용). habitId -> 완료한 날 수.
+  Future<Map<String, int>> getCompletedCountByHabitForDays(int days) async {
+    final isar = await _isarFuture;
+    final end = DateTime.now();
+    final start = end.subtract(Duration(days: days));
+    final records = await isar.localHabitRecords
+        .filter()
+        .recordDateBetween(start, end, includeLower: true, includeUpper: true)
+        .completedEqualTo(true)
+        .findAll();
+    final map = <String, int>{};
+    for (final r in records) {
+      if (r.habitId != null) {
+        map[r.habitId!] = (map[r.habitId!] ?? 0) + 1;
+      }
+    }
+    return map;
+  }
+
   /// 지난 28일 중 완료 기록이 있는 날짜 집합 (히트맵용). 로컬 날짜 기준.
   Future<Set<String>> getLast28DaysCompletedDates() async {
     final isar = await _isarFuture;
@@ -203,6 +243,54 @@ class HabitRepository {
     final local = _habitDtoToLocal(res.data!);
     await isar.writeTxn(() async => isar.localHabits.put(local));
     return local;
+  }
+
+  /// 습관 수정 (API + 로컬 반영)
+  Future<LocalHabit> updateHabit(
+    String serverId, {
+    String? name,
+    String? category,
+    String? goalType,
+    double? goalValue,
+    String? colorHex,
+    String? iconName,
+  }) async {
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (category != null) body['category'] = category;
+    if (goalType != null) body['goalType'] = goalType;
+    if (goalValue != null) body['goalValue'] = goalValue;
+    if (colorHex != null) body['colorHex'] = colorHex;
+    if (iconName != null) body['iconName'] = iconName;
+    final res = await _dio.patch<Map<String, dynamic>>(ApiEndpoints.habits(serverId), data: body);
+    if (res.data == null) throw Exception('Update habit failed');
+    final isar = await _isarFuture;
+    final local = _habitDtoToLocal(res.data!);
+    final existing = await isar.localHabits.getByServerId(serverId);
+    if (existing != null) {
+      local.id = existing.id;
+      local.reminderEnabled = existing.reminderEnabled;
+      local.reminderHour = existing.reminderHour;
+      local.reminderMinute = existing.reminderMinute;
+    }
+    await isar.writeTxn(() async => isar.localHabits.put(local));
+    return local;
+  }
+
+  /// 습관 보관 (API + 로컬에 archivedAt 반영)
+  Future<void> archiveHabit(String serverId) async {
+    final res = await _dio.patch<Map<String, dynamic>>(ApiEndpoints.habitArchive(serverId));
+    if (res.data == null) return;
+    final isar = await _isarFuture;
+    final local = _habitDtoToLocal(res.data!);
+    final existing = await isar.localHabits.getByServerId(serverId);
+    if (existing != null) {
+      local.id = existing.id;
+      local.reminderEnabled = existing.reminderEnabled;
+      local.reminderHour = existing.reminderHour;
+      local.reminderMinute = existing.reminderMinute;
+    }
+    await isar.writeTxn(() async => isar.localHabits.put(local));
   }
 
   /// 습관 삭제 (API + 로컬)
@@ -267,6 +355,71 @@ class HabitRepository {
       return text ?? '오늘도 수고했어요!';
     } catch (_) {
       return '오늘도 수고했어요!';
+    }
+  }
+
+  /// 습관 기록 목록 (서버, 기간 지정)
+  Future<List<RecordSummary>> getRecordHistory(
+    String habitServerId, {
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    String? fromStr = from != null ? _dateString(from) : null;
+    String? toStr = to != null ? _dateString(to) : null;
+    var url = ApiEndpoints.habitRecords(habitServerId);
+    if (fromStr != null || toStr != null) {
+      final q = <String>[];
+      if (fromStr != null) q.add('from=$fromStr');
+      if (toStr != null) q.add('to=$toStr');
+      url = '$url?${q.join('&')}';
+    }
+    final res = await _dio.get<List<dynamic>>(url);
+    if (res.data == null) return [];
+    return (res.data!)
+        .map((e) {
+          final m = e as Map<String, dynamic>?;
+          if (m == null) return null;
+          return RecordSummary(
+            recordDate: m['recordDate'] as String? ?? '',
+            completed: m['completed'] as bool? ?? false,
+            recordId: m['id'] as String?,
+          );
+        })
+        .whereType<RecordSummary>()
+        .toList();
+  }
+
+  /// 기록 수정 (API + 로컬)
+  Future<void> updateRecord(
+    String habitServerId,
+    String recordServerId, {
+    bool? completed,
+    double? value,
+  }) async {
+    final body = <String, dynamic>{};
+    if (completed != null) body['completed'] = completed;
+    if (value != null) body['value'] = value;
+    if (body.isEmpty) return;
+    await _dio.patch<Map<String, dynamic>>(
+      ApiEndpoints.habitRecords(habitServerId, recordServerId),
+      data: body,
+    );
+    final isar = await _isarFuture;
+    final existing = await isar.localHabitRecords.getByServerId(recordServerId);
+    if (existing != null) {
+      if (completed != null) existing.completed = completed;
+      if (value != null) existing.value = value;
+      await isar.writeTxn(() async => isar.localHabitRecords.put(existing));
+    }
+  }
+
+  /// 기록 삭제 (API + 로컬)
+  Future<void> deleteRecord(String habitServerId, String recordServerId) async {
+    await _dio.delete(ApiEndpoints.habitRecords(habitServerId, recordServerId));
+    final isar = await _isarFuture;
+    final existing = await isar.localHabitRecords.getByServerId(recordServerId);
+    if (existing != null) {
+      await isar.writeTxn(() async => isar.localHabitRecords.delete(existing.id));
     }
   }
 

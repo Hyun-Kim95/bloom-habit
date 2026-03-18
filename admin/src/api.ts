@@ -56,6 +56,15 @@ export const api = {
       }[]
     >('/admin/users'),
   getStats: () => request<{ totalUsers: number; totalHabits: number; totalRecords: number }>('/admin/stats'),
+  getStatsOverTime: (from?: string, to?: string) => {
+    const params = new URLSearchParams()
+    if (from) params.set('from', from)
+    if (to) params.set('to', to)
+    const q = params.toString()
+    return request<{ period: string; newUsers: number; newHabits: number; newRecords: number }[]>(
+      `/admin/stats/over-time${q ? `?${q}` : ''}`
+    )
+  },
   getTemplates: () => request<{ id: string; name: string; category?: string; goalType: string; isActive: boolean }[]>('/admin/habit-templates'),
   createTemplate: (body: { name: string; category?: string; goalType?: string }) =>
     request('/admin/habit-templates', { method: 'POST', body: JSON.stringify(body) }),
@@ -73,4 +82,33 @@ export const api = {
   getConfig: () => request<Record<string, string>>('/admin/system-config'),
   patchConfig: (body: Record<string, string>) =>
     request('/admin/system-config', { method: 'PATCH', body: JSON.stringify(body) }),
+
+  getInquiries: () =>
+    request<{
+      id: string
+      userId: string
+      userEmail: string | null
+      userDisplayName: string | null
+      subject: string
+      body: string
+      status: string
+      adminReply: string | null
+      repliedAt: string | null
+      createdAt: string
+      updatedAt: string
+    }[]>('/admin/inquiries'),
+  updateInquiryReply: (id: string, body: { adminReply?: string; status?: string }) =>
+    request<{
+      id: string
+      userId: string
+      userEmail: string | null
+      userDisplayName: string | null
+      subject: string
+      body: string
+      status: string
+      adminReply: string | null
+      repliedAt: string | null
+      createdAt: string
+      updatedAt: string
+    }>(`/admin/inquiries/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
 };

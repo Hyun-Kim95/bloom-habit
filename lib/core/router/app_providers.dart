@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:isar/isar.dart';
 
 import '../auth/auth_repository.dart';
+import '../settings/app_settings.dart';
 import '../auth/token_storage.dart';
 import '../network/api_client.dart';
 import '../network/api_config_stub.dart'
@@ -10,6 +12,7 @@ import '../network/api_config_stub.dart'
 import '../../data/local/isar_provider.dart';
 import '../../data/sync/sync_repository.dart';
 import '../../data/habit/habit_repository.dart';
+import '../../data/inquiries/inquiry_repository.dart';
 
 final _tokenStorageProvider = Provider<TokenStorage>((ref) => TokenStorage());
 
@@ -56,3 +59,14 @@ final habitRepositoryProvider = Provider<HabitRepository>((ref) {
 
 /// 습관 추가/수정 후 홈 목록 갱신용 (값이 바뀌면 HomeScreen이 _load 호출)
 final homeRefreshTriggerProvider = StateProvider<int>((ref) => 0);
+
+/// 문의 (게시판)
+final inquiryRepositoryProvider = Provider<InquiryRepository>((ref) {
+  return InquiryRepository(dio: ref.watch(apiClientProvider).dio);
+});
+
+/// 앱 전역 설정 (알림/사운드/햅틱)
+final appSettingsProvider = FutureProvider<AppSettings>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  return AppSettings(prefs);
+});

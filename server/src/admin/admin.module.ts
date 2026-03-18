@@ -6,15 +6,16 @@ import { AdminAuthService } from './admin-auth.service';
 import { AdminController } from './admin.controller';
 import { AdminDataService } from './admin-data.service';
 import { AdminGuard } from './admin.guard';
-import { AdminUser, HabitTemplate, Notice, SystemConfig } from '../entities';
+import { AdminStatsService } from './admin-stats.service';
+import { AdminUser, HabitTemplate, Inquiry, Notice, SystemConfig, User, Habit, HabitRecord } from '../entities';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AdminUser, HabitTemplate, Notice, SystemConfig]),
+    TypeOrmModule.forFeature([AdminUser, HabitTemplate, Inquiry, Notice, SystemConfig, User, Habit, HabitRecord]),
     AuthModule,
     HabitsModule,
   ],
   controllers: [AdminController],
-  providers: [AdminAuthService, AdminDataService, AdminGuard],
+  providers: [AdminAuthService, AdminDataService, AdminGuard, AdminStatsService],
 })
 export class AdminModule {}
