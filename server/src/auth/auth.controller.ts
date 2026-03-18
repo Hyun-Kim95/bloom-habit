@@ -6,7 +6,14 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('google')
-  async google(@Body() body: { idToken: string }) {
+  async google(
+    @Body()
+    body: {
+      idToken: string;
+      email?: string;
+      displayName?: string;
+    },
+  ) {
     return this.auth.loginGoogle(body);
   }
 

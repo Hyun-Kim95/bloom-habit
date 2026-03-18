@@ -32,7 +32,24 @@ export class AdminController {
   @Get('users')
   @UseGuards(AdminGuard)
   async users() {
-    return this.auth.getAppUsers();
+    const list = await this.auth.getAppUsers();
+    const userIds = list.map((u) => u.id);
+    const statsMap = await this.habits.getUserStatsMap(userIds);
+    return list.map((u) => {
+      const s = statsMap[u.id] ?? { habitCount: 0, totalRecords: 0, completedRecords: 0 };
+      const completionRatePercent =
+        s.totalRecords > 0 ? Math.round((s.completedRecords / s.totalRecords) * 100) : null;
+      return {
+        id: u.id,
+        email: u.email,
+        displayName: u.displayName,
+        createdAt: u.createdAt,
+        habitCount: s.habitCount,
+        totalRecords: s.totalRecords,
+        completedRecords: s.completedRecords,
+        completionRatePercent,
+      };
+    });
   }
 
   @Get('stats')

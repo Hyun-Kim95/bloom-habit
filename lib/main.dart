@@ -9,11 +9,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final notif = NotificationService();
   await notif.init();
-  final enabled = await notif.isEnabled();
-  if (enabled) {
-    final time = await notif.getScheduledTime();
-    await notif.scheduleDaily(time.hour, time.minute);
-  }
   runApp(
     const ProviderScope(
       child: BloomHabitApp(),

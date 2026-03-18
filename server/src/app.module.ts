@@ -1,9 +1,12 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { DbRetryInterceptor } from './common/db-retry.interceptor';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
+import { ConfigModule } from './config/config.module';
 import { HabitsModule } from './habits/habits.module';
 import { SyncModule } from './sync/sync.module';
 import {
@@ -19,6 +22,7 @@ import {
 
 @Module({
   imports: [
+    ConfigModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
@@ -33,7 +37,11 @@ import {
         AiFeedbackLog,
       ],
       synchronize: process.env.NODE_ENV !== 'production',
-      extra: { connectionTimeoutMillis: 10000 },
+      extra: {
+        connectionTimeoutMillis: 15000,
+        idleTimeoutMillis: 30000,
+        keepAlive: true,
+      },
     }),
     AuthModule,
     HabitsModule,
@@ -41,6 +49,9 @@ import {
     AdminModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_INTERCEPTOR, useClass: DbRetryInterceptor },
+  ],
 })
 export class AppModule {}

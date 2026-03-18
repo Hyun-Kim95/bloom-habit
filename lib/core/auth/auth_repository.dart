@@ -38,9 +38,15 @@ class AuthRepository {
       final idToken = auth.idToken;
       if (idToken == null) return AuthResult.fail('ID token 없음');
 
+      final email = account.email;
+      final displayName = account.displayName;
       final res = await _api.dio.post<Map<String, dynamic>>(
         ApiEndpoints.authGoogle,
-        data: {'idToken': idToken},
+        data: {
+          'idToken': idToken,
+          if (email.isNotEmpty) 'email': email,
+          if (displayName != null && displayName.isNotEmpty) 'displayName': displayName,
+        },
       );
       return await _handleAuthResponse(res);
     } on PlatformException catch (e) {

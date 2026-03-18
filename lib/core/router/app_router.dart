@@ -11,8 +11,8 @@ import '../../features/home/presentation/home_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/statistics/presentation/statistics_screen.dart';
-import '../../features/notification_settings/presentation/notification_settings_screen.dart';
 import 'app_providers.dart';
+import 'main_shell.dart';
 
 /// 라우트 경로
 class AppRoutes {
@@ -24,7 +24,6 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String account = '/account';
   static const String statistics = '/statistics';
-  static const String notificationSettings = '/settings/notifications';
 }
 
 GoRouter createAppRouter(WidgetRef ref) {
@@ -34,8 +33,12 @@ GoRouter createAppRouter(WidgetRef ref) {
     redirect: (BuildContext context, GoRouterState state) async {
       final restored = await ref.read(sessionRestoredProvider.future);
       final path = state.uri.path;
-      if (restored && (path == AppRoutes.onboarding || path == AppRoutes.login)) {
+      final isPublic = path == AppRoutes.onboarding || path == AppRoutes.login;
+      if (restored && isPublic) {
         return AppRoutes.home;
+      }
+      if (!restored && !isPublic) {
+        return AppRoutes.login;
       }
       return null;
     },
@@ -48,13 +51,48 @@ GoRouter createAppRouter(WidgetRef ref) {
         path: AppRoutes.login,
         builder: (_, __) => const LoginScreen(),
       ),
-      GoRoute(
-        path: AppRoutes.home,
-        builder: (_, __) => const HomeScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.habitCreate,
-        builder: (_, __) => const HabitCreateScreen(),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return MainShell(navigationShell: navigationShell);
+        },
+        branches: [
+          StatefulShellBranch(
+            initialLocation: AppRoutes.home,
+            routes: [
+              GoRoute(
+                path: AppRoutes.home,
+                builder: (_, __) => const HomeScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            initialLocation: AppRoutes.habitCreate,
+            routes: [
+              GoRoute(
+                path: AppRoutes.habitCreate,
+                builder: (_, __) => const HabitCreateScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            initialLocation: AppRoutes.statistics,
+            routes: [
+              GoRoute(
+                path: AppRoutes.statistics,
+                builder: (_, __) => const StatisticsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            initialLocation: AppRoutes.settings,
+            routes: [
+              GoRoute(
+                path: AppRoutes.settings,
+                builder: (_, __) => const SettingsScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
       GoRoute(
         path: '${AppRoutes.habitDetail}/:id',
@@ -65,20 +103,8 @@ GoRouter createAppRouter(WidgetRef ref) {
         },
       ),
       GoRoute(
-        path: AppRoutes.settings,
-        builder: (_, __) => const SettingsScreen(),
-      ),
-      GoRoute(
         path: AppRoutes.account,
         builder: (_, __) => const AccountScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.statistics,
-        builder: (_, __) => const StatisticsScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.notificationSettings,
-        builder: (_, __) => const NotificationSettingsScreen(),
       ),
     ],
     errorBuilder: (_, state) => Scaffold(

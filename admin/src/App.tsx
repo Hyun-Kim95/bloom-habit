@@ -2,6 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Layout from './Layout'
 import Dashboard from './pages/Dashboard'
+import HabitCategories from './pages/HabitCategories'
 import HabitTemplates from './pages/HabitTemplates'
 import Login from './pages/Login'
 import Notices from './pages/Notices'
@@ -45,6 +46,7 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="users" element={<Users />} />
           <Route path="habit-templates" element={<HabitTemplates />} />
+          <Route path="habit-categories" element={<HabitCategories />} />
           <Route path="notices" element={<Notices />} />
           <Route path="system-config" element={<SystemConfig />} />
         </Route>

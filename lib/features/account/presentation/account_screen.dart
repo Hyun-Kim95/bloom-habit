@@ -68,7 +68,9 @@ class AccountScreen extends ConsumerWidget {
             child: OutlinedButton.icon(
               onPressed: () async {
                 await ref.read(authRepositoryProvider).logout();
-                if (context.mounted) context.go(AppRoutes.login);
+                if (!context.mounted) return;
+                ref.invalidate(sessionRestoredProvider);
+                context.go(AppRoutes.login);
               },
               icon: const Icon(Icons.logout, size: 20),
               label: const Text('로그아웃'),

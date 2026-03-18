@@ -1,6 +1,20 @@
 # 관리자 API 사용 방법
 
-관리자 기능은 **API만** 제공됩니다. Flutter 앱에는 관리자 화면이 없고, **브라우저나 Postman/curl**로 호출해서 확인할 수 있습니다.
+관리자 **웹 UI**가 `admin/` 폴더에 있습니다. (Vite + React)  
+API만 쓰려면 **브라우저 개발자 도구, Postman, curl**로 호출하면 됩니다.
+
+---
+
+## 0. 관리자 웹 UI로 사용 (권장)
+
+```bash
+cd admin
+npm install
+npm run dev
+```
+
+브라우저에서 `http://localhost:5173` 접속 후 로그인.  
+(서버 `http://localhost:3000` 실행 중이어야 함. `VITE_API_BASE`로 변경 가능)
 
 ---
 

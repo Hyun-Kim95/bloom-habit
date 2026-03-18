@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
+import '../../../data/habit/habit_repository.dart';
 import '../../../data/local/entity/local_habit.dart';
 
 class StatisticsScreen extends ConsumerStatefulWidget {
@@ -17,6 +18,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
   List<LocalHabit> _habits = [];
   Map<String, int> _streaks = {};
   Map<String, bool> _todayCompleted = {};
+  List<AiFeedbackItem> _aiFeedback = [];
   bool _loading = true;
 
   @override
@@ -36,11 +38,13 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         streaks[h.serverId!] = await repo.getStreakDays(h.serverId!);
       }
     }
+    final aiFeedback = await repo.getAiFeedbackList(limit: 20);
     if (mounted) {
       setState(() {
         _habits = habits;
         _todayCompleted = completed;
         _streaks = streaks;
+        _aiFeedback = aiFeedback;
         _loading = false;
       });
     }
@@ -100,6 +104,64 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                       ),
                     ),
                   ),
+                  if (_aiFeedback.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    Text(
+                      'AI 피드백',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ..._aiFeedback.take(20).map((f) {
+                      final dateStr = f.recordDate.length >= 10
+                          ? f.recordDate
+                          : f.createdAt.length >= 10
+                              ? f.createdAt.substring(0, 10)
+                              : f.recordDate;
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    f.habitName,
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    dateStr,
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 12,
+                                      color: AppColors.mutedForeground,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                f.responseText,
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 15,
+                                  color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
                   const SizedBox(height: 24),
                   Text(
                     '습관별 연속일',

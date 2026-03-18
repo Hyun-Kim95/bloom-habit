@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/notifications/notification_service.dart';
 
 class HabitCreateScreen extends ConsumerStatefulWidget {
   const HabitCreateScreen({super.key});
@@ -16,14 +17,30 @@ class HabitCreateScreen extends ConsumerStatefulWidget {
 
 class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
   final _nameController = TextEditingController();
-  final _categoryController = TextEditingController();
   bool _loading = false;
   String? _error;
+  bool _reminderEnabled = false;
+  int _reminderHour = 9;
+  int _reminderMinute = 0;
+  List<String> _categories = [];
+  String? _selectedCategory;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final list = await ref.read(habitRepositoryProvider).getHabitCategories();
+      if (mounted) setState(() => _categories = list);
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _categoryController.dispose();
     super.dispose();
   }
 
@@ -33,21 +50,37 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
       setState(() => _error = '습관명을 입력하세요');
       return;
     }
+    if (_reminderEnabled) {
+      final granted = await NotificationService().requestPermission();
+      if (!granted && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('알림 권한이 필요합니다. 설정에서 허용해 주세요.')),
+        );
+        return;
+      }
+    }
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      await ref.read(habitRepositoryProvider).createHabit(
+      final created = await ref.read(habitRepositoryProvider).createHabit(
             name: name,
-            category: _categoryController.text.trim().isEmpty
-                ? null
-                : _categoryController.text.trim(),
+            category: _selectedCategory?.trim().isEmpty == true ? null : _selectedCategory,
             startDate: DateTime.now(),
           );
-      if (mounted) {
+      if (mounted && created.serverId != null) {
+        if (_reminderEnabled) {
+          await ref.read(habitRepositoryProvider).updateLocalReminder(
+                serverId: created.serverId!,
+                enabled: true,
+                hour: _reminderHour,
+                minute: _reminderMinute,
+              );
+          final habits = await ref.read(habitRepositoryProvider).getActiveHabits();
+          await NotificationService().rescheduleFromHabits(habits);
+        }
         ref.read(homeRefreshTriggerProvider.notifier).state++;
-        context.pop();
         context.go(AppRoutes.home);
       }
     } catch (e) {
@@ -110,12 +143,93 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            TextField(
-              controller: _categoryController,
-              decoration: const InputDecoration(
-                hintText: '예: 건강',
+            DropdownButtonFormField<String?>(
+              value: _selectedCategory,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radius)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radius),
+                  borderSide: BorderSide(color: AppColors.input),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
-              textInputAction: TextInputAction.done,
+              hint: Text(
+                '선택 안 함',
+                style: GoogleFonts.dmSans(color: AppColors.mutedForeground),
+              ),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('선택 안 함'),
+                ),
+                ..._categories.map(
+                  (c) => DropdownMenuItem<String?>(
+                    value: c,
+                    child: Text(c, style: GoogleFonts.dmSans()),
+                  ),
+                ),
+              ],
+              onChanged: (v) => setState(() => _selectedCategory = v),
+            ),
+            const SizedBox(height: 24),
+            Card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SwitchListTile(
+                    value: _reminderEnabled,
+                    onChanged: _loading
+                        ? null
+                        : (v) => setState(() => _reminderEnabled = v),
+                    title: Text(
+                      '리마인더 알림',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '매일 설정한 시간에 이 습관 알림',
+                      style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
+                    ),
+                    activeColor: AppColors.primary,
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.schedule, color: AppColors.primary),
+                    title: Text(
+                      '알림 시간',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+                      ),
+                    ),
+                    trailing: Text(
+                      '${_reminderHour.toString().padLeft(2, '0')}:${_reminderMinute.toString().padLeft(2, '0')}',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    onTap: _reminderEnabled
+                        ? () async {
+                            final picked = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay(hour: _reminderHour, minute: _reminderMinute),
+                            );
+                            if (picked != null && mounted) {
+                              setState(() {
+                                _reminderHour = picked.hour;
+                                _reminderMinute = picked.minute;
+                              });
+                            }
+                          }
+                        : null,
+                  ),
+                ],
+              ),
             ),
             if (_error != null) ...[
               const SizedBox(height: 16),

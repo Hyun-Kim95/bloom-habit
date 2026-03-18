@@ -6,6 +6,7 @@ abstract class ApiEndpoints {
   static const String authLogout = '/auth/logout';
 
   static const String me = '/me';
+  static const String habitCategories = '/habits/categories';
   static String habits([String? id]) => id == null ? '/habits' : '/habits/$id';
   static String habitRecords(String habitId, [String? recordId]) =>
       recordId == null
@@ -15,6 +16,8 @@ abstract class ApiEndpoints {
   static const String meLevel = '/me/level';
   static String aiFeedback(String habitId, String recordId) =>
       '/habits/$habitId/records/$recordId/ai-feedback';
+  static String aiFeedbackList([int? limit]) =>
+      limit != null ? '/habits/ai-feedback?limit=$limit' : '/habits/ai-feedback';
   static const String notificationSettings = '/notification-settings';
   static const String sync = '/sync';
   static const String syncPush = '/sync/push';

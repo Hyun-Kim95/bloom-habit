@@ -5,6 +5,22 @@ import '../local/entity/local_habit_record.dart';
 import '../local/entity/local_habit.dart';
 import '../../core/network/api_endpoints.dart';
 
+/// AI 피드백 한 건 (통계 목록용)
+class AiFeedbackItem {
+  const AiFeedbackItem({
+    required this.habitId,
+    required this.habitName,
+    required this.recordDate,
+    required this.responseText,
+    required this.createdAt,
+  });
+  final String habitId;
+  final String habitName;
+  final String recordDate;
+  final String responseText;
+  final String createdAt;
+}
+
 /// 습관·기록 API + 로컬 Isar (로그인 후 sync 풀, CRUD는 API 호출 후 로컬 반영)
 class HabitRepository {
   HabitRepository({
@@ -41,7 +57,12 @@ class HabitRepository {
             ..updatedAt = _parseDateTime(map['updatedAt']);
           if (local.serverId != null) {
             final existing = await isar.localHabits.getByServerId(local.serverId);
-            if (existing != null) local.id = existing.id;
+            if (existing != null) {
+              local.id = existing.id;
+              local.reminderEnabled = existing.reminderEnabled;
+              local.reminderHour = existing.reminderHour;
+              local.reminderMinute = existing.reminderMinute;
+            }
             await isar.localHabits.put(local);
           }
         }
@@ -68,6 +89,17 @@ class HabitRepository {
     });
   }
 
+  /// 습관 카테고리 목록 (관리자에서 설정, 앱에서 선택용)
+  Future<List<String>> getHabitCategories() async {
+    final res = await _dio.get<dynamic>(ApiEndpoints.habitCategories);
+    if (res.data is! List) return [];
+    return (res.data as List)
+        .map((e) => e?.toString().trim())
+        .where((s) => s != null && s.isNotEmpty)
+        .cast<String>()
+        .toList();
+  }
+
   /// 활성 습관 목록 (로컬)
   Future<List<LocalHabit>> getActiveHabits() async {
     final isar = await _isarFuture;
@@ -75,6 +107,28 @@ class HabitRepository {
         .filter()
         .archivedAtIsNull()
         .findAll();
+  }
+
+  /// serverId로 습관 한 건 조회 (로컬)
+  Future<LocalHabit?> getHabitByServerId(String serverId) async {
+    final isar = await _isarFuture;
+    return isar.localHabits.getByServerId(serverId);
+  }
+
+  /// 습관별 리마인더 알림 설정만 로컬 갱신 (서버 미동기화)
+  Future<void> updateLocalReminder({
+    required String serverId,
+    required bool enabled,
+    int? hour,
+    int? minute,
+  }) async {
+    final isar = await _isarFuture;
+    final existing = await isar.localHabits.getByServerId(serverId);
+    if (existing == null) return;
+    existing.reminderEnabled = enabled;
+    existing.reminderHour = hour;
+    existing.reminderMinute = minute;
+    await isar.writeTxn(() async => isar.localHabits.put(existing));
   }
 
   /// 오늘 날짜 문자열 (YYYY-MM-DD)
@@ -97,6 +151,27 @@ class HabitRepository {
       if (r.habitId != null) map[r.habitId!] = true;
     }
     return map;
+  }
+
+  /// 지난 28일 중 완료 기록이 있는 날짜 집합 (히트맵용). 로컬 날짜 기준.
+  Future<Set<String>> getLast28DaysCompletedDates() async {
+    final isar = await _isarFuture;
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 27));
+    final end = DateTime(now.year, now.month, now.day);
+    final records = await isar.localHabitRecords
+        .filter()
+        .recordDateBetween(start, end, includeLower: true, includeUpper: true)
+        .completedEqualTo(true)
+        .findAll();
+    final set = <String>{};
+    for (final r in records) {
+      if (r.recordDate != null) {
+        final d = r.recordDate!.toLocal();
+        set.add(_dateString(DateTime(d.year, d.month, d.day)));
+      }
+    }
+    return set;
   }
 
   /// 습관 생성 (API + 로컬)
@@ -156,6 +231,30 @@ class HabitRepository {
       isar.localHabitRecords.put(local);
     });
     return local;
+  }
+
+  /// 통계용: 최근 AI 피드백 목록 (습관명·날짜·코멘트)
+  Future<List<AiFeedbackItem>> getAiFeedbackList({int limit = 30}) async {
+    try {
+      final res = await _dio.get<List<dynamic>>(ApiEndpoints.aiFeedbackList(limit));
+      if (res.data == null) return [];
+      return (res.data!)
+          .map((e) {
+            final m = e as Map<String, dynamic>?;
+            if (m == null) return null;
+            return AiFeedbackItem(
+              habitId: m['habitId'] as String? ?? '',
+              habitName: m['habitName'] as String? ?? '',
+              recordDate: m['recordDate'] as String? ?? '',
+              responseText: m['responseText'] as String? ?? '',
+              createdAt: _parseDateTime(m['createdAt'])?.toIso8601String() ?? '',
+            );
+          })
+          .whereType<AiFeedbackItem>()
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   /// AI 코멘트 요청 (기록 완료 직후). 실패/429 시 fallback 반환.

@@ -30,7 +30,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() => _loading = false);
       if (result.cancelled) return;
       if (result.isSuccess) {
-        // 다음 프레임에 이동해 빌드/저장 완료 후 네비게이션 (멈춤·ANR 방지)
+        ref.invalidate(sessionRestoredProvider);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           context.go(AppRoutes.home);
@@ -60,6 +60,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() => _loading = false);
       if (result.cancelled) return;
       if (result.isSuccess) {
+        ref.invalidate(sessionRestoredProvider);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           context.go(AppRoutes.home);

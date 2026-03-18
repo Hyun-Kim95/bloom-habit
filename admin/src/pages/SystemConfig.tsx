@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 
+const KNOWN_KEYS = {
+  ai_fallback_messages: 'AI Fallback 문구 (JSON 배열, 한 줄에 하나)',
+  ai_daily_limit: '일일 AI 코멘트 호출 상한 (회원당, 숫자)',
+  app_jwt_expires_seconds: '앱 JWT 만료 시간 (초, 예: 604800=7일)',
+} as const
+
 export default function SystemConfig() {
   const [config, setConfig] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const [aiFallback, setAiFallback] = useState('')
+  const [aiDailyLimit, setAiDailyLimit] = useState('30')
+  const [appJwtExpires, setAppJwtExpires] = useState('604800')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -16,6 +24,8 @@ export default function SystemConfig() {
       } catch {
         setAiFallback('')
       }
+      setAiDailyLimit(c.ai_daily_limit ?? '30')
+      setAppJwtExpires(c.app_jwt_expires_seconds ?? '604800')
     }).catch((e) => setError(e.message))
   }, [])
 
@@ -23,8 +33,13 @@ export default function SystemConfig() {
     setSaving(true)
     try {
       const lines = aiFallback.split('\n').map((s) => s.trim()).filter(Boolean)
-      await api.patchConfig({ ai_fallback_messages: JSON.stringify(lines) })
-      setConfig((prev) => ({ ...prev, ai_fallback_messages: JSON.stringify(lines) }))
+      const body: Record<string, string> = {
+        ai_fallback_messages: JSON.stringify(lines),
+        ai_daily_limit: aiDailyLimit.trim() || '30',
+        app_jwt_expires_seconds: appJwtExpires.trim() || '604800',
+      }
+      await api.patchConfig(body)
+      setConfig((prev) => ({ ...prev, ...body }))
     } catch (e) {
       setError(e instanceof Error ? e.message : '저장 실패')
     } finally {
@@ -41,7 +56,7 @@ export default function SystemConfig() {
       <div className="rounded-lg border border-border bg-card p-4 space-y-4">
         <div>
           <label className="block text-sm font-medium text-foreground">
-            AI Fallback 문구 (한 줄에 하나)
+            {KNOWN_KEYS.ai_fallback_messages}
           </label>
           <textarea
             value={aiFallback}
@@ -50,6 +65,37 @@ export default function SystemConfig() {
             rows={6}
             placeholder="오늘도 수고했어요!&#10;꾸준함이 쌓여가고 있어요."
           />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium text-foreground">
+              {KNOWN_KEYS.ai_daily_limit}
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={999}
+              value={aiDailyLimit}
+              onChange={(e) => setAiDailyLimit(e.target.value)}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground">
+              {KNOWN_KEYS.app_jwt_expires_seconds}
+            </label>
+            <input
+              type="number"
+              min={3600}
+              value={appJwtExpires}
+              onChange={(e) => setAppJwtExpires(e.target.value)}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
+              placeholder="604800"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              604800=7일, 86400=1일
+            </p>
+          </div>
         </div>
         <button
           type="button"
@@ -62,10 +108,13 @@ export default function SystemConfig() {
       </div>
 
       <div className="rounded-lg border border-border bg-card p-4">
-        <h3 className="text-sm font-medium text-foreground mb-2">현재 설정 키</h3>
+        <h3 className="text-sm font-medium text-foreground mb-2">설정값 관리 범위</h3>
+        <p className="text-sm text-muted-foreground mb-2">
+          위 항목은 서버에서 즉시 반영됩니다. (JWT 만료: 다음 로그인부터, AI 상한: 즉시)
+        </p>
         <ul className="text-sm text-muted-foreground space-y-1">
-          {Object.keys(config).map((k) => (
-            <li key={k}>{k}</li>
+          {Object.entries(KNOWN_KEYS).map(([k, label]) => (
+            <li key={k}><span className="font-mono">{k}</span> — {label}</li>
           ))}
         </ul>
       </div>

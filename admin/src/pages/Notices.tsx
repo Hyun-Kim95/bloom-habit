@@ -9,6 +9,10 @@ export default function Notices() {
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [loading, setLoading] = useState(false)
+  const [editing, setEditing] = useState<Notice | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editBody, setEditBody] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
 
   const load = () => api.getNotices().then(setList).catch((e) => setError(e.message))
 
@@ -29,6 +33,27 @@ export default function Notices() {
       setError(e instanceof Error ? e.message : '생성 실패')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const startEdit = (n: Notice) => {
+    setEditing(n)
+    setEditTitle(n.title)
+    setEditBody(n.body)
+  }
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editing) return
+    setEditSaving(true)
+    try {
+      await api.updateNotice(editing.id, { title: editTitle.trim(), body: editBody.trim() })
+      setEditing(null)
+      load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '수정 실패')
+    } finally {
+      setEditSaving(false)
     }
   }
 
@@ -75,6 +100,48 @@ export default function Notices() {
         </button>
       </form>
 
+      {editing && (
+        <form
+          onSubmit={saveEdit}
+          className="space-y-3 rounded-lg border border-border bg-card p-4"
+        >
+          <h3 className="text-sm font-medium text-foreground">공지 수정</h3>
+          <div>
+            <label className="block text-xs text-muted-foreground">제목</label>
+            <input
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-muted-foreground">본문</label>
+            <textarea
+              value={editBody}
+              onChange={(e) => setEditBody(e.target.value)}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
+              rows={3}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={editSaving}
+              className="rounded-md bg-primary px-4 py-2 text-primary-foreground text-sm"
+            >
+              저장
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(null)}
+              className="rounded-md border border-border px-4 py-2 text-sm"
+            >
+              취소
+            </button>
+          </div>
+        </form>
+      )}
+
       <div className="space-y-2">
         {list.map((n) => (
           <div
@@ -85,13 +152,22 @@ export default function Notices() {
               <h3 className="font-medium text-foreground">{n.title}</h3>
               <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{n.body}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => remove(n.id)}
-              className="text-destructive hover:underline text-sm"
-            >
-              삭제
-            </button>
+            <div className="flex gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => startEdit(n)}
+                className="text-muted-foreground hover:text-foreground text-sm"
+              >
+                수정
+              </button>
+              <button
+                type="button"
+                onClick={() => remove(n.id)}
+                className="text-destructive hover:underline text-sm"
+              >
+                삭제
+              </button>
+            </div>
           </div>
         ))}
         {list.length === 0 && <p className="text-muted-foreground">공지가 없습니다.</p>}

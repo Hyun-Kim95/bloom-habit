@@ -42,7 +42,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  getUsers: () => request<{ id: string; email: string | null; displayName: string | null }[]>('/admin/users'),
+  getUsers: () =>
+    request<
+      {
+        id: string
+        email: string | null
+        displayName: string | null
+        createdAt: string
+        habitCount: number
+        totalRecords: number
+        completedRecords: number
+        completionRatePercent: number | null
+      }[]
+    >('/admin/users'),
   getStats: () => request<{ totalUsers: number; totalHabits: number; totalRecords: number }>('/admin/stats'),
   getTemplates: () => request<{ id: string; name: string; category?: string; goalType: string; isActive: boolean }[]>('/admin/habit-templates'),
   createTemplate: (body: { name: string; category?: string; goalType?: string }) =>

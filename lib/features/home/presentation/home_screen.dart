@@ -2,11 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/notifications/notification_service.dart';
 import '../../../data/local/entity/local_habit.dart';
+
+/// Figma Home Dashboard (New Style) 색상
+class _DashboardColors {
+  static const Color background = Color(0xFFF0F8FF);
+  static const Color primary = Color(0xFF22C55E);
+  static const Color border = Color(0xFFD9DFE4);
+  static const Color text = Color(0xFF374151);
+  static const Color textMuted = Color(0xFF6B727E);
+  static const Color progressTrack = Color(0xFFE6ECF2);
+  static const Color iconBg = Color(0xFFDCE9DE);
+  static const Color card = Color(0xFFFFFFFF);
+}
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -16,15 +30,23 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  static bool _remindersRescheduled = false;
+
   List<LocalHabit> _habits = [];
   Map<String, bool> _todayCompleted = {};
+  Set<String> _heatmapDates = {};
   bool _loading = true;
   String? _error;
+
+  Future<void> _rescheduleRemindersOnce(List<LocalHabit> habits) async {
+    if (_remindersRescheduled) return;
+    _remindersRescheduled = true;
+    await NotificationService().rescheduleFromHabits(habits);
+  }
 
   @override
   void initState() {
     super.initState();
-    // 첫 프레임 그린 뒤 sync 시작 (로딩 UI가 보이도록, ANR 방지)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _load();
     });
@@ -42,12 +64,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (!mounted) return;
       final habits = await repo.getActiveHabits();
       final completed = await repo.getTodayCompletedByHabit();
+      final heatmapDates = await repo.getLast28DaysCompletedDates();
       if (mounted) {
         setState(() {
           _habits = habits;
           _todayCompleted = completed;
+          _heatmapDates = heatmapDates;
           _loading = false;
         });
+        _rescheduleRemindersOnce(habits);
       }
     } catch (e) {
       if (mounted) {
@@ -68,101 +93,116 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 습관 추가/수정 후 돌아왔을 때 목록 다시 불러오기
     ref.listen<int>(homeRefreshTriggerProvider, (prev, next) {
       if (prev != null && next != prev && mounted) _load();
     });
 
-    final dateStr = _formatDate(DateTime.now());
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? AppColors.backgroundDark : _DashboardColors.background;
+    final primary = isDark ? AppColors.primaryDark : _DashboardColors.primary;
+    final text = isDark ? AppColors.foregroundDark : _DashboardColors.text;
+    final textMuted = isDark ? AppColors.mutedForeground : _DashboardColors.textMuted;
+    final cardColor = isDark ? AppColors.cardDark : _DashboardColors.card;
+    final border = isDark ? AppColors.borderDark : _DashboardColors.border;
+    final progressTrack = isDark ? AppColors.mutedDark : _DashboardColors.progressTrack;
+    final iconBg = isDark ? AppColors.accent : _DashboardColors.iconBg;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
-      appBar: AppBar(
-        title: Text(
-          '오늘의 습관',
-          style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.push(AppRoutes.settings),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        color: AppColors.primary,
-        child: _loading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-            : _error != null
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            _error!,
-                            style: GoogleFonts.dmSans(
-                              fontSize: 14,
-                              color: AppColors.destructive,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          FilledButton(
-                            onPressed: _load,
-                            child: const Text('다시 시도'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-                    children: [
-                      Text(
-                        dateStr,
-                        style: GoogleFonts.dmSans(
-                          fontSize: 15,
-                          color: AppColors.mutedForeground,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      if (_habits.isEmpty)
-                        _EmptyHabitsCard()
-                      else
-                        ..._habits.map((h) => _HabitCard(
-                              habit: h,
-                              completed: _todayCompleted[h.serverId] ?? false,
-                              onTap: () => context.push(
-                                '${AppRoutes.habitDetail}/${h.serverId}',
-                                extra: h,
+      backgroundColor: bg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _TopBar(
+              onShare: () => Share.share(
+                'Bloom Habit - 오늘의 습관을 함께 쌓아가요 🌱',
+                subject: 'Bloom Habit',
+              ),
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _load,
+                color: primary,
+                child: _loading
+                    ? const Center(
+                        child: CircularProgressIndicator(color: AppColors.primary),
+                      )
+                    : _error != null
+                        ? _ErrorBody(error: _error!, onRetry: _load)
+                        : ListView(
+                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+                            children: [
+                              _LevelProgressCard(
+                                completedToday: _todayCompleted.length,
+                                totalHabits: _habits.length,
+                                cardColor: cardColor,
+                                border: border,
+                                primary: primary,
+                                text: text,
+                                textMuted: textMuted,
+                                progressTrack: progressTrack,
+                                iconBg: iconBg,
                               ),
-                              onRecord: () async {
-                                try {
-                                  final repo = ref.read(habitRepositoryProvider);
-                                  final record = await repo.recordToday(h.serverId!);
-                                  final comment = await repo.requestAiFeedback(
-                                    h.serverId!,
-                                    record.serverId ?? '',
-                                  );
-                                  if (!context.mounted) return;
-                                  _load();
-                                  await _showAiCommentDialog(context, comment);
-                                } catch (_) {}
-                              },
-                            )),
-                    ],
-                  ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push(AppRoutes.habitCreate),
-        child: const Icon(Icons.add),
+                              const SizedBox(height: 24),
+                              _TodaySection(
+                                habits: _habits,
+                                todayCompleted: _todayCompleted,
+                                onAddNew: () => context.go(AppRoutes.habitCreate),
+                                onTapHabit: (h) => context.push(
+                                  '${AppRoutes.habitDetail}/${h.serverId}',
+                                  extra: h,
+                                ),
+                                onRecord: (h) => _recordHabit(h),
+                                cardColor: cardColor,
+                                border: border,
+                                primary: primary,
+                                text: text,
+                                textMuted: textMuted,
+                                iconBg: iconBg,
+                              ),
+                              const SizedBox(height: 24),
+                              _HeatmapSection(
+                                completedDates: _heatmapDates,
+                                cardColor: cardColor,
+                                border: border,
+                                primary: primary,
+                                text: text,
+                                textMuted: textMuted,
+                                progressTrack: progressTrack,
+                              ),
+                            ],
+                          ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  Future<void> _recordHabit(LocalHabit h) async {
+    if (h.serverId == null) return;
+    final sid = h.serverId!;
+    try {
+      // 즉시 완료 상태 반영 (낙관적 업데이트)
+      setState(() {
+        _todayCompleted = Map<String, bool>.from(_todayCompleted)..[sid] = true;
+      });
+      final repo = ref.read(habitRepositoryProvider);
+      final record = await repo.recordToday(sid);
+      final comment = await repo.requestAiFeedback(sid, record.serverId ?? '');
+      if (!context.mounted) return;
+      // 서버/로컬 반영 후 목록·히트맵 다시 불러와서 화면 갱신
+      await _load();
+      if (!context.mounted) return;
+      await _showAiCommentDialog(context, comment);
+    } catch (_) {
+      // 실패 시 방금 넣은 완료 표시 롤백
+      if (mounted) {
+        setState(() {
+          _todayCompleted = Map<String, bool>.from(_todayCompleted)..remove(sid);
+        });
+      }
+    }
   }
 
   Future<void> _showAiCommentDialog(BuildContext context, String comment) async {
@@ -186,120 +226,657 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
-
-  String _formatDate(DateTime d) {
-    const months = [
-      '1월', '2월', '3월', '4월', '5월', '6월',
-      '7월', '8월', '9월', '10월', '11월', '12월'
-    ];
-    return '${d.year}년 ${months[d.month - 1]} ${d.day}일';
-  }
 }
 
-class _EmptyHabitsCard extends StatelessWidget {
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.onShare});
+
+  final VoidCallback onShare;
+
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          children: [
-            Icon(Icons.add_circle_outline, size: 48, color: AppColors.mutedForeground),
-            const SizedBox(height: 16),
-            Text(
-              '아직 습관이 없어요.',
-              style: GoogleFonts.dmSans(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? AppColors.foregroundDark
-                    : AppColors.foreground,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? AppColors.cardDark : Colors.white;
+    final textColor = isDark ? AppColors.foregroundDark : _DashboardColors.text;
+    final border = isDark ? AppColors.borderDark : _DashboardColors.border;
+    final muted = isDark ? AppColors.mutedForeground : _DashboardColors.textMuted;
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: cardColor,
+            child: Icon(Icons.person_outline, color: muted, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Bloom Habit',
+              style: GoogleFonts.lora(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                fontStyle: FontStyle.italic,
+                color: textColor,
+                letterSpacing: -0.45,
               ),
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
-            Text(
-              '우측 하단 + 버튼으로\n첫 습관을 추가해 보세요.',
-              style: GoogleFonts.dmSans(
-                fontSize: 14,
-                color: AppColors.mutedForeground,
-                height: 1.4,
+          ),
+          Material(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(8),
+            child: InkWell(
+              onTap: onShare,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  border: Border.all(color: border),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Icon(Icons.share_outlined, size: 20, color: textColor),
               ),
-              textAlign: TextAlign.center,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _HabitCard extends StatelessWidget {
-  const _HabitCard({
+class _LevelProgressCard extends StatelessWidget {
+  const _LevelProgressCard({
+    required this.completedToday,
+    required this.totalHabits,
+    required this.cardColor,
+    required this.border,
+    required this.primary,
+    required this.text,
+    required this.textMuted,
+    required this.progressTrack,
+    required this.iconBg,
+  });
+
+  final int completedToday;
+  final int totalHabits;
+  final Color cardColor;
+  final Color border;
+  final Color primary;
+  final Color text;
+  final Color textMuted;
+  final Color progressTrack;
+  final Color iconBg;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = totalHabits > 0 ? totalHabits : 1;
+    final pct = (completedToday / total * 100).round().clamp(0, 100);
+    final level = (completedToday >= 7 ? 3 : (completedToday >= 3 ? 2 : 1));
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardColor,
+        border: Border.all(color: border),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 68,
+                height: 72,
+                alignment: Alignment.bottomCenter,
+                child: Stack(
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    Container(
+                      width: 68,
+                      height: 68,
+                      decoration: BoxDecoration(
+                        color: iconBg,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: primary,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'LVL $level',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      level >= 3 ? 'Budding Gardener' : (level >= 2 ? 'Growing Seed' : 'New Planter'),
+                      style: GoogleFonts.lora(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        fontStyle: FontStyle.italic,
+                        color: text,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'You\'re growing well this week!',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 14,
+                        color: textMuted,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Weekly Progress',
+                style: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: text,
+                ),
+              ),
+              Text(
+                '$pct%',
+                style: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: pct / 100,
+              minHeight: 10,
+              backgroundColor: progressTrack,
+              valueColor: AlwaysStoppedAnimation<Color>(primary),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$completedToday of $totalHabits daily goals met',
+            style: GoogleFonts.dmSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TodaySection extends StatelessWidget {
+  const _TodaySection({
+    required this.habits,
+    required this.todayCompleted,
+    required this.onAddNew,
+    required this.onTapHabit,
+    required this.onRecord,
+    required this.cardColor,
+    required this.border,
+    required this.primary,
+    required this.text,
+    required this.textMuted,
+    required this.iconBg,
+  });
+
+  final List<LocalHabit> habits;
+  final Map<String, bool> todayCompleted;
+  final VoidCallback onAddNew;
+  final void Function(LocalHabit) onTapHabit;
+  final void Function(LocalHabit) onRecord;
+  final Color cardColor;
+  final Color border;
+  final Color primary;
+  final Color text;
+  final Color textMuted;
+  final Color iconBg;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "Today's Habits",
+              style: GoogleFonts.lora(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                fontStyle: FontStyle.italic,
+                color: text,
+              ),
+            ),
+            TextButton(
+              onPressed: onAddNew,
+              style: TextButton.styleFrom(
+                foregroundColor: primary,
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                'Add New',
+                style: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (habits.isEmpty)
+          _EmptyHabitsCard(
+            cardColor: cardColor,
+            border: border,
+            text: text,
+            textMuted: textMuted,
+          )
+        else
+          ...habits.map(
+            (h) => _DashboardHabitCard(
+              habit: h,
+              completed: todayCompleted[h.serverId] ?? false,
+              onTap: () => onTapHabit(h),
+              onRecord: () => onRecord(h),
+              cardColor: cardColor,
+              border: border,
+              primary: primary,
+              text: text,
+              textMuted: textMuted,
+              iconBg: iconBg,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _DashboardHabitCard extends StatelessWidget {
+  const _DashboardHabitCard({
     required this.habit,
     required this.completed,
     required this.onTap,
     required this.onRecord,
+    required this.cardColor,
+    required this.border,
+    required this.primary,
+    required this.text,
+    required this.textMuted,
+    required this.iconBg,
   });
 
   final LocalHabit habit;
   final bool completed;
   final VoidCallback onTap;
   final VoidCallback onRecord;
+  final Color cardColor;
+  final Color border;
+  final Color primary;
+  final Color text;
+  final Color textMuted;
+  final Color iconBg;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: cardColor,
         borderRadius: BorderRadius.circular(AppTheme.radius),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      habit.name ?? '',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.foregroundDark : AppColors.foreground,
-                      ),
-                    ),
-                    if (habit.category != null && habit.category!.isNotEmpty) ...[
-                      const SizedBox(height: 4),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppTheme.radius),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: completed ? primary : border,
+                width: completed ? 2 : 1,
+              ),
+              borderRadius: BorderRadius.circular(AppTheme.radius),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: iconBg,
+                    borderRadius: BorderRadius.circular(AppTheme.radius),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.eco_outlined,
+                    size: 20,
+                    color: primary,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        habit.category!,
+                        habit.name ?? '',
                         style: GoogleFonts.dmSans(
-                          fontSize: 13,
-                          color: AppColors.mutedForeground,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: text,
                         ),
                       ),
+                      if (habit.category != null && habit.category!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          habit.category!,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            color: textMuted,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
+                ),
+                InkWell(
+                  onTap: completed ? null : onRecord,
+                  customBorder: const CircleBorder(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: completed
+                        ? Icon(Icons.check_circle, size: 32, color: primary)
+                        : Icon(Icons.check_circle_outline, size: 32, color: border),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyHabitsCard extends StatelessWidget {
+  const _EmptyHabitsCard({
+    required this.cardColor,
+    required this.border,
+    required this.text,
+    required this.textMuted,
+  });
+
+  final Color cardColor;
+  final Color border;
+  final Color text;
+  final Color textMuted;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: cardColor,
+        border: Border.all(color: border),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.add_circle_outline, size: 48, color: textMuted),
+          const SizedBox(height: 16),
+          Text(
+            '아직 습관이 없어요.',
+            style: GoogleFonts.dmSans(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: text,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Add New로 첫 습관을 추가해 보세요.',
+            style: GoogleFonts.dmSans(
+              fontSize: 14,
+              color: textMuted,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeatmapSection extends StatelessWidget {
+  const _HeatmapSection({
+    required this.completedDates,
+    required this.cardColor,
+    required this.border,
+    required this.primary,
+    required this.text,
+    required this.textMuted,
+    required this.progressTrack,
+  });
+
+  final Set<String> completedDates;
+  final Color cardColor;
+  final Color border;
+  final Color primary;
+  final Color text;
+  final Color textMuted;
+  final Color progressTrack;
+
+  static String _dateKey(DateTime d) {
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const cols = 7;
+    const rows = 4;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final start = today.subtract(const Duration(days: 27));
+    final dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    final grid = List.generate(rows * cols, (i) {
+      final d = start.add(Duration(days: i));
+      return completedDates.contains(_dateKey(d));
+    });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Consistency Heatmap',
+          style: GoogleFonts.lora(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            fontStyle: FontStyle.italic,
+            color: text,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: cardColor,
+            border: Border.all(color: border),
+            borderRadius: BorderRadius.circular(AppTheme.radius),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: List.generate(
+                  cols,
+                  (c) => SizedBox(
+                    width: 36,
+                    child: Text(
+                      dayLabels[c],
+                      style: GoogleFonts.dmSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: textMuted,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                 ),
               ),
-              if (completed)
-                Icon(Icons.check_circle, color: AppColors.primary, size: 28)
-              else
-                FilledButton(
-                  onPressed: onRecord,
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    minimumSize: Size.zero,
+              const SizedBox(height: 12),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final cellSize = 36.0;
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(rows, (r) {
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: r < rows - 1 ? 6 : 0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: List.generate(cols, (c) {
+                            final idx = r * cols + c;
+                            final filled = idx < grid.length && grid[idx];
+                            return Container(
+                              width: cellSize - 2,
+                              height: cellSize - 2,
+                              decoration: BoxDecoration(
+                                color: filled ? primary : progressTrack,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            );
+                          }),
+                        ),
+                      );
+                    }),
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Less',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: textMuted,
+                    ),
                   ),
-                  child: Text(
-                    '완료',
-                    style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w600),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: progressTrack,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 4),
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: primary.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: primary,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'More',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: textMuted,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ErrorBody extends StatelessWidget {
+  const _ErrorBody({required this.error, required this.onRetry});
+
+  final String error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              error,
+              style: GoogleFonts.dmSans(
+                fontSize: 14,
+                color: AppColors.destructive,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: onRetry,
+              child: const Text('다시 시도'),
+            ),
+          ],
         ),
       ),
     );

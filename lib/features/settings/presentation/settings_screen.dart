@@ -36,12 +36,6 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: '습관 통계 보기',
             onTap: () => context.push(AppRoutes.statistics),
           ),
-          _SettingsTile(
-            icon: Icons.notifications_outlined,
-            title: '알림',
-            subtitle: '일일 리마인더 시간 설정',
-            onTap: () => context.push(AppRoutes.notificationSettings),
-          ),
           const Divider(height: 24),
           _SettingsTile(
             icon: Icons.logout,
@@ -50,7 +44,9 @@ class SettingsScreen extends ConsumerWidget {
             titleColor: AppColors.destructive,
             onTap: () async {
               await ref.read(authRepositoryProvider).logout();
-              if (context.mounted) context.go(AppRoutes.login);
+              if (!context.mounted) return;
+              ref.invalidate(sessionRestoredProvider);
+              context.go(AppRoutes.login);
             },
           ),
         ],

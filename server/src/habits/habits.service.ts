@@ -211,4 +211,65 @@ export class HabitsService {
     ]);
     return { totalHabits, totalRecords };
   }
+
+  /** 관리자용: 회원별 습관 수·기록 수·완료 수 (한 번에 조회) */
+  async getUserStatsMap(
+    userIds: string[],
+  ): Promise<
+    Record<string, { habitCount: number; totalRecords: number; completedRecords: number }>
+  > {
+    if (userIds.length === 0) return {};
+    const habitCounts = await this.habitRepo
+      .createQueryBuilder('h')
+      .select('h.userId', 'userId')
+      .addSelect('COUNT(*)', 'cnt')
+      .where('h.userId IN (:...ids)', { ids: userIds })
+      .andWhere('h.archivedAt IS NULL')
+      .groupBy('h.userId')
+      .getRawMany<{ userId: string; cnt: string }>();
+    const habitIdsByUser = await this.habitRepo
+      .createQueryBuilder('h')
+      .select('h.id', 'id')
+      .addSelect('h.userId', 'userId')
+      .where('h.userId IN (:...ids)', { ids: userIds })
+      .andWhere('h.archivedAt IS NULL')
+      .getRawMany<{ id: string; userId: string }>();
+    const allHabitIds = habitIdsByUser.map((r) => r.id);
+    let recordCounts: { habitId: string; total: string; completed: string }[] = [];
+    if (allHabitIds.length > 0) {
+      recordCounts = await this.recordRepo
+        .createQueryBuilder('r')
+        .select('r.habitId', 'habitId')
+        .addSelect('COUNT(*)', 'total')
+        .addSelect('SUM(CASE WHEN r.completed = true THEN 1 ELSE 0 END)', 'completed')
+        .where('r.habitId IN (:...ids)', { ids: allHabitIds })
+        .groupBy('r.habitId')
+        .getRawMany();
+    }
+    const userToHabits = new Map<string, string[]>();
+    for (const r of habitIdsByUser) {
+      if (!userToHabits.has(r.userId)) userToHabits.set(r.userId, []);
+      userToHabits.get(r.userId)!.push(r.id);
+    }
+    const recordByHabit = new Map(
+      recordCounts.map((r) => [r.habitId, { total: parseInt(r.total, 10), completed: parseInt(r.completed, 10) }]),
+    );
+    const result: Record<string, { habitCount: number; totalRecords: number; completedRecords: number }> = {};
+    for (const uid of userIds) {
+      const habitCount = habitCounts.find((c) => c.userId === uid);
+      const count = habitCount ? parseInt(habitCount.cnt, 10) : 0;
+      const habitIds = userToHabits.get(uid) ?? [];
+      let totalRecords = 0;
+      let completedRecords = 0;
+      for (const hid of habitIds) {
+        const rec = recordByHabit.get(hid);
+        if (rec) {
+          totalRecords += rec.total;
+          completedRecords += rec.completed;
+        }
+      }
+      result[uid] = { habitCount: count, totalRecords, completedRecords };
+    }
+    return result;
+  }
 }

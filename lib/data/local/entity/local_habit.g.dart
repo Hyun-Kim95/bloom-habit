@@ -57,23 +57,38 @@ const LocalHabitSchema = CollectionSchema(
       name: r'name',
       type: IsarType.string,
     ),
-    r'serverId': PropertySchema(
+    r'reminderEnabled': PropertySchema(
       id: 8,
+      name: r'reminderEnabled',
+      type: IsarType.bool,
+    ),
+    r'reminderHour': PropertySchema(
+      id: 9,
+      name: r'reminderHour',
+      type: IsarType.long,
+    ),
+    r'reminderMinute': PropertySchema(
+      id: 10,
+      name: r'reminderMinute',
+      type: IsarType.long,
+    ),
+    r'serverId': PropertySchema(
+      id: 11,
       name: r'serverId',
       type: IsarType.string,
     ),
     r'startDate': PropertySchema(
-      id: 9,
+      id: 12,
       name: r'startDate',
       type: IsarType.dateTime,
     ),
     r'updatedAt': PropertySchema(
-      id: 10,
+      id: 13,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'userId': PropertySchema(
-      id: 11,
+      id: 14,
       name: r'userId',
       type: IsarType.string,
     )
@@ -171,10 +186,13 @@ void _localHabitSerialize(
   writer.writeDouble(offsets[5], object.goalValue);
   writer.writeString(offsets[6], object.iconName);
   writer.writeString(offsets[7], object.name);
-  writer.writeString(offsets[8], object.serverId);
-  writer.writeDateTime(offsets[9], object.startDate);
-  writer.writeDateTime(offsets[10], object.updatedAt);
-  writer.writeString(offsets[11], object.userId);
+  writer.writeBool(offsets[8], object.reminderEnabled);
+  writer.writeLong(offsets[9], object.reminderHour);
+  writer.writeLong(offsets[10], object.reminderMinute);
+  writer.writeString(offsets[11], object.serverId);
+  writer.writeDateTime(offsets[12], object.startDate);
+  writer.writeDateTime(offsets[13], object.updatedAt);
+  writer.writeString(offsets[14], object.userId);
 }
 
 LocalHabit _localHabitDeserialize(
@@ -193,10 +211,13 @@ LocalHabit _localHabitDeserialize(
   object.iconName = reader.readStringOrNull(offsets[6]);
   object.id = id;
   object.name = reader.readStringOrNull(offsets[7]);
-  object.serverId = reader.readStringOrNull(offsets[8]);
-  object.startDate = reader.readDateTimeOrNull(offsets[9]);
-  object.updatedAt = reader.readDateTimeOrNull(offsets[10]);
-  object.userId = reader.readStringOrNull(offsets[11]);
+  object.reminderEnabled = reader.readBoolOrNull(offsets[8]);
+  object.reminderHour = reader.readLongOrNull(offsets[9]);
+  object.reminderMinute = reader.readLongOrNull(offsets[10]);
+  object.serverId = reader.readStringOrNull(offsets[11]);
+  object.startDate = reader.readDateTimeOrNull(offsets[12]);
+  object.updatedAt = reader.readDateTimeOrNull(offsets[13]);
+  object.userId = reader.readStringOrNull(offsets[14]);
   return object;
 }
 
@@ -224,12 +245,18 @@ P _localHabitDeserializeProp<P>(
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 9:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 10:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 11:
+      return (reader.readStringOrNull(offset)) as P;
+    case 12:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 13:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 14:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1476,6 +1503,182 @@ extension LocalHabitQueryFilter
     });
   }
 
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      reminderEnabledIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'reminderEnabled',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      reminderEnabledIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'reminderEnabled',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      reminderEnabledEqualTo(bool? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'reminderEnabled',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      reminderHourIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'reminderHour',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      reminderHourIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'reminderHour',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      reminderHourEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'reminderHour',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      reminderHourGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'reminderHour',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      reminderHourLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'reminderHour',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      reminderHourBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'reminderHour',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      reminderMinuteIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'reminderMinute',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      reminderMinuteIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'reminderMinute',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      reminderMinuteEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'reminderMinute',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      reminderMinuteGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'reminderMinute',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      reminderMinuteLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'reminderMinute',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      reminderMinuteBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'reminderMinute',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition> serverIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -2024,6 +2227,44 @@ extension LocalHabitQuerySortBy
     });
   }
 
+  QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy> sortByReminderEnabled() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reminderEnabled', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy>
+      sortByReminderEnabledDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reminderEnabled', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy> sortByReminderHour() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reminderHour', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy> sortByReminderHourDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reminderHour', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy> sortByReminderMinute() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reminderMinute', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy>
+      sortByReminderMinuteDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reminderMinute', Sort.desc);
+    });
+  }
+
   QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy> sortByServerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'serverId', Sort.asc);
@@ -2183,6 +2424,44 @@ extension LocalHabitQuerySortThenBy
     });
   }
 
+  QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy> thenByReminderEnabled() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reminderEnabled', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy>
+      thenByReminderEnabledDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reminderEnabled', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy> thenByReminderHour() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reminderHour', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy> thenByReminderHourDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reminderHour', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy> thenByReminderMinute() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reminderMinute', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy>
+      thenByReminderMinuteDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reminderMinute', Sort.desc);
+    });
+  }
+
   QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy> thenByServerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'serverId', Sort.asc);
@@ -2287,6 +2566,24 @@ extension LocalHabitQueryWhereDistinct
     });
   }
 
+  QueryBuilder<LocalHabit, LocalHabit, QDistinct> distinctByReminderEnabled() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'reminderEnabled');
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QDistinct> distinctByReminderHour() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'reminderHour');
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QDistinct> distinctByReminderMinute() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'reminderMinute');
+    });
+  }
+
   QueryBuilder<LocalHabit, LocalHabit, QDistinct> distinctByServerId(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2367,6 +2664,24 @@ extension LocalHabitQueryProperty
   QueryBuilder<LocalHabit, String?, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
+    });
+  }
+
+  QueryBuilder<LocalHabit, bool?, QQueryOperations> reminderEnabledProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'reminderEnabled');
+    });
+  }
+
+  QueryBuilder<LocalHabit, int?, QQueryOperations> reminderHourProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'reminderHour');
+    });
+  }
+
+  QueryBuilder<LocalHabit, int?, QQueryOperations> reminderMinuteProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'reminderMinute');
     });
   }
 
