@@ -2,7 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { HabitTemplate as HabitTemplateEntity, Inquiry as InquiryEntity, Notice as NoticeEntity, SystemConfig as SystemConfigEntity, User as UserEntity } from '../entities';
+import { HabitTemplate as HabitTemplateEntity, Inquiry as InquiryEntity, LegalDocument as LegalDocumentEntity, Notice as NoticeEntity, SystemConfig as SystemConfigEntity, User as UserEntity } from '../entities';
+import type { LegalDocumentType } from '../entities/legal-document.entity';
+import { PushService } from '../push/push.service';
 
 export interface InquiryAdminDto {
   id: string;
@@ -37,6 +39,17 @@ export interface NoticeDto {
   updatedAt: string;
 }
 
+export interface LegalDocumentDto {
+  id: string;
+  type: LegalDocumentType;
+  version: number;
+  title: string;
+  content: string;
+  effectiveFrom: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const DEFAULT_AI_FALLBACK = JSON.stringify([
   '오늘도 수고했어요!',
   '꾸준함이 쌓여가고 있어요.',
@@ -56,6 +69,9 @@ export class AdminDataService {
     private readonly inquiryRepo: Repository<InquiryEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
+    @InjectRepository(LegalDocumentEntity)
+    private readonly legalRepo: Repository<LegalDocumentEntity>,
+    private readonly pushService: PushService,
   ) {}
 
   async listTemplates(): Promise<HabitTemplateDto[]> {
@@ -231,10 +247,18 @@ export class AdminDataService {
   ): Promise<InquiryAdminDto | undefined> {
     const i = await this.inquiryRepo.findOne({ where: { id } });
     if (!i) return undefined;
-    if (body.adminReply != null) i.adminReply = body.adminReply;
+    const hadNewReply =
+      body.adminReply != null && (body.adminReply as string).trim() !== '';
+    if (body.adminReply != null) {
+      i.adminReply = body.adminReply;
+      i.repliedAt = new Date();
+      if ((body.adminReply as string).trim() !== '') i.status = 'answered';
+    }
     if (body.status != null) i.status = body.status;
-    if (body.adminReply != null) i.repliedAt = new Date();
     await this.inquiryRepo.save(i);
+    if (hadNewReply) {
+      this.pushService.sendInquiryReplyNotification(i.userId, i.subject).catch(() => {});
+    }
     const u = await this.userRepo.findOne({ where: { id: i.userId } });
     return {
       id: i.id,
@@ -248,6 +272,87 @@ export class AdminDataService {
       repliedAt: i.repliedAt?.toISOString() ?? null,
       createdAt: i.createdAt.toISOString(),
       updatedAt: i.updatedAt.toISOString(),
+    };
+  }
+
+  async listLegalDocuments(type?: LegalDocumentType): Promise<LegalDocumentDto[]> {
+    const qb = this.legalRepo.createQueryBuilder('d').orderBy('d.type', 'ASC').addOrderBy('d.version', 'DESC');
+    if (type) qb.andWhere('d.type = :type', { type });
+    const list = await qb.getMany();
+    return list.map((d) => ({
+      id: d.id,
+      type: d.type,
+      version: d.version,
+      title: d.title,
+      content: d.content,
+      effectiveFrom: d.effectiveFrom?.toISOString().slice(0, 10) ?? null,
+      createdAt: d.createdAt.toISOString(),
+      updatedAt: d.updatedAt.toISOString(),
+    }));
+  }
+
+  async createLegalDocument(body: { type: LegalDocumentType; title?: string; content?: string; effectiveFrom?: string }): Promise<LegalDocumentDto> {
+    const max = await this.legalRepo
+      .createQueryBuilder('d')
+      .select('MAX(d.version)', 'v')
+      .where('d.type = :type', { type: body.type })
+      .getRawOne<{ v: number | null }>();
+    const nextVersion = (max?.v ?? 0) + 1;
+    const doc = this.legalRepo.create({
+      id: `legal-${uuidv4()}`,
+      type: body.type,
+      version: nextVersion,
+      title: body.title ?? '',
+      content: body.content ?? '',
+      effectiveFrom: body.effectiveFrom ? new Date(body.effectiveFrom) : null,
+    });
+    await this.legalRepo.save(doc);
+    return {
+      id: doc.id,
+      type: doc.type,
+      version: doc.version,
+      title: doc.title,
+      content: doc.content,
+      effectiveFrom: doc.effectiveFrom?.toISOString().slice(0, 10) ?? null,
+      createdAt: doc.createdAt.toISOString(),
+      updatedAt: doc.updatedAt.toISOString(),
+    };
+  }
+
+  async updateLegalDocument(id: string, body: { title?: string; content?: string; effectiveFrom?: string | null }): Promise<LegalDocumentDto | undefined> {
+    const doc = await this.legalRepo.findOne({ where: { id } });
+    if (!doc) return undefined;
+    if (body.title != null) doc.title = body.title;
+    if (body.content != null) doc.content = body.content;
+    if (body.effectiveFrom !== undefined) doc.effectiveFrom = body.effectiveFrom ? new Date(body.effectiveFrom) : null;
+    await this.legalRepo.save(doc);
+    return {
+      id: doc.id,
+      type: doc.type,
+      version: doc.version,
+      title: doc.title,
+      content: doc.content,
+      effectiveFrom: doc.effectiveFrom?.toISOString().slice(0, 10) ?? null,
+      createdAt: doc.createdAt.toISOString(),
+      updatedAt: doc.updatedAt.toISOString(),
+    };
+  }
+
+  async getLatestLegalDocument(type: LegalDocumentType): Promise<LegalDocumentDto | null> {
+    const doc = await this.legalRepo.findOne({
+      where: { type },
+      order: { version: 'DESC' },
+    });
+    if (!doc) return null;
+    return {
+      id: doc.id,
+      type: doc.type,
+      version: doc.version,
+      title: doc.title,
+      content: doc.content,
+      effectiveFrom: doc.effectiveFrom?.toISOString().slice(0, 10) ?? null,
+      createdAt: doc.createdAt.toISOString(),
+      updatedAt: doc.updatedAt.toISOString(),
     };
   }
 }

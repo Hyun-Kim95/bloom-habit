@@ -30,6 +30,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() => _loading = false);
       if (result.cancelled) return;
       if (result.isSuccess) {
+        await repo.registerFcmToken();
         ref.invalidate(sessionRestoredProvider);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
@@ -60,6 +61,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() => _loading = false);
       if (result.cancelled) return;
       if (result.isSuccess) {
+        await repo.registerFcmToken();
         ref.invalidate(sessionRestoredProvider);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;

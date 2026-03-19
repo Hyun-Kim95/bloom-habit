@@ -25,6 +25,18 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
   bool _loading = true;
   late TabController _tabController;
 
+  /// 주 탭: 선택된 주의 월요일 (로컬)
+  DateTime _selectedWeekStart = _thisWeekMonday();
+  /// 월 탭: 선택된 연·월
+  int _selectedYear = DateTime.now().year;
+  int _selectedMonth = DateTime.now().month;
+
+  static DateTime _thisWeekMonday() {
+    final now = DateTime.now();
+    final weekday = now.weekday; // 1=Mon .. 7=Sun
+    return DateTime(now.year, now.month, now.day - (weekday - 1));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -43,8 +55,11 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
     final repo = ref.read(habitRepositoryProvider);
     final habits = await repo.getActiveHabits();
     final completed = await repo.getTodayCompletedByHabit();
-    final weekCompleted = await repo.getCompletedCountByHabitForDays(7);
-    final monthCompleted = await repo.getCompletedCountByHabitForDays(30);
+    final weekEnd = _selectedWeekStart.add(const Duration(days: 6));
+    final weekCompleted = await repo.getCompletedCountByHabitForDateRange(_selectedWeekStart, weekEnd);
+    final monthStart = DateTime(_selectedYear, _selectedMonth, 1);
+    final monthEnd = DateTime(_selectedYear, _selectedMonth + 1, 0); // 해당 달 마지막 날
+    final monthCompleted = await repo.getCompletedCountByHabitForDateRange(monthStart, monthEnd);
     final streaks = <String, int>{};
     for (final h in habits) {
       if (h.serverId != null) {
@@ -64,6 +79,48 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
       });
     }
   }
+
+  void _prevWeek() {
+    setState(() => _selectedWeekStart = _selectedWeekStart.subtract(const Duration(days: 7)));
+    _load();
+  }
+
+  void _nextWeek() {
+    setState(() => _selectedWeekStart = _selectedWeekStart.add(const Duration(days: 7)));
+    _load();
+  }
+
+  void _prevMonth() {
+    setState(() {
+      if (_selectedMonth == 1) {
+        _selectedYear--;
+        _selectedMonth = 12;
+      } else {
+        _selectedMonth--;
+      }
+    });
+    _load();
+  }
+
+  void _nextMonth() {
+    setState(() {
+      if (_selectedMonth == 12) {
+        _selectedYear++;
+        _selectedMonth = 1;
+      } else {
+        _selectedMonth++;
+      }
+    });
+    _load();
+  }
+
+  String _weekRangeLabel() {
+    final end = _selectedWeekStart.add(const Duration(days: 6));
+    return '${_selectedWeekStart.month.toString().padLeft(2, '0')}.${_selectedWeekStart.day.toString().padLeft(2, '0')} ~ '
+        '${end.month.toString().padLeft(2, '0')}.${end.day.toString().padLeft(2, '0')}';
+  }
+
+  String _monthLabel() => '$_selectedYear년 $_selectedMonth월';
 
   @override
   Widget build(BuildContext context) {
@@ -99,8 +156,8 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                 controller: _tabController,
                 children: [
                   _buildDayTab(isDark, completedCount),
-                  _buildPeriodTab(isDark, '이번 주', weekTotal, _weekCompleted),
-                  _buildPeriodTab(isDark, '이번 달', monthTotal, _monthCompleted),
+                  _buildWeekTab(isDark, weekTotal),
+                  _buildMonthTab(isDark, monthTotal),
                 ],
               ),
             ),
@@ -149,50 +206,99 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
     );
   }
 
-  Widget _buildPeriodTab(bool isDark, String periodLabel, int totalCompleted, Map<String, int> byHabit) {
+  bool get _canGoNextWeek {
+    return _selectedWeekStart.isBefore(_thisWeekMonday());
+  }
+
+  bool get _canGoNextMonth {
+    final now = DateTime.now();
+    return _selectedYear < now.year ||
+        (_selectedYear == now.year && _selectedMonth < now.month);
+  }
+
+  Widget _buildWeekTab(bool isDark, int totalCompleted) {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        _PeriodSelector(
+          label: _weekRangeLabel(),
+          onPrev: _prevWeek,
+          onNext: _canGoNextWeek ? _nextWeek : null,
+          isDark: isDark,
+        ),
+        const SizedBox(height: 16),
+        _buildPeriodCard(isDark, '주간 요약', totalCompleted),
+        const SizedBox(height: 24),
+        _buildHabitCompletionList(isDark, _weekCompleted),
+      ],
+    );
+  }
+
+  Widget _buildMonthTab(bool isDark, int totalCompleted) {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        _PeriodSelector(
+          label: _monthLabel(),
+          onPrev: _prevMonth,
+          onNext: _canGoNextMonth ? _nextMonth : null,
+          isDark: isDark,
+        ),
+        const SizedBox(height: 16),
+        _buildPeriodCard(isDark, '월간 요약', totalCompleted),
+        const SizedBox(height: 24),
+        _buildHabitCompletionList(isDark, _monthCompleted),
+      ],
+    );
+  }
+
+  Widget _buildPeriodCard(bool isDark, String periodLabel, int totalCompleted) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              periodLabel,
+              style: GoogleFonts.dmSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.mutedForeground,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
               children: [
-                Text(
-                  '$periodLabel 요약',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.mutedForeground,
-                  ),
+                _SummaryChip(
+                  label: '전체 습관',
+                  value: '${_habits.length}개',
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _SummaryChip(
-                      label: '전체 습관',
-                      value: '${_habits.length}개',
-                    ),
-                    const SizedBox(width: 16),
-                    _SummaryChip(
-                      label: '완료 횟수',
-                      value: '$totalCompleted회',
-                      valueColor: AppColors.primary,
-                    ),
-                  ],
+                const SizedBox(width: 16),
+                _SummaryChip(
+                  label: '완료 횟수',
+                  value: '$totalCompleted회',
+                  valueColor: AppColors.primary,
                 ),
               ],
             ),
-          ),
+          ],
         ),
-        const SizedBox(height: 24),
+      ),
+    );
+  }
+
+  Widget _buildHabitCompletionList(bool isDark, Map<String, int> byHabit) {
+    final textColor = isDark ? AppColors.foregroundDark : AppColors.foreground;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Text(
           '습관별 완료',
           style: GoogleFonts.dmSans(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+            color: textColor,
           ),
         ),
         const SizedBox(height: 12),
@@ -234,7 +340,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                   style: GoogleFonts.dmSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+                    color: textColor,
                   ),
                 ),
                 trailing: Text(
@@ -397,6 +503,54 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                         ),
                       );
                     }),
+      ],
+    );
+  }
+}
+
+class _PeriodSelector extends StatelessWidget {
+  const _PeriodSelector({
+    required this.label,
+    required this.onPrev,
+    required this.onNext,
+    required this.isDark,
+  });
+
+  final String label;
+  final VoidCallback onPrev;
+  final VoidCallback? onNext;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = isDark ? AppColors.foregroundDark : AppColors.foreground;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        IconButton(
+          onPressed: onPrev,
+          icon: const Icon(Icons.chevron_left),
+          color: AppColors.primary,
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.dmSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: textColor,
+          ),
+        ),
+        IconButton(
+          onPressed: onNext,
+          icon: const Icon(Icons.chevron_right),
+          color: onNext != null ? AppColors.primary : AppColors.mutedForeground,
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+          ),
+        ),
       ],
     );
   }

@@ -12,6 +12,8 @@ import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/statistics/presentation/statistics_screen.dart';
 import '../../features/inquiries/presentation/inquiries_screen.dart';
+import '../../features/habit_list/presentation/habit_list_screen.dart';
+import '../../features/legal/presentation/legal_view_screen.dart';
 import 'app_providers.dart';
 import 'main_shell.dart';
 
@@ -20,12 +22,15 @@ class AppRoutes {
   static const String onboarding = '/onboarding';
   static const String login = '/login';
   static const String home = '/home';
+  static const String habits = '/habits';
   static const String habitCreate = '/habit/create';
   static const String habitDetail = '/habit';
   static const String settings = '/settings';
   static const String account = '/account';
   static const String statistics = '/statistics';
   static const String inquiries = '/inquiries';
+  static const String legalTerms = '/legal/terms';
+  static const String legalPrivacy = '/legal/privacy';
 }
 
 GoRouter createAppRouter(WidgetRef ref) {
@@ -35,13 +40,14 @@ GoRouter createAppRouter(WidgetRef ref) {
     redirect: (BuildContext context, GoRouterState state) async {
       final restored = await ref.read(sessionRestoredProvider.future);
       final path = state.uri.path;
-      final isPublic = path == AppRoutes.onboarding || path == AppRoutes.login;
-      if (restored && isPublic) {
+      // 로그인된 사용자: 로그인 화면이면 홈으로, 온보딩이면 홈으로 (첫 실행만 켜도 앱 실행마다 온보딩 안 보이게)
+      if (restored && (path == AppRoutes.login || path == AppRoutes.onboarding)) {
         return AppRoutes.home;
       }
-      if (!restored && !isPublic) {
+      if (!restored && path != AppRoutes.onboarding && path != AppRoutes.login && !path.startsWith('/legal/')) {
         return AppRoutes.login;
       }
+      // 비로그인 + 온보딩: 이미 봤고 '첫 실행만 보기' 켜져 있으면 로그인으로
       if (path == AppRoutes.onboarding && !restored) {
         final settings = await ref.read(appSettingsProvider.future);
         if (settings.hasSeenOnboarding && settings.showOnboardingOnlyFirstLaunch) {
@@ -74,8 +80,12 @@ GoRouter createAppRouter(WidgetRef ref) {
             ],
           ),
           StatefulShellBranch(
-            initialLocation: AppRoutes.habitCreate,
+            initialLocation: AppRoutes.habits,
             routes: [
+              GoRoute(
+                path: AppRoutes.habits,
+                builder: (_, __) => const HabitListScreen(),
+              ),
               GoRoute(
                 path: AppRoutes.habitCreate,
                 builder: (_, __) => const HabitCreateScreen(),
@@ -117,6 +127,14 @@ GoRouter createAppRouter(WidgetRef ref) {
       GoRoute(
         path: AppRoutes.inquiries,
         builder: (_, __) => const InquiriesScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.legalTerms,
+        builder: (_, __) => const LegalViewScreen(type: 'terms'),
+      ),
+      GoRoute(
+        path: AppRoutes.legalPrivacy,
+        builder: (_, __) => const LegalViewScreen(type: 'privacy'),
       ),
     ],
     errorBuilder: (_, state) => Scaffold(

@@ -202,17 +202,21 @@ class _InquiryCard extends StatelessWidget {
           item.subject,
           style: GoogleFonts.dmSans(fontSize: 15, fontWeight: FontWeight.w600, color: fg),
         ),
-        subtitle: Row(
+        subtitle: Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Text(
               _formatDate(item.createdAt),
               style: GoogleFonts.dmSans(fontSize: 12, color: muted),
             ),
-            const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: item.status == 'answered' ? primary.withValues(alpha: 0.2) : muted.withValues(alpha: 0.2),
+                color: item.status == 'answered'
+                    ? primary.withValues(alpha: 0.2)
+                    : muted.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -224,6 +228,11 @@ class _InquiryCard extends StatelessWidget {
                 ),
               ),
             ),
+            if (item.status == 'answered' && item.repliedAt != null && item.repliedAt!.isNotEmpty)
+              Text(
+                '답변 ${_formatDate(item.repliedAt!)}',
+                style: GoogleFonts.dmSans(fontSize: 12, color: muted),
+              ),
           ],
         ),
         children: [
@@ -253,6 +262,13 @@ class _InquiryCard extends StatelessWidget {
                           style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w600, color: primary),
                         ),
                         const SizedBox(height: 6),
+                        if (item.repliedAt != null && item.repliedAt!.isNotEmpty)
+                          Text(
+                            '답변 시간: ${_formatDate(item.repliedAt!)}',
+                            style: GoogleFonts.dmSans(fontSize: 11, color: muted),
+                          ),
+                        if (item.repliedAt != null && item.repliedAt!.isNotEmpty)
+                          const SizedBox(height: 6),
                         Text(
                           item.adminReply!,
                           style: GoogleFonts.dmSans(fontSize: 14, color: fg, height: 1.4),
@@ -270,7 +286,20 @@ class _InquiryCard extends StatelessWidget {
   }
 
   String _formatDate(String iso) {
-    if (iso.length < 10) return iso;
-    return iso.substring(0, 10);
+    try {
+      // 서버가 toISOString()을 주므로, 파싱 후 로컬 시간 기준으로 포맷합니다.
+      final dt = DateTime.parse(iso).toLocal();
+      final yyyy = dt.year.toString().padLeft(4, '0');
+      final mm = dt.month.toString().padLeft(2, '0');
+      final dd = dt.day.toString().padLeft(2, '0');
+      final hh = dt.hour.toString().padLeft(2, '0');
+      final mi = dt.minute.toString().padLeft(2, '0');
+      return '$yyyy.$mm.$dd $hh:$mi';
+    } catch (_) {
+      // fallback: ISO 중 앞부분만 보여줌
+      if (iso.length >= 16) return iso.substring(0, 16).replaceFirst('T', ' ');
+      if (iso.length >= 10) return iso.substring(0, 10);
+      return iso;
+    }
   }
 }

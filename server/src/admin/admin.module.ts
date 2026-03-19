@@ -7,13 +7,15 @@ import { AdminController } from './admin.controller';
 import { AdminDataService } from './admin-data.service';
 import { AdminGuard } from './admin.guard';
 import { AdminStatsService } from './admin-stats.service';
-import { AdminUser, HabitTemplate, Inquiry, Notice, SystemConfig, User, Habit, HabitRecord } from '../entities';
+import { PushModule } from '../push/push.module';
+import { AdminUser, HabitTemplate, Inquiry, LegalDocument, Notice, SystemConfig, User, Habit, HabitRecord } from '../entities';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AdminUser, HabitTemplate, Inquiry, Notice, SystemConfig, User, Habit, HabitRecord]),
+    TypeOrmModule.forFeature([AdminUser, HabitTemplate, Inquiry, LegalDocument, Notice, SystemConfig, User, Habit, HabitRecord]),
     AuthModule,
     HabitsModule,
+    PushModule,
   ],
   controllers: [AdminController],
   providers: [AdminAuthService, AdminDataService, AdminGuard, AdminStatsService],

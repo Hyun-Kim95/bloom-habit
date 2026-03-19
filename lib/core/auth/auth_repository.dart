@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -158,6 +160,27 @@ class AuthRepository {
     if (access == null) return false;
     _api.setAccessToken(access);
     return true;
+  }
+
+  /// FCM 토큰을 서버에 등록 (문의 답변 등 푸시 수신용). Firebase 미설정 시 무시.
+  Future<void> registerFcmToken() async {
+    try {
+      final messaging = FirebaseMessaging.instance;
+      await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      final token = await messaging.getToken();
+      if (token == null || token.isEmpty) return;
+      await _api.dio.patch<Map<String, dynamic>>(
+        ApiEndpoints.me,
+        data: {'fcmToken': token},
+      );
+      debugPrint('FCM token 등록됨: ${token.length >= 6 ? token.substring(0, 6) : token}');
+    } catch (_) {
+      // Firebase 미설정 또는 권한 거부 시 무시
+    }
   }
 }
 

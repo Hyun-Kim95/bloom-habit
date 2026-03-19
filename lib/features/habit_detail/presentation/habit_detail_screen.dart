@@ -158,33 +158,31 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   }
 
   Future<void> _onRecordAction(RecordSummary r, String action) async {
+    if (action != 'delete') return;
     final recordId = r.recordId;
     final habitId = _habit.serverId;
     if (recordId == null || habitId == null) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('기록 삭제'),
+        content: Text('${r.recordDate} 기록을 삭제할까요?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.destructive),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
     final repo = ref.read(habitRepositoryProvider);
     try {
-      if (action == 'toggle') {
-        await repo.updateRecord(habitId, recordId, completed: !r.completed);
-      } else if (action == 'delete') {
-        final ok = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('기록 삭제'),
-            content: Text('${r.recordDate} 기록을 삭제할까요?'),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: FilledButton.styleFrom(backgroundColor: AppColors.destructive),
-                child: const Text('삭제'),
-              ),
-            ],
-          ),
-        );
-        if (ok != true || !mounted) return;
-        await repo.deleteRecord(habitId, recordId);
-      }
+      await repo.deleteRecord(habitId, recordId);
       if (!mounted) return;
+      ref.read(homeRefreshTriggerProvider.notifier).state++;
       _loadRecordHistory();
       _loadStats();
     } catch (_) {
@@ -396,10 +394,6 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                               icon: const Icon(Icons.more_vert, size: 22),
                               onSelected: (value) => _onRecordAction(r, value),
                               itemBuilder: (ctx) => [
-                                PopupMenuItem(
-                                  value: 'toggle',
-                                  child: Text(r.completed ? '미완료로 변경' : '완료로 변경'),
-                                ),
                                 const PopupMenuItem(
                                   value: 'delete',
                                   child: Text('삭제', style: TextStyle(color: AppColors.destructive)),

@@ -176,12 +176,20 @@ class HabitRepository {
 
   /// 지난 N일 동안 습관별 완료한 날 수 (통계 일/주/월용). habitId -> 완료한 날 수.
   Future<Map<String, int>> getCompletedCountByHabitForDays(int days) async {
-    final isar = await _isarFuture;
     final end = DateTime.now();
     final start = end.subtract(Duration(days: days));
+    return getCompletedCountByHabitForDateRange(start, end);
+  }
+
+  /// 지정 기간 [start, end] (start·end 포함, 로컬 날짜 기준) 습관별 완료 횟수. habitId -> 완료 횟수.
+  Future<Map<String, int>> getCompletedCountByHabitForDateRange(DateTime start, DateTime end) async {
+    final isar = await _isarFuture;
+    final startDay = DateTime(start.year, start.month, start.day);
+    final endDay = DateTime(end.year, end.month, end.day);
+    final endExclusive = endDay.add(const Duration(days: 1));
     final records = await isar.localHabitRecords
         .filter()
-        .recordDateBetween(start, end, includeLower: true, includeUpper: true)
+        .recordDateBetween(startDay, endExclusive, includeLower: true, includeUpper: false)
         .completedEqualTo(true)
         .findAll();
     final map = <String, int>{};
@@ -195,6 +203,12 @@ class HabitRepository {
 
   /// 지난 28일 중 완료 기록이 있는 날짜 집합 (히트맵용). 로컬 날짜 기준.
   Future<Set<String>> getLast28DaysCompletedDates() async {
+    final counts = await getLast28DaysCompletionCounts();
+    return counts.keys.toSet();
+  }
+
+  /// 지난 28일 날짜별 완료 기록 개수 (히트맵 색 농도용). 로컬 날짜 기준.
+  Future<Map<String, int>> getLast28DaysCompletionCounts() async {
     final isar = await _isarFuture;
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 27));
@@ -204,14 +218,15 @@ class HabitRepository {
         .recordDateBetween(start, end, includeLower: true, includeUpper: true)
         .completedEqualTo(true)
         .findAll();
-    final set = <String>{};
+    final counts = <String, int>{};
     for (final r in records) {
       if (r.recordDate != null) {
         final d = r.recordDate!.toLocal();
-        set.add(_dateString(DateTime(d.year, d.month, d.day)));
+        final key = _dateString(DateTime(d.year, d.month, d.day));
+        counts[key] = (counts[key] ?? 0) + 1;
       }
     }
-    return set;
+    return counts;
   }
 
   /// 습관 생성 (API + 로컬)
@@ -423,24 +438,35 @@ class HabitRepository {
     }
   }
 
-  /// 습관의 연속 달성일 (로컬, 오늘 포함 역순)
+  /// 습관의 연속 달성일 (로컬, 오늘 포함 역순). 날짜는 로컬 날짜 키로 비교해 타임존 이슈 방지.
   Future<int> getStreakDays(String habitServerId) async {
     final isar = await _isarFuture;
     final habit = await isar.localHabits.getByServerId(habitServerId);
     if (habit == null || habit.startDate == null) return 0;
     final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final startDay = DateTime(habit.startDate!.year, habit.startDate!.month, habit.startDate!.day);
+    // 지난 365일 구간의 완료 기록을 가져와 로컬 날짜 키(YYYY-MM-DD) 집합으로 만든 뒤, 오늘부터 역순으로 연속 여부 확인
+    final end = today.add(const Duration(days: 1));
+    final start = today.subtract(const Duration(days: 365));
+    final records = await isar.localHabitRecords
+        .filter()
+        .habitIdEqualTo(habitServerId)
+        .recordDateBetween(start, end, includeLower: true, includeUpper: false)
+        .completedEqualTo(true)
+        .findAll();
+    final completedDateKeys = <String>{};
+    for (final r in records) {
+      if (r.recordDate != null) {
+        final local = r.recordDate!.toLocal();
+        completedDateKeys.add(_dateString(DateTime(local.year, local.month, local.day)));
+      }
+    }
     int streak = 0;
     for (int offset = 0; offset < 365; offset++) {
       final d = today.subtract(Duration(days: offset));
       if (d.isBefore(startDay)) break;
-      final records = await isar.localHabitRecords
-          .filter()
-          .habitIdEqualTo(habitServerId)
-          .recordDateEqualTo(d)
-          .completedEqualTo(true)
-          .findAll();
-      if (records.isEmpty) break;
+      final key = _dateString(d);
+      if (!completedDateKeys.contains(key)) break;
       streak++;
     }
     return streak;

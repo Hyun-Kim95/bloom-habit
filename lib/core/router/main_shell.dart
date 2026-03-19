@@ -1,12 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_theme.dart';
 import 'app_router.dart';
 
+/// 메인 탭 루트 경로: 여기 있을 때 뒤로가기 2번이면 앱 종료
+bool _isShellRootPath(String path) {
+  return path == AppRoutes.home ||
+      path == AppRoutes.habits ||
+      path == AppRoutes.habitCreate ||
+      path == AppRoutes.statistics ||
+      path == AppRoutes.settings;
+}
+
 /// 하단 네비가 공통으로 보이는 메인 셸 (Home / Habits / Stats / Settings)
-class MainShell extends StatelessWidget {
+class MainShell extends StatefulWidget {
   const MainShell({
     super.key,
     required this.navigationShell,
@@ -14,8 +24,15 @@ class MainShell extends StatelessWidget {
 
   final StatefulNavigationShell navigationShell;
 
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> {
+  DateTime? _lastBackPress;
+
   static int _selectedIndexFromPath(String path) {
-    if (path.startsWith(AppRoutes.habitCreate)) return 1;
+    if (path.startsWith(AppRoutes.habits) || path.startsWith(AppRoutes.habitCreate)) return 1;
     if (path.startsWith(AppRoutes.statistics)) return 2;
     if (path.startsWith(AppRoutes.settings)) return 3;
     return 0; // home
@@ -25,11 +42,31 @@ class MainShell extends StatelessWidget {
     final path = index == 0
         ? AppRoutes.home
         : index == 1
-            ? AppRoutes.habitCreate
+            ? AppRoutes.habits
             : index == 2
                 ? AppRoutes.statistics
                 : AppRoutes.settings;
     context.go(path);
+  }
+
+  bool _onPopInvoked(bool didPop) {
+    if (didPop) return true;
+    final path = GoRouterState.of(context).uri.path;
+    if (!_isShellRootPath(path)) return true;
+    final now = DateTime.now();
+    if (_lastBackPress != null && now.difference(_lastBackPress!).inMilliseconds < 2000) {
+      SystemNavigator.pop();
+      return true;
+    }
+    setState(() => _lastBackPress = now);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('한 번 더 누르면 앱이 종료됩니다.'),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    return true;
   }
 
   @override
@@ -39,9 +76,15 @@ class MainShell extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? AppColors.backgroundDark : _shellBackground;
     final border = isDark ? AppColors.borderDark : _shellBorder;
+    final atRoot = _isShellRootPath(path);
 
-    return Scaffold(
-      body: navigationShell,
+    return PopScope(
+      canPop: !atRoot,
+      onPopInvokedWithResult: (didPop, result) {
+        if (atRoot && !didPop) _onPopInvoked(false);
+      },
+      child: Scaffold(
+      body: widget.navigationShell,
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
@@ -58,6 +101,7 @@ class MainShell extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }

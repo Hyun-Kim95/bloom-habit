@@ -24,7 +24,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final settings = await ref.read(appSettingsProvider.future);
     await settings.setOnboardingSeen(true);
     if (!mounted) return;
-    context.go(AppRoutes.login);
+    final restored = await ref.read(sessionRestoredProvider.future);
+    if (!mounted) return;
+    context.go(restored ? AppRoutes.home : AppRoutes.login);
   }
 
   @override

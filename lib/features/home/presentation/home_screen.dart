@@ -39,7 +39,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   List<LocalHabit> _habits = [];
   Map<String, bool> _todayCompleted = {};
-  Set<String> _heatmapDates = {};
+  Map<String, int> _heatmapCounts = {};
   int? _level;
   String? _levelTitle;
   bool _loading = true;
@@ -72,13 +72,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (!mounted) return;
       final habits = await repo.getActiveHabits();
       final completed = await repo.getTodayCompletedByHabit();
-      final heatmapDates = await repo.getLast28DaysCompletedDates();
+      final heatmapCounts = await repo.getLast28DaysCompletionCounts();
       final levelData = await authRepo.getLevel();
       if (mounted) {
         setState(() {
           _habits = habits;
           _todayCompleted = completed;
-          _heatmapDates = heatmapDates;
+          _heatmapCounts = heatmapCounts;
           _level = levelData?.level;
           _levelTitle = levelData?.title;
           _loading = false;
@@ -86,6 +86,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _rescheduleRemindersOnce(habits);
         final completedCount = completed.values.where((v) => v).length;
         updateHomeWidget(todayCompleted: completedCount, totalHabits: habits.length);
+        await authRepo.registerFcmToken();
       }
     } catch (e) {
       if (mounted) {
@@ -93,11 +94,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final isConnectionError = msg.contains('connection timeout') ||
             msg.contains('connection error') ||
             msg.contains('Connection refused') ||
-            msg.contains('ConnectionTimeout');
+            msg.contains('ConnectionTimeout') ||
+            msg.contains('DioException [unknown]') ||
+            (msg.contains('DioException') && msg.endsWith('null'));
         setState(() {
           _loading = false;
           _error = isConnectionError
-              ? '서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인하고, 실기기라면 같은 Wi-Fi의 PC IP로 연결해 보세요.'
+              ? '서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인하고, 에뮬레이터는 10.0.2.2:3000, 실기기는 같은 Wi-Fi의 PC IP로 연결해 보세요.'
               : msg.split('\n').first;
         });
       }
@@ -176,7 +179,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                               const SizedBox(height: 24),
                               _HeatmapSection(
-                                completedDates: _heatmapDates,
+                                completedCounts: _heatmapCounts,
                                 cardColor: cardColor,
                                 border: border,
                                 primary: primary,
@@ -727,7 +730,7 @@ class _EmptyHabitsCard extends StatelessWidget {
 
 class _HeatmapSection extends StatelessWidget {
   const _HeatmapSection({
-    required this.completedDates,
+    required this.completedCounts,
     required this.cardColor,
     required this.border,
     required this.primary,
@@ -736,7 +739,7 @@ class _HeatmapSection extends StatelessWidget {
     required this.progressTrack,
   });
 
-  final Set<String> completedDates;
+  final Map<String, int> completedCounts;
   final Color cardColor;
   final Color border;
   final Color primary;
@@ -748,6 +751,15 @@ class _HeatmapSection extends StatelessWidget {
     return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
+  /// 완료 개수 0 = 배경색, 1이상 = 연한 초록(적을수록) ~ 진한 초록(많을수록)
+  Color _colorForCount(int count, int maxCount) {
+    if (count <= 0) return progressTrack;
+    if (maxCount <= 1) return primary;
+    final lightGreen = Color.lerp(progressTrack, primary, 0.35)!;
+    final t = (count - 1) / (maxCount - 1);
+    return Color.lerp(lightGreen, primary, t.clamp(0.0, 1.0))!;
+  }
+
   @override
   Widget build(BuildContext context) {
     const cols = 7;
@@ -756,11 +768,23 @@ class _HeatmapSection extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     final start = today.subtract(const Duration(days: 27));
     final dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final maxCount = completedCounts.values.isEmpty
+        ? 0
+        : completedCounts.values.reduce((a, b) => a > b ? a : b);
 
-    final grid = List.generate(rows * cols, (i) {
-      final d = start.add(Duration(days: i));
-      return completedDates.contains(_dateKey(d));
-    });
+    // 열 = 요일(Mon=0 .. Sun=6), 행 = 해당 요일의 28일 내 순서(과거→최근)
+    final grid = List.generate(rows, (_) => List.filled(cols, 0));
+    for (int c = 0; c < cols; c++) {
+      final weekday = c + 1; // Dart: Mon=1, Sun=7
+      int row = 0;
+      for (int i = 0; i < 28 && row < rows; i++) {
+        final d = start.add(Duration(days: i));
+        if (d.weekday == weekday) {
+          grid[row][c] = completedCounts[_dateKey(d)] ?? 0;
+          row++;
+        }
+      }
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -814,13 +838,13 @@ class _HeatmapSection extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: List.generate(cols, (c) {
-                            final idx = r * cols + c;
-                            final filled = idx < grid.length && grid[idx];
+                            final count = grid[r][c];
+                            final cellColor = _colorForCount(count, maxCount);
                             return Container(
                               width: cellSize - 2,
                               height: cellSize - 2,
                               decoration: BoxDecoration(
-                                color: filled ? primary : progressTrack,
+                                color: cellColor,
                                 borderRadius: BorderRadius.circular(3),
                               ),
                             );

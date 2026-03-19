@@ -46,6 +46,9 @@ app.*.map.json
 
 # Server env (DB 비밀번호 등)
 server/.env
+# Firebase/Google 서비스 계정 키 (로컬만 사용)
+server/keys/
+android/app/google-services.json
 
 # Dependencies (복원은 npm install / flutter pub get)
 server/node_modules/

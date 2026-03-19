@@ -20,7 +20,6 @@ export default function Inquiries() {
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<Inquiry | null>(null)
   const [adminReply, setAdminReply] = useState('')
-  const [status, setStatus] = useState('')
   const [saving, setSaving] = useState(false)
 
   const load = () => api.getInquiries().then(setList).catch((e) => setError(e.message))
@@ -30,10 +29,7 @@ export default function Inquiries() {
   }, [])
 
   useEffect(() => {
-    if (selected) {
-      setAdminReply(selected.adminReply ?? '')
-      setStatus(selected.status)
-    }
+    if (selected) setAdminReply(selected.adminReply ?? '')
   }, [selected])
 
   const select = (item: Inquiry) => {
@@ -47,7 +43,6 @@ export default function Inquiries() {
     try {
       const updated = await api.updateInquiryReply(selected.id, {
         adminReply: adminReply.trim() || undefined,
-        status: status || undefined,
       })
       setSelected(updated)
       setList((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
@@ -61,7 +56,12 @@ export default function Inquiries() {
   const formatDate = (s: string) => {
     try {
       const d = new Date(s)
-      return d.toLocaleString('ko-KR')
+      const yyyy = d.getFullYear()
+      const mm = String(d.getMonth() + 1).padStart(2, '0')
+      const dd = String(d.getDate()).padStart(2, '0')
+      const hh = String(d.getHours()).padStart(2, '0')
+      const mi = String(d.getMinutes()).padStart(2, '0')
+      return `${yyyy}.${mm}.${dd} ${hh}:${mi}`
     } catch {
       return s
     }
@@ -103,6 +103,11 @@ export default function Inquiries() {
                     >
                       {item.status === 'answered' ? '답변 완료' : '대기 중'}
                     </span>
+                    {item.status === 'answered' && item.repliedAt && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        · 답변 {formatDate(item.repliedAt)}
+                      </span>
+                    )}
                   </div>
                 </button>
               </li>
@@ -136,17 +141,6 @@ export default function Inquiries() {
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     placeholder="답변 내용을 입력하세요."
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">상태</label>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                    className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="pending">대기 중</option>
-                    <option value="answered">답변 완료</option>
-                  </select>
                 </div>
                 {selected.repliedAt && (
                   <p className="text-xs text-muted-foreground">

@@ -17,6 +17,9 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   displayName: string | null;
 
+  @Column({ type: 'varchar', length: 512, nullable: true })
+  fcmToken: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 

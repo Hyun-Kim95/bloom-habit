@@ -9,7 +9,9 @@ import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from './config/config.module';
 import { HabitsModule } from './habits/habits.module';
 import { InquiriesModule } from './inquiries/inquiries.module';
+import { LegalModule } from './legal/legal.module';
 import { SyncModule } from './sync/sync.module';
+import { StaticAssetsModule } from './static/static-assets.module';
 import {
   User,
   Habit,
@@ -20,6 +22,8 @@ import {
   SystemConfig,
   AiFeedbackLog,
   Inquiry,
+  LegalDocument,
+  MissedHabitPushLog,
 } from './entities';
 
 @Module({
@@ -38,6 +42,8 @@ import {
         SystemConfig,
         AiFeedbackLog,
         Inquiry,
+        LegalDocument,
+        MissedHabitPushLog,
       ],
       synchronize: process.env.NODE_ENV !== 'production',
       extra: {
@@ -49,8 +55,10 @@ import {
     AuthModule,
     HabitsModule,
     InquiriesModule,
+    LegalModule,
     SyncModule,
     AdminModule,
+    StaticAssetsModule,
   ],
   controllers: [AppController],
   providers: [

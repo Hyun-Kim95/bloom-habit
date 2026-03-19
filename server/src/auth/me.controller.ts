@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Patch, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { JwtGuard } from './jwt.guard';
@@ -19,6 +19,14 @@ export class MeController {
     private readonly auth: AuthService,
     private readonly habits: HabitsService,
   ) {}
+
+  @Patch()
+  async updateMe(@Req() req: ReqWithUser, @Body() body: { fcmToken?: string | null }) {
+    if (body.fcmToken !== undefined) {
+      await this.auth.updateFcmToken(req.userId, body.fcmToken ?? null);
+    }
+    return { ok: true };
+  }
 
   @Get('level')
   async getLevel(@Req() req: ReqWithUser) {

@@ -12,9 +12,10 @@ import {
 import { AuthService } from '../auth/auth.service';
 import { HabitsService } from '../habits/habits.service';
 import { AdminAuthService } from './admin-auth.service';
-import { AdminDataService, HabitTemplateDto, InquiryAdminDto, NoticeDto } from './admin-data.service';
+import { AdminDataService, HabitTemplateDto, InquiryAdminDto, LegalDocumentDto, NoticeDto } from './admin-data.service';
 import { AdminGuard } from './admin.guard';
 import { AdminStatsService } from './admin-stats.service';
+import { MissedHabitReminderScheduler } from '../push/missed-habit-reminder.scheduler';
 
 @Controller('admin')
 export class AdminController {
@@ -24,6 +25,7 @@ export class AdminController {
     private readonly adminStats: AdminStatsService,
     private readonly auth: AuthService,
     private readonly habits: HabitsService,
+    private readonly missedHabitReminderScheduler: MissedHabitReminderScheduler,
   ) {}
 
   @Post('auth/login')
@@ -161,5 +163,38 @@ export class AdminController {
     const r = await this.adminData.updateInquiryReply(id, body);
     if (!r) return { statusCode: 404, message: 'Not found' };
     return r;
+  }
+
+  @Get('legal-documents')
+  @UseGuards(AdminGuard)
+  async listLegalDocuments(@Query('type') type?: 'terms' | 'privacy'): Promise<LegalDocumentDto[]> {
+    return this.adminData.listLegalDocuments(type);
+  }
+
+  @Post('legal-documents')
+  @UseGuards(AdminGuard)
+  async createLegalDocument(
+    @Body() body: { type: 'terms' | 'privacy'; title?: string; content?: string; effectiveFrom?: string },
+  ): Promise<LegalDocumentDto> {
+    return this.adminData.createLegalDocument(body);
+  }
+
+  @Patch('legal-documents/:id')
+  @UseGuards(AdminGuard)
+  async updateLegalDocument(
+    @Param('id') id: string,
+    @Body() body: { title?: string; content?: string; effectiveFrom?: string | null },
+  ) {
+    const r = await this.adminData.updateLegalDocument(id, body);
+    if (!r) return { statusCode: 404, message: 'Not found' };
+    return r;
+  }
+
+  // 개발/테스트용: 오늘 미달성 BigPicture 푸시를 강제로 1회 전송
+  @Post('test/missed-habit-push')
+  @UseGuards(AdminGuard)
+  async testMissedHabitPush() {
+    await this.missedHabitReminderScheduler.runOnce({ force: true });
+    return { ok: true };
   }
 }

@@ -90,6 +90,14 @@ export class AuthService {
     await this.userRepo.delete({ id: userId });
   }
 
+  /** 앱에서 FCM 토큰 등록 */
+  async updateFcmToken(userId: string, fcmToken: string | null): Promise<void> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) return;
+    user.fcmToken = fcmToken && fcmToken.trim() !== '' ? fcmToken.trim() : null;
+    await this.userRepo.save(user);
+  }
+
   /** 관리자용: 앱 가입 사용자 목록 (가입일 포함) */
   async getAppUsers(): Promise<
     { id: string; email: string | null; displayName: string | null; createdAt: string }[]

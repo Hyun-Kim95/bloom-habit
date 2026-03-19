@@ -13,6 +13,7 @@ import '../../data/local/isar_provider.dart';
 import '../../data/sync/sync_repository.dart';
 import '../../data/habit/habit_repository.dart';
 import '../../data/inquiries/inquiry_repository.dart';
+import '../../data/legal/legal_repository.dart';
 
 final _tokenStorageProvider = Provider<TokenStorage>((ref) => TokenStorage());
 
@@ -63,6 +64,11 @@ final homeRefreshTriggerProvider = StateProvider<int>((ref) => 0);
 /// 문의 (게시판)
 final inquiryRepositoryProvider = Provider<InquiryRepository>((ref) {
   return InquiryRepository(dio: ref.watch(apiClientProvider).dio);
+});
+
+/// 약관·개인정보 (공개 API)
+final legalRepositoryProvider = Provider<LegalRepository>((ref) {
+  return LegalRepository(dio: ref.watch(apiClientProvider).dio);
 });
 
 /// 앱 전역 설정 (알림/사운드/햅틱)

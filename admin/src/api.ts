@@ -111,4 +111,38 @@ export const api = {
       createdAt: string
       updatedAt: string
     }>(`/admin/inquiries/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  getLegalDocuments: (type?: 'terms' | 'privacy') =>
+    request<{
+      id: string
+      type: string
+      version: number
+      title: string
+      content: string
+      effectiveFrom: string | null
+      createdAt: string
+      updatedAt: string
+    }[]>(`/admin/legal-documents${type ? `?type=${type}` : ''}`),
+  createLegalDocument: (body: { type: 'terms' | 'privacy'; title?: string; content?: string; effectiveFrom?: string }) =>
+    request<{
+      id: string
+      type: string
+      version: number
+      title: string
+      content: string
+      effectiveFrom: string | null
+      createdAt: string
+      updatedAt: string
+    }>('/admin/legal-documents', { method: 'POST', body: JSON.stringify(body) }),
+  updateLegalDocument: (id: string, body: { title?: string; content?: string; effectiveFrom?: string | null }) =>
+    request<{
+      id: string
+      type: string
+      version: number
+      title: string
+      content: string
+      effectiveFrom: string | null
+      createdAt: string
+      updatedAt: string
+    }>(`/admin/legal-documents/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
 };

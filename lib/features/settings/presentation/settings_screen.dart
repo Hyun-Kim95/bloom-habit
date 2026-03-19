@@ -3,13 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/notifications/notification_service.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
-import '../../../core/notifications/notification_service.dart';
-import '../../../core/settings/app_settings.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -27,26 +25,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     PackageInfo.fromPlatform().then((info) {
       if (mounted) setState(() => _versionText = '${info.version}+${info.buildNumber}');
     });
-  }
-
-  Future<void> _openUrl(BuildContext context, String url, String name) async {
-    if (url.isEmpty) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$name은(는) 준비 중입니다.')),
-        );
-      }
-      return;
-    }
-    final uri = Uri.tryParse(url);
-    if (uri == null) return;
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('링크를 열 수 없습니다.')),
-      );
-    }
   }
 
   @override
@@ -71,24 +49,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             subtitle: '프로필 및 로그아웃',
             onTap: () => context.push(AppRoutes.account),
           ),
-          _SettingsTile(
-            icon: Icons.bar_chart_outlined,
-            title: '통계',
-            subtitle: '습관 통계 보기',
-            onTap: () => context.push(AppRoutes.statistics),
-          ),
           const SizedBox(height: 8),
           _SettingsTile(
             icon: Icons.menu_book_outlined,
             title: '약관',
             subtitle: '이용약관',
-            onTap: () => _openUrl(context, LegalUrls.terms, '약관'),
+            onTap: () => context.push(AppRoutes.legalTerms),
           ),
           _SettingsTile(
             icon: Icons.privacy_tip_outlined,
             title: '개인정보처리방침',
             subtitle: '개인정보 처리 방침',
-            onTap: () => _openUrl(context, LegalUrls.privacy, '개인정보처리방침'),
+            onTap: () => context.push(AppRoutes.legalPrivacy),
           ),
           _SettingsTile(
             icon: Icons.mail_outline,
@@ -96,9 +68,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             subtitle: '게시판으로 문의·답변 확인',
             onTap: () => context.push(AppRoutes.inquiries),
           ),
+          _SettingsTile(
+            icon: Icons.notifications_outlined,
+            title: '알림 설정',
+            subtitle: '습관 리마인더는 여기서 켜세요. (권한이 아닌 알림 메뉴)',
+            onTap: () => NotificationService().openNotificationSettings(),
+          ),
           const Divider(height: 24),
           Text(
-            '알림·피드백',
+            '사운드·피드백',
             style: GoogleFonts.dmSans(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -110,23 +88,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             data: (settings) => Card(
               child: Column(
                 children: [
-                  SwitchListTile(
-                    value: settings.notificationsEnabled,
-                    onChanged: (v) async {
-                      await settings.setNotificationsEnabled(v);
-                      if (!v) await NotificationService().cancelAll();
-                      ref.invalidate(appSettingsProvider);
-                    },
-                    title: Text(
-                      '알림',
-                      style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
-                    ),
-                    subtitle: Text(
-                      '습관 리마인더 알림 사용',
-                      style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
-                    ),
-                    activeColor: AppColors.primary,
-                  ),
                   SwitchListTile(
                     value: settings.soundEnabled,
                     onChanged: (v) async {
