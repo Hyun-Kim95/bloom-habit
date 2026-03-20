@@ -1,8 +1,9 @@
 import 'package:dio/dio.dart';
 
 import '../../core/network/api_endpoints.dart';
+import '../../l10n/app_strings.dart';
 
-/// 문의 한 건 (앱에서 사용)
+/// Inquiry item used in app.
 class InquiryItem {
   const InquiryItem({
     required this.id,
@@ -23,13 +24,13 @@ class InquiryItem {
   final String createdAt;
 }
 
-/// 문의 API (게시판 형식)
+/// Inquiry API repository.
 class InquiryRepository {
   InquiryRepository({required Dio dio}) : _dio = dio;
 
   final Dio _dio;
 
-  /// 내 문의 목록
+  /// Fetch my inquiry list.
   Future<List<InquiryItem>> getMyInquiries() async {
     final res = await _dio.get<List<dynamic>>(ApiEndpoints.inquiries);
     if (res.data == null) return [];
@@ -51,13 +52,13 @@ class InquiryRepository {
         .toList();
   }
 
-  /// 문의 등록
+  /// Create inquiry.
   Future<InquiryItem> createInquiry({required String subject, required String body}) async {
     final res = await _dio.post<Map<String, dynamic>>(
       ApiEndpoints.inquiries,
       data: {'subject': subject, 'body': body},
     );
-    if (res.data == null) throw Exception('문의 등록에 실패했습니다.');
+    if (res.data == null) throw Exception(AppStrings.inquiryCreateFailed);
     final m = res.data!;
     return InquiryItem(
       id: m['id'] as String? ?? '',

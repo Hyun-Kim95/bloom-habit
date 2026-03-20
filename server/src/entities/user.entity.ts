@@ -14,6 +14,9 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   email: string | null;
 
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  authProvider: 'google' | 'apple' | 'kakao' | 'naver' | null;
+
   @Column({ type: 'varchar', nullable: true })
   displayName: string | null;
 
@@ -22,6 +25,18 @@ export class User {
 
   @Column({ type: 'varchar', length: 512, nullable: true })
   fcmToken: string | null;
+
+  @Column({ default: true })
+  isActive: boolean;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  deactivatedAt: Date | null;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  deactivationReason: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  deactivatedBy: 'self' | 'admin' | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

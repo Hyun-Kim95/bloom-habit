@@ -1,10 +1,10 @@
 import 'package:dio/dio.dart';
 
-/// 401 시 토큰 갱신·재시도, 공통 에러 로깅
+/// Shared API error handling and retry interception.
 class ApiInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    // TODO: 401 시 refresh 후 재요청, 429 등 처리
+    // TODO: implement refresh/retry for 401 and policy for 429.
     super.onError(err, handler);
   }
 }

@@ -1,14 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AiFeedbackService } from './ai-feedback.service';
 import { HabitsController } from './habits.controller';
 import { HabitsService } from './habits.service';
-import { Habit, HabitRecord, AiFeedbackLog } from '../entities';
+import { Habit, HabitRecord, HabitTemplate } from '../entities';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Habit, HabitRecord, AiFeedbackLog])],
+  imports: [TypeOrmModule.forFeature([Habit, HabitRecord, HabitTemplate])],
   controllers: [HabitsController],
-  providers: [HabitsService, AiFeedbackService],
+  providers: [HabitsService],
   exports: [HabitsService],
 })
 export class HabitsModule {}

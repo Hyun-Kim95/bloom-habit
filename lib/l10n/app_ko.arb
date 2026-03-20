@@ -1,0 +1,297 @@
+{
+  "@@locale": "ko",
+  "appTitle": "Bloom Habit",
+  "navHome": "홈",
+  "navHabits": "습관",
+  "navStats": "통계",
+  "navSettings": "설정",
+  "pressBackAgainToExit": "한 번 더 누르면 앱이 종료됩니다.",
+  "connectionErrorMessage": "서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인하고, 에뮬레이터는 10.0.2.2:3000, 실기기는 같은 Wi-Fi의 PC IP로 연결해 보세요.",
+  "retry": "다시 시도",
+  "todayHabitsTitle": "오늘의 습관",
+  "addNewHabit": "새 습관 추가",
+  "emptyHabitTitle": "아직 습관이 없어요.",
+  "emptyHabitDescription": "새 습관 추가로 첫 습관을 등록해 보세요.",
+  "completedHeatmapTitle": "완료 히트맵",
+  "heatmapLess": "적음",
+  "heatmapMore": "많음",
+  "todayProgressLabel": "오늘 달성률",
+  "todayProgressTitle": "오늘의 진행",
+  "todayProgressDescription": "오늘 목표 중 달성한 습관 비율이에요.",
+  "completedHabitCount": "{completed} / {total} 습관 완료",
+  "@completedHabitCount": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "completedTodayDialogTitle": "오늘 완료했어요!",
+  "confirm": "확인",
+  "habitTitle": "습관",
+  "addHabit": "습관 추가",
+  "noHabitsRegistered": "등록된 습관이 없어요",
+  "addHabitGuide": "우측 상단 + 버튼으로 습관을 추가해 보세요.",
+  "activeHabits": "진행 중 습관",
+  "hiddenHabits": "숨긴 습관",
+  "settingsTitle": "설정",
+  "accountManagement": "계정 관리",
+  "announcements": "공지사항",
+  "serviceAnnouncementList": "서비스 공지 목록",
+  "terms": "약관",
+  "privacyPolicy": "개인정보처리방침",
+  "inquiry": "문의하기",
+  "notificationSettings": "알림 설정",
+  "displaySettings": "표시 설정",
+  "language": "언어",
+  "theme": "화면 테마",
+  "systemTheme": "시스템 설정 따름",
+  "lightTheme": "라이트 모드",
+  "darkTheme": "다크 모드"
+  ,
+  "weekdayMon": "월",
+  "weekdayTue": "화",
+  "weekdayWed": "수",
+  "weekdayThu": "목",
+  "weekdayFri": "금",
+  "weekdaySat": "토",
+  "weekdaySun": "일",
+  "ok": "확인",
+  "day": "일",
+  "week": "주",
+  "month": "월",
+  "skip": "건너뛰기",
+  "next": "다음",
+  "getStarted": "시작하기",
+  "onboardingSubtitle1": "작은 습관이 인생을 바꿉니다",
+  "onboardingBody1": "매일 조금씩 기록하고, 꾸준함을 키워 보세요.",
+  "onboardingTitle2": "습관 기록",
+  "onboardingSubtitle2": "오늘 한 일을 간단히 체크",
+  "onboardingBody2": "완료할 때마다 기록하면 연속 달성일과 통계를 볼 수 있어요.",
+  "onboardingTitle3": "시작하기",
+  "onboardingSubtitle3": "지금 바로 첫 습관을 만들어 보세요",
+  "onboardingBody3": "로그인 후 습관을 추가하고, 오늘부터 기록을 시작해요.",
+  "loginFailed": "로그인 실패",
+  "loginSubtitle": "소셜 계정으로 간편히 시작하세요",
+  "loginWithGoogle": "Google로 로그인",
+  "loginWithKakao": "카카오로 로그인",
+  "loginWithNaver": "네이버로 로그인",
+  "loginError": "로그인 중 오류: {message}",
+  "@loginError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "hideHabit": "습관 숨기기",
+  "hideHabitDescription": "이 습관을 숨길까요? 숨긴 습관은 홈 목록에서 보이지 않고, 습관 목록의 숨긴 습관에서 볼 수 있어요.",
+  "cancel": "취소",
+  "hide": "숨기기",
+  "hideFailed": "숨기기 처리에 실패했어요.",
+  "unhideHabit": "습관 숨김 해제",
+  "unhideHabitDescription": "이 습관을 다시 표시할까요? 해제하면 진행 중 습관 목록으로 이동합니다.",
+  "unhide": "해제하기",
+  "unhideFailed": "숨김 해제 처리에 실패했어요.",
+  "edit": "수정",
+  "delete": "삭제",
+  "enterSubject": "제목을 입력해 주세요.",
+  "enterContent": "내용을 입력해 주세요.",
+  "inquirySubmitted": "문의가 등록되었습니다. 관리자 답변을 기다려 주세요.",
+  "newInquiry": "새 문의",
+  "subject": "제목",
+  "inquiryContent": "문의 내용",
+  "submitInquiry": "문의 등록",
+  "myInquiries": "내 문의 목록",
+  "noInquiries": "등록한 문의가 없습니다.",
+  "answered": "답변 완료",
+  "pending": "대기 중",
+  "replyAt": "답변 {date}",
+  "@replyAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "adminReply": "관리자 답변",
+  "replyTime": "답변 시간: {date}",
+  "@replyTime": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "noContent": "(내용 없음)",
+  "untitled": "(제목 없음)",
+  "noNotices": "등록된 공지가 없습니다."
+  ,
+  "korean": "한국어",
+  "profileAndLogout": "프로필 및 로그아웃",
+  "inquirySubtitle": "게시판으로 문의·답변 확인",
+  "notificationSettingsSubtitle": "습관 리마인더는 여기서 켜세요. (권한이 아닌 알림 메뉴)",
+  "soundAndFeedback": "사운드·피드백",
+  "sound": "사운드",
+  "soundSubtitle": "기록 완료 시 효과음",
+  "haptic": "햅틱",
+  "hapticSubtitle": "진동 피드백",
+  "loading": "로딩…",
+  "onboarding": "온보딩",
+  "replayOnboarding": "온보딩 다시 보기",
+  "replayOnboardingSubtitle": "시작 화면을 다시 볼 수 있어요",
+  "showOnlyFirstLaunch": "첫 실행만 보기",
+  "showOnlyFirstLaunchSubtitle": "끄면 앱을 열 때마다 온보딩을 볼 수 있어요",
+  "logout": "로그아웃",
+  "versionLabel": "버전 {version}",
+  "@versionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "yearMonth": "{year}년 {month}월",
+  "@yearMonth": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "int"
+      }
+    }
+  },
+  "todaySummary": "오늘의 요약",
+  "totalHabits": "전체 습관",
+  "countItems": "{count}개",
+  "@countItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todayCompleted": "오늘 완료",
+  "last7DaysSuccessRate": "최근 7일 성공률",
+  "last7DaysSuccessRateDescription": "오늘을 포함한 7일 동안, 활성 습관의 시작일 이후「해야 할 날」대비 완료한 날의 비율입니다.",
+  "noActiveHabitsForRate": "활성 습관이 없으면 표시되지 않습니다.",
+  "achieved": "달성",
+  "successPairCount": "{completed} / {possible} (습관·날 단위)",
+  "@successPairCount": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "possible": {
+        "type": "int"
+      }
+    }
+  },
+  "weeklySummary": "주간 요약",
+  "weeklySuccessRate": "주간 성공률",
+  "weeklySuccessRateDescription": "선택한 주(월~일) 동안, 활성 습관의 시작일 이후「해야 할 날」대비 완료한 날의 비율입니다.",
+  "monthlySummary": "월간 요약",
+  "monthlySuccessRate": "월간 성공률",
+  "monthlySuccessRateDescription": "선택한 달 동안, 활성 습관의 시작일 이후「해야 할 날」대비 완료한 날의 비율입니다.",
+  "completedCountLabel": "완료 횟수",
+  "countTimes": "{count}회",
+  "@countTimes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "completedByHabit": "습관별 완료",
+  "noHabitsYet": "등록된 습관이 없어요.",
+  "aiFeedback": "AI 피드백",
+  "streakByHabit": "습관별 연속일",
+  "daysCount": "{count}일",
+  "@daysCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileLoadFailed": "프로필을 불러오지 못했습니다. 네트워크를 확인해 주세요.",
+  "nickname": "닉네임",
+  "nicknameHint": "닉네임 (비워 두면 표시 안 함)",
+  "max20Chars": "최대 20자",
+  "save": "저장",
+  "saved": "저장했어요.",
+  "saveFailed": "저장 실패: {message}",
+  "@saveFailed": {"placeholders": {"message": {"type": "String"}}},
+  "removeProfilePhoto": "프로필 사진 제거",
+  "removeProfilePhotoDescription": "저장된 프로필 사진을 지울까요? (Google로 다시 로그인하면 사진이 다시 동기화될 수 있어요.)",
+  "remove": "제거",
+  "profilePhotoRemoved": "프로필 사진을 지웠어요.",
+  "processFailed": "처리 실패: {message}",
+  "@processFailed": {"placeholders": {"message": {"type": "String"}}},
+  "deleteAccount": "회원 탈퇴",
+  "deleteAccountDescription": "탈퇴하면 계정이 비활성화되며 로그인할 수 없습니다.\n사유를 입력한 뒤 탈퇴를 진행해 주세요.",
+  "withdrawReason": "탈퇴 사유",
+  "withdrawReasonHint": "탈퇴 사유를 입력해 주세요.",
+  "withdrawReasonRequired": "탈퇴 사유를 입력해 주세요.",
+  "withdraw": "탈퇴",
+  "withdrawFailed": "탈퇴 처리 중 오류가 났어요. {message}",
+  "@withdrawFailed": {"placeholders": {"message": {"type": "String"}}},
+  "noName": "이름 없음",
+  "loginWithProvider": "{provider} 로그인",
+  "@loginWithProvider": {"placeholders": {"provider": {"type": "String"}}},
+  "changeNickname": "닉네임 변경",
+  "nicknameSubtitle": "문의·앱에 보이는 이름입니다. (최대 20자)",
+  "revertToDefaultIcon": "기본 아이콘으로 돌아갑니다.",
+  "accountDataWarning": "습관·기록 데이터는 이 계정에 연동됩니다. 회원 탈퇴 시 서버와 기기에 저장된 데이터가 삭제되며 복구할 수 없습니다.",
+  "withdrawing": "탈퇴 처리 중…",
+  "enterHabitName": "습관명을 입력하세요",
+  "notificationPermissionRequired": "알림 권한이 필요합니다. 설정에서 허용해 주세요.",
+  "serverSlowResponse": "서버 응답이 지연되고 있습니다. 서버와 PostgreSQL이 실행 중인지 확인해 주세요.",
+  "goalTypeCompletion": "완료 여부",
+  "goalTypeCount": "횟수",
+  "goalTypeDuration": "시간",
+  "goalTypeNumber": "수치",
+  "createNewHabit": "새 습관 만들기",
+  "habitName": "습관명",
+  "habitNameHint": "예: 아침 물 500ml",
+  "categoryOptional": "카테고리 (선택)",
+  "noneSelected": "선택 안 함",
+  "goalType": "목표 유형",
+  "habitTemplateOptional": "템플릿 (선택)",
+  "goalCountHint": "목표 횟수 (예: 3)",
+  "goalDurationHint": "목표 분 (예: 30)",
+  "goalNumberHint": "목표 수치",
+  "startDate": "시작일",
+  "colorOptional": "색상 (선택)",
+  "iconOptional": "아이콘 (선택)",
+  "reminderNotification": "리마인더 알림",
+  "reminderNotificationSubtitle": "매일 설정한 시간에 이 습관 알림",
+  "notificationTime": "알림 시간",
+  "editFailedTryAgain": "수정에 실패했어요. 다시 시도해 주세요.",
+  "deleteRecord": "기록 삭제",
+  "deleteRecordForDate": "{date} 기록을 삭제할까요?",
+  "@deleteRecordForDate": {"placeholders": {"date": {"type": "String"}}},
+  "processFailedTryAgain": "처리하지 못했어요. 다시 시도해 주세요.",
+  "completeToday": "오늘 완료하기",
+  "recordHistory": "기록 히스토리",
+  "noRecent30DaysRecords": "최근 30일 기록이 없어요.",
+  "deleteHabit": "습관 삭제",
+  "deleteHabitDescription": "이 습관을 삭제할까요?",
+  "editHabit": "습관 수정",
+  "goalValue": "목표값",
+  "color": "색상",
+  "icon": "아이콘"
+  ,
+  "pageNotFound": "페이지를 찾을 수 없습니다: {uri}",
+  "@pageNotFound": {
+    "placeholders": {
+      "uri": {
+        "type": "String"
+      }
+    }
+  }
+}

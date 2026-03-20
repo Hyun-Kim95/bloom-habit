@@ -21,7 +21,7 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
-// isar_flutter_libs 등 namespace 미지정 라이브러리 호환 (AGP 8+)
+// isar_flutter_libs namespace 미지정 라이브러리 호환 (AGP 8+)
 subprojects {
     if (project.name == "isar_flutter_libs") {
         project.plugins.withId("com.android.library") {

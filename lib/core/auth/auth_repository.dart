@@ -3,13 +3,16 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
+import 'package:flutter_naver_login/flutter_naver_login.dart';
+import 'package:flutter_naver_login/interface/types/naver_login_status.dart';
 
 import '../network/api_client.dart';
 import '../network/api_endpoints.dart';
 import 'token_storage.dart';
+import '../../l10n/app_strings.dart';
 
-/// GET /me 프로필
+/// GET /me profile.
 class MeProfile {
   const MeProfile({
     required this.id,
@@ -24,7 +27,8 @@ class MeProfile {
   final String? email;
   final String? displayName;
   final String? avatarUrl;
-  /// `google` | `apple` | `unknown`
+
+  /// `google` | `kakao` | `naver` | `unknown` (legacy `apple` possible)
   final String authProvider;
   final String createdAt;
 
@@ -43,28 +47,29 @@ class MeProfile {
   }
 }
 
-/// 소셜 로그인 + 서버 토큰 발급
+/// Social login + server token issuance.
 class AuthRepository {
   AuthRepository({
     required ApiClient apiClient,
     required TokenStorage tokenStorage,
     String? googleServerClientId,
-  })  : _api = apiClient,
-        _storage = tokenStorage,
-        _googleSignIn = GoogleSignIn(
-          scopes: ['email', 'profile'],
-          serverClientId: (googleServerClientId != null &&
-                  googleServerClientId.isNotEmpty &&
-                  googleServerClientId.contains('.apps.googleusercontent.com'))
-              ? googleServerClientId
-              : null,
-        );
+  }) : _api = apiClient,
+       _storage = tokenStorage,
+       _googleSignIn = GoogleSignIn(
+         scopes: ['email', 'profile'],
+         serverClientId:
+             (googleServerClientId != null &&
+                 googleServerClientId.isNotEmpty &&
+                 googleServerClientId.contains('.apps.googleusercontent.com'))
+             ? googleServerClientId
+             : null,
+       );
 
   final ApiClient _api;
   final TokenStorage _storage;
   final GoogleSignIn _googleSignIn;
 
-  /// 구글 로그인: ID 토큰 획득 후 서버에 전달해 앱 토큰 발급
+  /// Google login: fetch ID token and exchange for app token.
   Future<AuthResult> signInWithGoogle() async {
     try {
       final account = await _googleSignIn.signIn();
@@ -72,7 +77,8 @@ class AuthRepository {
 
       final auth = await account.authentication;
       final idToken = auth.idToken;
-      if (idToken == null) return AuthResult.fail('ID token 없음');
+      if (idToken == null)
+        return AuthResult.fail(AppStrings.authIdTokenMissing);
 
       final email = account.email;
       final displayName = account.displayName;
@@ -81,81 +87,115 @@ class AuthRepository {
         data: {
           'idToken': idToken,
           if (email.isNotEmpty) 'email': email,
-          if (displayName != null && displayName.isNotEmpty) 'displayName': displayName,
+          if (displayName != null && displayName.isNotEmpty)
+            'displayName': displayName,
           'avatarUrl': account.photoUrl,
         },
       );
       return await _handleAuthResponse(res);
     } on PlatformException catch (e) {
-      // ApiException: 10 = DEVELOPER_ERROR → Google Cloud에 SHA-1·패키지명 미등록
+      // ApiException: 10 = DEVELOPER_ERROR (SHA-1/package not registered).
       if (e.code == 'sign_in_failed' &&
           e.message != null &&
           e.message!.contains('ApiException: 10')) {
-        return AuthResult.fail(
-          'Google 로그인 설정이 필요합니다. '
-          '개발 PC에서 docs/google-signin-setup.md를 참고해 Google Cloud에 SHA-1을 등록해 주세요.',
-        );
+        return AuthResult.fail(AppStrings.authGoogleSetupNeeded);
       }
       return AuthResult.fail(e.message ?? e.code);
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.sendTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
-        return AuthResult.fail(
-          '서버 연결 시간이 초과되었습니다. '
-          'PC에서 서버(포트 3000)가 실행 중인지 확인해 주세요.',
-        );
+        return AuthResult.fail(AppStrings.authServerTimeout);
       }
       if (e.type == DioExceptionType.connectionError) {
-        return AuthResult.fail(
-          '서버에 연결할 수 없습니다. 서버가 실행 중인지, 에뮬레이터라면 10.0.2.2:3000으로 연결되는지 확인해 주세요.',
-        );
+        return AuthResult.fail(AppStrings.authServerUnreachable);
       }
       final msg = e.response?.data is Map
           ? (e.response!.data as Map)['message']?.toString()
           : null;
-      return AuthResult.fail(msg ?? e.message ?? '네트워크 오류');
+      return AuthResult.fail(msg ?? e.message ?? AppStrings.authNetworkError);
     } catch (e) {
       return AuthResult.fail(e.toString().split('\n').first);
     }
   }
 
-  /// 애플 로그인: identityToken 획득 후 서버에 전달
-  Future<AuthResult> signInWithApple() async {
-    final cred = await SignInWithApple.getAppleIDCredential(
-      scopes: [AppleIDAuthorizationScopes.email, AppleIDAuthorizationScopes.fullName],
-    );
-    final idToken = cred.identityToken;
-    if (idToken == null) return AuthResult.fail('Apple identity token 없음');
+  Future<AuthResult> signInWithKakao() async {
+    try {
+      kakao.OAuthToken token;
+      if (await kakao.isKakaoTalkInstalled()) {
+        try {
+          token = await kakao.UserApi.instance.loginWithKakaoTalk();
+        } catch (_) {
+          token = await kakao.UserApi.instance.loginWithKakaoAccount();
+        }
+      } else {
+        token = await kakao.UserApi.instance.loginWithKakaoAccount();
+      }
+      final accessToken = token.accessToken;
+      if (accessToken.trim().isEmpty) {
+        return AuthResult.fail('Kakao access token missing');
+      }
+      final res = await _api.dio.post<Map<String, dynamic>>(
+        ApiEndpoints.authKakao,
+        data: {'accessToken': accessToken},
+      );
+      return _handleAuthResponse(res);
+    } on DioException catch (e) {
+      final msg = e.response?.data is Map
+          ? (e.response!.data as Map)['message']?.toString()
+          : null;
+      return AuthResult.fail(msg ?? e.message ?? AppStrings.authNetworkError);
+    } catch (e) {
+      return AuthResult.fail(e.toString().split('\n').first);
+    }
+  }
 
-    final res = await _api.dio.post<Map<String, dynamic>>(
-      ApiEndpoints.authApple,
-      data: {
-        'identityToken': idToken,
-        'email': cred.email,
-        'displayName': cred.givenName != null
-            ? '${cred.givenName ?? ''} ${cred.familyName ?? ''}'.trim()
-            : null,
-      },
-    );
-    return _handleAuthResponse(res);
+  Future<AuthResult> signInWithNaver() async {
+    try {
+      final result = await FlutterNaverLogin.logIn();
+      if (result.status != NaverLoginStatus.loggedIn) {
+        if (result.status == NaverLoginStatus.loggedOut) {
+          return AuthResult.cancelled();
+        }
+        final msg = result.errorMessage?.trim();
+        return AuthResult.fail(
+          msg != null && msg.isNotEmpty ? msg : 'Naver login failed',
+        );
+      }
+      final accessToken = result.accessToken?.accessToken ?? '';
+      if (accessToken.trim().isEmpty) {
+        return AuthResult.fail('Naver access token missing');
+      }
+      final res = await _api.dio.post<Map<String, dynamic>>(
+        ApiEndpoints.authNaver,
+        data: {'accessToken': accessToken},
+      );
+      return _handleAuthResponse(res);
+    } on DioException catch (e) {
+      final msg = e.response?.data is Map
+          ? (e.response!.data as Map)['message']?.toString()
+          : null;
+      return AuthResult.fail(msg ?? e.message ?? AppStrings.authNetworkError);
+    } catch (e) {
+      return AuthResult.fail(e.toString().split('\n').first);
+    }
   }
 
   Future<AuthResult> _handleAuthResponse(
     Response<Map<String, dynamic>> res,
   ) async {
-    if (res.data == null) return AuthResult.fail('응답 없음');
+    if (res.data == null) return AuthResult.fail(AppStrings.authEmptyResponse);
     final access = res.data!['accessToken'] as String?;
     final refresh = res.data!['refreshToken'] as String?;
     final user = res.data!['user'] as Map<String, dynamic>?;
-    if (access == null) return AuthResult.fail('토큰 없음');
+    if (access == null) return AuthResult.fail(AppStrings.authTokenMissing);
 
     try {
       await _storage
           .saveTokens(accessToken: access, refreshToken: refresh)
           .timeout(const Duration(seconds: 5));
     } catch (_) {
-      return AuthResult.fail('토큰 저장 실패');
+      return AuthResult.fail(AppStrings.authTokenSaveFailed);
     }
     _api.setAccessToken(access);
     return AuthResult.success(user: user);
@@ -163,12 +203,15 @@ class AuthRepository {
 
   Future<void> logout() async {
     await _googleSignIn.signOut();
+    try {
+      await FlutterNaverLogin.logOutAndDeleteToken();
+    } catch (_) {}
     await _api.dio.post(ApiEndpoints.authLogout);
     await _storage.clear();
     _api.setAccessToken(null);
   }
 
-  /// 내 프로필 (GET /me)
+  /// Fetch my profile (GET /me).
   Future<MeProfile?> fetchProfile() async {
     try {
       final res = await _api.dio.get<Map<String, dynamic>>(ApiEndpoints.me);
@@ -178,7 +221,7 @@ class AuthRepository {
     }
   }
 
-  /// 표시 이름·프로필 사진 URL 갱신 (PATCH /me). 전달한 필드만 서버에 반영됩니다.
+  /// Update display name/avatar URL (PATCH /me), partial fields only.
   Future<void> updateMeProfile({
     String? displayName,
     bool clearAvatar = false,
@@ -194,39 +237,59 @@ class AuthRepository {
     await _api.dio.patch<Map<String, dynamic>>(ApiEndpoints.me, data: data);
   }
 
-  /// 회원 탈퇴: 서버에서 계정·데이터 삭제 후 로컬 토큰 제거
-  Future<void> deleteAccount() async {
-    await _api.dio.delete(ApiEndpoints.me);
+  /// Deactivate account on server with reason and clear local tokens.
+  Future<void> deleteAccount(String reason) async {
+    await _api.dio.delete(ApiEndpoints.me, data: {'reason': reason.trim()});
     await _storage.clear();
     _api.setAccessToken(null);
   }
 
-  /// 저장된 토큰으로 로그인 상태 복원
+  /// Restore session from saved token.
   Future<bool> restoreSession() async {
     final access = await _storage.getAccessToken();
     if (access == null) return false;
     _api.setAccessToken(access);
-    return true;
+    try {
+      await _api.dio.get<Map<String, dynamic>>(ApiEndpoints.me);
+      return true;
+    } on DioException catch (e) {
+      final status = e.response?.statusCode ?? 0;
+      final msg = e.response?.data is Map
+          ? ((e.response!.data as Map)['message']?.toString() ?? '')
+          : (e.message ?? '');
+      final inactive =
+          msg.contains('Inactive user') ||
+          msg.contains('비활성화') ||
+          msg.contains('deactivat');
+      // Inactive/invalid token: force logout and block auto-login.
+      if (status == 401 || status == 403 || inactive) {
+        await _storage.clear();
+        _api.setAccessToken(null);
+        return false;
+      }
+      // Keep existing behavior for transient network/server errors.
+      return true;
+    } catch (_) {
+      return true;
+    }
   }
 
-  /// FCM 토큰을 서버에 등록 (문의 답변 등 푸시 수신용). Firebase 미설정 시 무시.
+  /// Register FCM token for push notifications.
   Future<void> registerFcmToken() async {
     try {
       final messaging = FirebaseMessaging.instance;
-      await messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      await messaging.requestPermission(alert: true, badge: true, sound: true);
       final token = await messaging.getToken();
       if (token == null || token.isEmpty) return;
       await _api.dio.patch<Map<String, dynamic>>(
         ApiEndpoints.me,
         data: {'fcmToken': token},
       );
-      debugPrint('FCM token 등록됨: ${token.length >= 6 ? token.substring(0, 6) : token}');
+      debugPrint(
+        'FCM token registered: ${token.length >= 6 ? token.substring(0, 6) : token}',
+      );
     } catch (_) {
-      // Firebase 미설정 또는 권한 거부 시 무시
+      // Ignore when Firebase is not configured or permission is denied.
     }
   }
 }

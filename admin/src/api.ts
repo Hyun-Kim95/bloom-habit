@@ -47,14 +47,24 @@ export const api = {
       {
         id: string
         email: string | null
+        authProvider: 'google' | 'apple' | 'kakao' | 'naver' | 'unknown'
         displayName: string | null
         createdAt: string
+        isActive: boolean
+        deactivatedAt: string | null
+        deactivationReason: string | null
+        deactivatedBy: 'self' | 'admin' | null
         habitCount: number
         totalRecords: number
         completedRecords: number
         completionRatePercent: number | null
       }[]
     >('/admin/users'),
+  setUserActive: (id: string, isActive: boolean, reason?: string) =>
+    request<{ ok: true }>(`/admin/users/${id}/active`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive, reason }),
+    }),
   getStats: () => request<{ totalUsers: number; totalHabits: number; totalRecords: number }>('/admin/stats'),
   getStatsOverTime: (from?: string, to?: string) => {
     const params = new URLSearchParams()
@@ -73,6 +83,8 @@ export const api = {
         category?: string
         goalType: string
         goalValue?: number | null
+        colorHex?: string
+        iconName?: string
         isActive: boolean
       }[]
     >('/admin/habit-templates'),
@@ -82,6 +94,8 @@ export const api = {
     category?: string
     goalType?: string
     goalValue?: number | null
+    colorHex?: string
+    iconName?: string
   }) => request('/admin/habit-templates', { method: 'POST', body: JSON.stringify(body) }),
   updateTemplate: (id: string, body: object) =>
     request(`/admin/habit-templates/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),

@@ -17,7 +17,7 @@ class LocalHabit {
   DateTime? startDate;
   String? colorHex;
   String? iconName;
-  /// 습관별 리마인더 알림 (로컬 전용, 서버 미동기화)
+  /// Per-habit reminder fields (local only, not synced to server).
   bool? reminderEnabled;
   int? reminderHour;
   int? reminderMinute;

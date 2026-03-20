@@ -15,7 +15,6 @@ import { AdminAuthService } from './admin-auth.service';
 import { AdminDataService, HabitTemplateDto, InquiryAdminDto, LegalDocumentDto, NoticeDto } from './admin-data.service';
 import { AdminGuard } from './admin.guard';
 import { AdminStatsService } from './admin-stats.service';
-import { MissedHabitReminderScheduler } from '../push/missed-habit-reminder.scheduler';
 
 @Controller('admin')
 export class AdminController {
@@ -25,7 +24,6 @@ export class AdminController {
     private readonly adminStats: AdminStatsService,
     private readonly auth: AuthService,
     private readonly habits: HabitsService,
-    private readonly missedHabitReminderScheduler: MissedHabitReminderScheduler,
   ) {}
 
   @Post('auth/login')
@@ -46,8 +44,10 @@ export class AdminController {
       return {
         id: u.id,
         email: u.email,
+        authProvider: u.authProvider,
         displayName: u.displayName,
         createdAt: u.createdAt,
+        isActive: u.isActive,
         habitCount: s.habitCount,
         totalRecords: s.totalRecords,
         completedRecords: s.completedRecords,
@@ -77,6 +77,17 @@ export class AdminController {
     const fromStr = from ?? fromDate.toISOString().slice(0, 10);
     const toStr = to ?? toDate.toISOString().slice(0, 10);
     return this.adminStats.getStatsOverTime(fromStr, toStr);
+  }
+
+  @Patch('users/:id/active')
+  @UseGuards(AdminGuard)
+  async setUserActive(
+    @Param('id') id: string,
+    @Body() body: { isActive: boolean; reason?: string },
+  ) {
+    const ok = await this.auth.setUserActive(id, Boolean(body.isActive), body.reason);
+    if (!ok) return { statusCode: 404, message: 'Not found' };
+    return { ok: true };
   }
 
   @Get('habit-templates')
@@ -203,11 +214,4 @@ export class AdminController {
     return r;
   }
 
-  // 개발/테스트용: 오늘 미달성 BigPicture 푸시를 강제로 1회 전송
-  @Post('test/missed-habit-push')
-  @UseGuards(AdminGuard)
-  async testMissedHabitPush() {
-    await this.missedHabitReminderScheduler.runOnce({ force: true });
-    return { ok: true };
-  }
 }

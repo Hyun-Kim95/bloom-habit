@@ -1,22 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:share_plus/share_plus.dart';
 
-import 'package:lottie/lottie.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/notifications/notification_service.dart';
-import '../../../core/settings/app_settings.dart';
 import '../../../core/utils/habit_icon_color.dart';
 import '../../../core/widget/home_widget_update.dart';
 import '../../../data/local/entity/local_habit.dart';
 
-/// Figma Home Dashboard (New Style) 색상
+/// Figma Home Dashboard (new style) color constants.
 class _DashboardColors {
   static const Color background = Color(0xFFF0F8FF);
   static const Color primary = Color(0xFF22C55E);
@@ -41,18 +39,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   List<LocalHabit> _habits = [];
   Map<String, bool> _todayCompleted = {};
   Map<String, int> _heatmapCounts = {};
+  /// Currently displayed heatmap month (based on day 1).
+  DateTime _heatmapMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  int _heatmapSlideDirection = 1; // 1: next month, -1: previous month
   bool _loading = true;
   String? _error;
 
-  String _buildShareText() {
-    final links = <String>[
-      if (StoreUrls.android.trim().isNotEmpty) 'Google Play: ${StoreUrls.android}',
-      if (StoreUrls.ios.trim().isNotEmpty) 'App Store: ${StoreUrls.ios}',
-    ];
-    final linkText = links.isNotEmpty
-        ? '\n\n${links.join('\n')}'
-        : '\n\n스토어에서 "Bloom Habit"을 검색해 다운로드해 주세요!';
-    return '습관 만들기, Bloom Habit과 함께 시작해 보세요.\n지금 바로 다운로드하세요!$linkText';
+  bool get _canGoNextHeatmap {
+    final now = DateTime.now();
+    final cur = DateTime(now.year, now.month, 1);
+    return _heatmapMonth.isBefore(cur);
+  }
+
+  int _completedCountForActiveHabits(
+    List<LocalHabit> habits,
+    Map<String, bool> completedByHabit,
+  ) {
+    var count = 0;
+    for (final h in habits) {
+      final sid = h.serverId;
+      if (sid == null) continue;
+      if (completedByHabit[sid] == true) count++;
+    }
+    return count;
   }
 
   Future<void> _rescheduleRemindersOnce(List<LocalHabit> habits) async {
@@ -82,7 +91,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (!mounted) return;
       final habits = await repo.getActiveHabits();
       final completed = await repo.getTodayCompletedByHabit();
-      final heatmapCounts = await repo.getLast28DaysCompletionCounts();
+      final heatmapStart = DateTime(_heatmapMonth.year, _heatmapMonth.month, 1);
+      final heatmapEnd = DateTime(_heatmapMonth.year, _heatmapMonth.month + 1, 0);
+      final heatmapCounts = await repo.getCompletionCountsForDateRange(heatmapStart, heatmapEnd);
       if (mounted) {
         setState(() {
           _habits = habits;
@@ -91,7 +102,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _loading = false;
         });
         _rescheduleRemindersOnce(habits);
-        final completedCount = completed.values.where((v) => v).length;
+        final completedCount = _completedCountForActiveHabits(habits, completed);
         updateHomeWidget(todayCompleted: completedCount, totalHabits: habits.length);
         await authRepo.registerFcmToken();
       }
@@ -107,15 +118,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         setState(() {
           _loading = false;
           _error = isConnectionError
-              ? '서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인하고, 에뮬레이터는 10.0.2.2:3000, 실기기는 같은 Wi-Fi의 PC IP로 연결해 보세요.'
+              ? AppLocalizations.of(context)!.connectionErrorMessage
               : msg.split('\n').first;
         });
       }
     }
   }
 
+  Future<Map<String, int>> _loadHeatmapCountsFor(DateTime month) async {
+    final repo = ref.read(habitRepositoryProvider);
+    final heatmapStart = DateTime(month.year, month.month, 1);
+    final heatmapEnd = DateTime(month.year, month.month + 1, 0);
+    return repo.getCompletionCountsForDateRange(heatmapStart, heatmapEnd);
+  }
+
+  Future<void> _prevHeatmapMonth() async {
+    final targetMonth = DateTime(_heatmapMonth.year, _heatmapMonth.month - 1, 1);
+    final nextCounts = await _loadHeatmapCountsFor(targetMonth);
+    if (!mounted) return;
+    setState(() {
+      _heatmapSlideDirection = -1;
+      _heatmapMonth = targetMonth;
+      _heatmapCounts = nextCounts;
+    });
+  }
+
+  Future<void> _nextHeatmapMonth() async {
+    if (!_canGoNextHeatmap) return;
+    final targetMonth = DateTime(_heatmapMonth.year, _heatmapMonth.month + 1, 1);
+    final nextCounts = await _loadHeatmapCountsFor(targetMonth);
+    if (!mounted) return;
+    setState(() {
+      _heatmapSlideDirection = 1;
+      _heatmapMonth = targetMonth;
+      _heatmapCounts = nextCounts;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     ref.listen<int>(homeRefreshTriggerProvider, (prev, next) {
       if (prev != null && next != prev && mounted) _load();
     });
@@ -129,18 +171,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final border = isDark ? AppColors.borderDark : _DashboardColors.border;
     final progressTrack = isDark ? AppColors.mutedDark : _DashboardColors.progressTrack;
     final iconBg = isDark ? AppColors.accent : _DashboardColors.iconBg;
+    final completedTodayCount = _completedCountForActiveHabits(_habits, _todayCompleted);
 
     return Scaffold(
       backgroundColor: bg,
       body: SafeArea(
         child: Column(
           children: [
-            _TopBar(
-              onShare: () => Share.share(
-                _buildShareText(),
-                subject: 'Bloom Habit',
-              ),
-            ),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _load,
@@ -150,13 +187,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         child: CircularProgressIndicator(color: AppColors.primary),
                       )
                     : _error != null
-                        ? _ErrorBody(error: _error!, onRetry: _load)
+                        ? _ErrorBody(error: _error!, onRetry: _load, l10n: l10n)
                         : ListView(
                             padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
                             children: [
                               _TodayProgressCard(
-                                completedToday: _todayCompleted.values.where((v) => v).length,
+                                completedToday: completedTodayCount,
                                 totalHabits: _habits.length,
+                                l10n: l10n,
                                 cardColor: cardColor,
                                 border: border,
                                 primary: primary,
@@ -169,7 +207,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               _TodaySection(
                                 habits: _habits,
                                 todayCompleted: _todayCompleted,
-                                onAddNew: () => context.go(AppRoutes.habitCreate),
+                                l10n: l10n,
+                                onAddNew: () => context.push(AppRoutes.habitCreate),
                                 onTapHabit: (h) => context.push(
                                   '${AppRoutes.habitDetail}/${h.serverId}',
                                   extra: h,
@@ -184,7 +223,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                               const SizedBox(height: 24),
                               _HeatmapSection(
+                                displayMonthStart: _heatmapMonth,
+                                slideDirection: _heatmapSlideDirection,
+                                l10n: l10n,
                                 completedCounts: _heatmapCounts,
+                                onPrevMonth: _prevHeatmapMonth,
+                                onNextMonth: _canGoNextHeatmap ? _nextHeatmapMonth : null,
                                 cardColor: cardColor,
                                 border: border,
                                 primary: primary,
@@ -206,23 +250,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (h.serverId == null) return;
     final sid = h.serverId!;
     try {
-      // 즉시 완료 상태 반영 (낙관적 업데이트)
+      // Reflect completion immediately (optimistic update).
       setState(() {
         _todayCompleted = Map<String, bool>.from(_todayCompleted)..[sid] = true;
       });
       final repo = ref.read(habitRepositoryProvider);
-      final record = await repo.recordToday(sid);
+      await repo.recordToday(sid);
       final settings = ref.read(appSettingsProvider).value;
       if (settings?.hapticEnabled ?? true) HapticFeedback.mediumImpact();
       if (settings?.soundEnabled ?? true) SystemSound.play(SystemSoundType.click);
-      final comment = await repo.requestAiFeedback(sid, record.serverId ?? '');
       if (!context.mounted) return;
-      // 서버/로컬 반영 후 목록·히트맵 다시 불러와서 화면 갱신
+      // Refresh list and heatmap after server/local persistence.
       await _load();
-      if (!context.mounted) return;
-      await _showAiCommentDialog(context, comment);
     } catch (_) {
-      // 실패 시 방금 넣은 완료 표시 롤백
+      // Roll back optimistic completion on failure.
       if (mounted) {
         setState(() {
           _todayCompleted = Map<String, bool>.from(_todayCompleted)..remove(sid);
@@ -231,109 +272,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  Future<void> _showAiCommentDialog(BuildContext context, String comment) async {
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.eco, color: AppColors.primary, size: 24),
-            const SizedBox(width: 8),
-            const Text('오늘 완료했어요!'),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                height: 100,
-                width: 100,
-                child: Lottie.network(
-                  'https://assets2.lottiefiles.com/packages/lf20_yqcyqv2y.json',
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Icon(Icons.check_circle, size: 64, color: AppColors.primary),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(comment),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('확인'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TopBar extends StatelessWidget {
-  const _TopBar({required this.onShare});
-
-  final VoidCallback onShare;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? AppColors.cardDark : Colors.white;
-    final textColor = isDark ? AppColors.foregroundDark : _DashboardColors.text;
-    final border = isDark ? AppColors.borderDark : _DashboardColors.border;
-    final muted = isDark ? AppColors.mutedForeground : _DashboardColors.textMuted;
-    return Container(
-      height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: cardColor,
-            child: Icon(Icons.person_outline, color: muted, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Bloom Habit',
-              style: GoogleFonts.lora(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                fontStyle: FontStyle.italic,
-                color: textColor,
-                letterSpacing: -0.45,
-              ),
-            ),
-          ),
-          Material(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(8),
-            child: InkWell(
-              onTap: onShare,
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  border: Border.all(color: border),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: Icon(Icons.share_outlined, size: 20, color: textColor),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _TodayProgressCard extends StatelessWidget {
   const _TodayProgressCard({
     required this.completedToday,
     required this.totalHabits,
+    required this.l10n,
     required this.cardColor,
     required this.border,
     required this.primary,
@@ -345,6 +290,7 @@ class _TodayProgressCard extends StatelessWidget {
 
   final int completedToday;
   final int totalHabits;
+  final AppLocalizations l10n;
   final Color cardColor;
   final Color border;
   final Color primary;
@@ -386,7 +332,7 @@ class _TodayProgressCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '오늘의 진행',
+                      l10n.todayProgressTitle,
                       style: GoogleFonts.lora(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -396,7 +342,7 @@ class _TodayProgressCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '오늘 목표 중 달성한 습관 비율이에요.',
+                      l10n.todayProgressDescription,
                       style: GoogleFonts.dmSans(
                         fontSize: 14,
                         color: textMuted,
@@ -412,7 +358,7 @@ class _TodayProgressCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '오늘 달성률',
+                l10n.todayProgressLabel,
                 style: GoogleFonts.dmSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -441,7 +387,7 @@ class _TodayProgressCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '$completedToday / $totalHabits 습관 완료',
+            l10n.completedHabitCount(completedToday, totalHabits),
             style: GoogleFonts.dmSans(
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -458,6 +404,7 @@ class _TodaySection extends StatelessWidget {
   const _TodaySection({
     required this.habits,
     required this.todayCompleted,
+    required this.l10n,
     required this.onAddNew,
     required this.onTapHabit,
     required this.onRecord,
@@ -471,6 +418,7 @@ class _TodaySection extends StatelessWidget {
 
   final List<LocalHabit> habits;
   final Map<String, bool> todayCompleted;
+  final AppLocalizations l10n;
   final VoidCallback onAddNew;
   final void Function(LocalHabit) onTapHabit;
   final void Function(LocalHabit) onRecord;
@@ -490,7 +438,7 @@ class _TodaySection extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "Today's Habits",
+              l10n.todayHabitsTitle,
               style: GoogleFonts.lora(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -507,7 +455,7 @@ class _TodaySection extends StatelessWidget {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
-                'Add New',
+                l10n.addNewHabit,
                 style: GoogleFonts.dmSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
@@ -519,6 +467,7 @@ class _TodaySection extends StatelessWidget {
         const SizedBox(height: 12),
         if (habits.isEmpty)
           _EmptyHabitsCard(
+            l10n: l10n,
             cardColor: cardColor,
             border: border,
             text: text,
@@ -651,12 +600,14 @@ class _DashboardHabitCard extends StatelessWidget {
 
 class _EmptyHabitsCard extends StatelessWidget {
   const _EmptyHabitsCard({
+    required this.l10n,
     required this.cardColor,
     required this.border,
     required this.text,
     required this.textMuted,
   });
 
+  final AppLocalizations l10n;
   final Color cardColor;
   final Color border;
   final Color text;
@@ -676,7 +627,7 @@ class _EmptyHabitsCard extends StatelessWidget {
           Icon(Icons.add_circle_outline, size: 48, color: textMuted),
           const SizedBox(height: 16),
           Text(
-            '아직 습관이 없어요.',
+            l10n.emptyHabitTitle,
             style: GoogleFonts.dmSans(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -686,7 +637,7 @@ class _EmptyHabitsCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Add New로 첫 습관을 추가해 보세요.',
+            l10n.emptyHabitDescription,
             style: GoogleFonts.dmSans(
               fontSize: 14,
               color: textMuted,
@@ -702,7 +653,12 @@ class _EmptyHabitsCard extends StatelessWidget {
 
 class _HeatmapSection extends StatelessWidget {
   const _HeatmapSection({
+    required this.displayMonthStart,
+    required this.slideDirection,
+    required this.l10n,
     required this.completedCounts,
+    required this.onPrevMonth,
+    required this.onNextMonth,
     required this.cardColor,
     required this.border,
     required this.primary,
@@ -711,7 +667,12 @@ class _HeatmapSection extends StatelessWidget {
     required this.progressTrack,
   });
 
+  final DateTime displayMonthStart;
+  final int slideDirection;
+  final AppLocalizations l10n;
   final Map<String, int> completedCounts;
+  final VoidCallback onPrevMonth;
+  final VoidCallback? onNextMonth;
   final Color cardColor;
   final Color border;
   final Color primary;
@@ -723,7 +684,13 @@ class _HeatmapSection extends StatelessWidget {
     return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
-  /// 완료 개수 0 = 배경색, 1이상 = 연한 초록(적을수록) ~ 진한 초록(많을수록)
+  static bool _isFutureCalendarDay(DateTime day, DateTime todayCal) {
+    final d = DateTime(day.year, day.month, day.day);
+    final t = DateTime(todayCal.year, todayCal.month, todayCal.day);
+    return d.isAfter(t);
+  }
+
+  /// 0 completion uses track color, positive values scale light->strong green.
   Color _colorForCount(int count, int maxCount) {
     if (count <= 0) return progressTrack;
     if (maxCount <= 1) return primary;
@@ -734,35 +701,42 @@ class _HeatmapSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const cols = 7;
-    const rows = 4;
+    final y = displayMonthStart.year;
+    final m = displayMonthStart.month;
+    final firstDay = DateTime(y, m, 1);
+    final lastDay = DateTime(y, m + 1, 0);
+    final daysInMonth = lastDay.day;
+    final leading = firstDay.weekday - 1; // Monday-based week start
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final start = today.subtract(const Duration(days: 27));
-    final dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final maxCount = completedCounts.values.isEmpty
-        ? 0
-        : completedCounts.values.reduce((a, b) => a > b ? a : b);
+    final todayCal = DateTime(now.year, now.month, now.day);
 
-    // 열 = 요일(Mon=0 .. Sun=6), 행 = 해당 요일의 28일 내 순서(과거→최근)
-    final grid = List.generate(rows, (_) => List.filled(cols, 0));
-    for (int c = 0; c < cols; c++) {
-      final weekday = c + 1; // Dart: Mon=1, Sun=7
-      int row = 0;
-      for (int i = 0; i < 28 && row < rows; i++) {
-        final d = start.add(Duration(days: i));
-        if (d.weekday == weekday) {
-          grid[row][c] = completedCounts[_dateKey(d)] ?? 0;
-          row++;
-        }
-      }
+    var maxCount = 0;
+    for (var day = 1; day <= daysInMonth; day++) {
+      final d = DateTime(y, m, day);
+      if (_isFutureCalendarDay(d, todayCal)) continue;
+      final c = completedCounts[_dateKey(d)] ?? 0;
+      if (c > maxCount) maxCount = c;
     }
+
+    final totalCells = leading + daysInMonth;
+    final rowCount = (totalCells + 6) ~/ 7;
+    final paddedCells = rowCount * 7;
+
+    final dayLabels = [
+      l10n.weekdayMon,
+      l10n.weekdayTue,
+      l10n.weekdayWed,
+      l10n.weekdayThu,
+      l10n.weekdayFri,
+      l10n.weekdaySat,
+      l10n.weekdaySun,
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Consistency Heatmap',
+          l10n.completedHeatmapTitle,
           style: GoogleFonts.lora(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -771,113 +745,183 @@ class _HeatmapSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: cardColor,
-            border: Border.all(color: border),
-            borderRadius: BorderRadius.circular(AppTheme.radius),
-          ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(
-                  cols,
-                  (c) => SizedBox(
-                    width: 36,
-                    child: Text(
-                      dayLabels[c],
-                      style: GoogleFonts.dmSans(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: textMuted,
+        GestureDetector(
+          onHorizontalDragEnd: (details) {
+            final v = details.primaryVelocity ?? 0;
+            if (v.abs() < 200) return;
+            if (v < 0 && onNextMonth != null) {
+              onNextMonth!.call();
+              return;
+            }
+            if (v > 0) onPrevMonth();
+          },
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: cardColor,
+              border: Border.all(color: border),
+              borderRadius: BorderRadius.circular(AppTheme.radius),
+            ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 360),
+              switchInCurve: Curves.easeInOutCubic,
+              switchOutCurve: Curves.easeInOutCubic,
+              transitionBuilder: (child, animation) {
+                final beginX = slideDirection > 0 ? 1.0 : -1.0;
+                final offsetAnim = Tween<Offset>(
+                  begin: Offset(beginX, 0),
+                  end: Offset.zero,
+                ).animate(animation);
+                return ClipRect(
+                  child: SlideTransition(
+                    position: offsetAnim,
+                    child: FadeTransition(opacity: animation, child: child),
+                  ),
+                );
+              },
+              child: Column(
+                key: ValueKey<String>('heatmap-$y-$m'),
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: onPrevMonth,
+                        icon: const Icon(Icons.chevron_left),
+                        color: primary,
+                        style: IconButton.styleFrom(
+                          backgroundColor: primary.withValues(alpha: 0.12),
+                        ),
                       ),
-                      textAlign: TextAlign.center,
+                      Expanded(
+                        child: Text(
+                          l10n.yearMonth(y, m),
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: text,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: onNextMonth,
+                        icon: const Icon(Icons.chevron_right),
+                        color: onNextMonth != null ? primary : textMuted,
+                        style: IconButton.styleFrom(
+                          backgroundColor: primary.withValues(alpha: onNextMonth != null ? 0.12 : 0.04),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: List.generate(
+                      7,
+                      (c) => Expanded(
+                        child: Text(
+                          dayLabels[c],
+                          style: GoogleFonts.dmSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: textMuted,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final cellSize = 36.0;
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: List.generate(rows, (r) {
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: r < rows - 1 ? 6 : 0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: List.generate(cols, (c) {
-                            final count = grid[r][c];
-                            final cellColor = _colorForCount(count, maxCount);
-                            return Container(
-                              width: cellSize - 2,
-                              height: cellSize - 2,
-                              decoration: BoxDecoration(
-                                color: cellColor,
-                                borderRadius: BorderRadius.circular(3),
-                              ),
-                            );
-                          }),
+                  const SizedBox(height: 8),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 7,
+                      mainAxisSpacing: 6,
+                      crossAxisSpacing: 6,
+                      childAspectRatio: 1,
+                    ),
+                    itemCount: paddedCells,
+                    itemBuilder: (context, i) {
+                      if (i < leading || i >= leading + daysInMonth) {
+                        return const SizedBox.shrink();
+                      }
+                      final dayNum = i - leading + 1;
+                      final d = DateTime(y, m, dayNum);
+                      final isFuture = _isFutureCalendarDay(d, todayCal);
+                      final count = isFuture ? 0 : (completedCounts[_dateKey(d)] ?? 0);
+                      final cellColor = isFuture
+                          ? progressTrack.withValues(alpha: 0.45)
+                          : _colorForCount(count, maxCount);
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: cellColor,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '$dayNum',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: isFuture ? textMuted : text,
+                          ),
                         ),
                       );
-                    }),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Less',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: textMuted,
-                    ),
+                    },
                   ),
-                  const SizedBox(width: 8),
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: progressTrack,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: primary.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: primary,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'More',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: textMuted,
-                    ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        l10n.heatmapLess,
+                        style: GoogleFonts.dmSans(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: textMuted,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: progressTrack,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: primary.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: primary,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        l10n.heatmapMore,
+                        style: GoogleFonts.dmSans(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: textMuted,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ],
@@ -886,10 +930,11 @@ class _HeatmapSection extends StatelessWidget {
 }
 
 class _ErrorBody extends StatelessWidget {
-  const _ErrorBody({required this.error, required this.onRetry});
+  const _ErrorBody({required this.error, required this.onRetry, required this.l10n});
 
   final String error;
   final VoidCallback onRetry;
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
@@ -910,7 +955,7 @@ class _ErrorBody extends StatelessWidget {
             const SizedBox(height: 16),
             FilledButton(
               onPressed: onRetry,
-              child: const Text('다시 시도'),
+              child: Text(l10n.retry),
             ),
           ],
         ),

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../data/legal/legal_repository.dart';
 
-/// 약관 또는 개인정보처리방침 표시 (API에서 최신 버전 조회)
+/// Displays terms or privacy policy fetched from API.
 class LegalViewScreen extends ConsumerStatefulWidget {
   const LegalViewScreen({super.key, required this.type});
 
@@ -54,6 +55,7 @@ class _LegalViewScreenState extends ConsumerState<LegalViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? AppColors.foregroundDark : AppColors.foreground;
     final muted = AppColors.mutedForeground;
@@ -62,7 +64,7 @@ class _LegalViewScreenState extends ConsumerState<LegalViewScreen> {
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       appBar: AppBar(
         title: Text(
-          widget.type == 'privacy' ? '개인정보처리방침' : '이용약관',
+          widget.type == 'privacy' ? l10n.privacyPolicy : l10n.terms,
           style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w600, color: textColor),
         ),
         backgroundColor: Colors.transparent,
@@ -83,7 +85,7 @@ class _LegalViewScreenState extends ConsumerState<LegalViewScreen> {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
-                        FilledButton(onPressed: _load, child: const Text('다시 시도')),
+                        FilledButton(onPressed: _load, child: Text(l10n.retry)),
                       ],
                     ),
                   ),
@@ -99,7 +101,7 @@ class _LegalViewScreenState extends ConsumerState<LegalViewScreen> {
                         if (_doc != null) ...[
                           if (_doc!.content.isEmpty)
                             Text(
-                              '등록된 내용이 없습니다.',
+                              l10n.noContent,
                               style: GoogleFonts.dmSans(fontSize: 15, color: muted),
                             )
                           else

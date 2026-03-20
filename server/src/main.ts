@@ -12,8 +12,9 @@ async function bootstrap() {
       next();
     });
   }
-  const port = process.env.PORT ?? 3000;
-  await app.listen(port);
-  console.log(`Server listening on http://localhost:${port}`);
+  const port = Number(process.env.PORT ?? 3000);
+  // Listen on all interfaces so Android emulator (10.0.2.2 → host) and LAN devices can connect.
+  await app.listen(port, '0.0.0.0');
+  console.log(`Server listening on http://0.0.0.0:${port} (localhost:${port})`);
 }
 bootstrap();

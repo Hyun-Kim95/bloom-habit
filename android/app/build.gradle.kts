@@ -24,6 +24,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     defaultConfig {
@@ -35,6 +36,21 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        val kakaoNativeAppKey = (project.findProperty("KAKAO_NATIVE_APP_KEY") as String?) ?: ""
+        val naverClientId = (project.findProperty("NAVER_CLIENT_ID") as String?) ?: ""
+        val naverClientSecret = (project.findProperty("NAVER_CLIENT_SECRET") as String?) ?: ""
+        val naverClientName = (project.findProperty("NAVER_CLIENT_NAME") as String?) ?: ""
+        manifestPlaceholders["KAKAO_SCHEME"] = if (kakaoNativeAppKey.isNotBlank()) "kakao$kakaoNativeAppKey" else "kakao"
+        manifestPlaceholders["NAVER_CLIENT_ID"] = naverClientId
+        manifestPlaceholders["NAVER_CLIENT_SECRET"] = naverClientSecret
+        manifestPlaceholders["NAVER_CLIENT_NAME"] = naverClientName
+
+        fun q(s: String): String =
+            "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", q(kakaoNativeAppKey))
+        buildConfigField("String", "NAVER_CLIENT_ID", q(naverClientId))
+        buildConfigField("String", "NAVER_CLIENT_SECRET", q(naverClientSecret))
+        buildConfigField("String", "NAVER_CLIENT_NAME", q(naverClientName))
     }
 
     buildTypes {

@@ -12,6 +12,7 @@ import { InquiriesModule } from './inquiries/inquiries.module';
 import { LegalModule } from './legal/legal.module';
 import { SyncModule } from './sync/sync.module';
 import { StaticAssetsModule } from './static/static-assets.module';
+import { PublicNoticesModule } from './notices/public-notices.module';
 import {
   User,
   Habit,
@@ -20,7 +21,6 @@ import {
   HabitTemplate,
   Notice,
   SystemConfig,
-  AiFeedbackLog,
   Inquiry,
   LegalDocument,
   MissedHabitPushLog,
@@ -40,7 +40,6 @@ import {
         HabitTemplate,
         Notice,
         SystemConfig,
-        AiFeedbackLog,
         Inquiry,
         LegalDocument,
         MissedHabitPushLog,
@@ -59,6 +58,7 @@ import {
     SyncModule,
     AdminModule,
     StaticAssetsModule,
+    PublicNoticesModule,
   ],
   controllers: [AppController],
   providers: [

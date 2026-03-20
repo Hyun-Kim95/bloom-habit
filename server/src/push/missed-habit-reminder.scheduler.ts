@@ -67,6 +67,7 @@ export class MissedHabitReminderScheduler {
     // TypeORM where null 타입 이슈를 피하기 위해 쿼리빌더 사용
     const habits = await this.habitRepo
       .createQueryBuilder('h')
+      .innerJoin(User, 'u', 'u.id = h.userId AND u.isActive = true')
       .where('h.archivedAt IS NULL')
       .getMany();
 
@@ -91,7 +92,10 @@ export class MissedHabitReminderScheduler {
     );
 
     const userIds = [...missedByUserId.keys()];
-    const users = await this.userRepo.find({ where: { id: In(userIds) }, select: ['id', 'fcmToken'] });
+    const users = await this.userRepo.find({
+      where: { id: In(userIds), isActive: true },
+      select: ['id', 'fcmToken', 'isActive'],
+    });
     // eslint-disable-next-line no-console
     console.log(
       `[MissedHabitReminder] userIds=${userIds.length} usersFetched=${users.length}`,
@@ -113,10 +117,13 @@ export class MissedHabitReminderScheduler {
     console.log(`[MissedHabitReminder] alreadySent=${alreadySent.size}`);
 
     let sent = 0;
+    const sentTokens = new Set<string>();
 
     for (const user of users) {
-      if (!user.fcmToken?.trim()) continue;
+      const token = user.fcmToken?.trim();
+      if (!token) continue;
       if (!force && alreadySent.has(user.id)) continue;
+      if (sentTokens.has(token)) continue;
       const missedNames = missedByUserId.get(user.id) ?? [];
       if (missedNames.length === 0) continue;
 
@@ -129,6 +136,7 @@ export class MissedHabitReminderScheduler {
         userId: user.id,
         missedHabitNames: missedNames,
       });
+      sentTokens.add(token);
 
       if (force) {
         await this.logRepo.delete({ userId: user.id, pushDate: todayStr });

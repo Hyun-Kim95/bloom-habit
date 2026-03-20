@@ -31,8 +31,11 @@ export class MeController {
   }
 
   @Delete()
-  async deleteAccount(@Req() req: ReqWithUser) {
-    await this.auth.deleteUser(req.userId);
+  async deleteAccount(
+    @Req() req: ReqWithUser,
+    @Body() body: { reason?: string },
+  ) {
+    await this.auth.deactivateSelf(req.userId, body.reason ?? '');
     return { ok: true };
   }
 }

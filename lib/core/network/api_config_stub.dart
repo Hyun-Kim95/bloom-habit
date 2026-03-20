@@ -1,2 +1,2 @@
-/// Web 등 dart:io 미지원 환경용
+/// Stub for environments without dart:io support.
 String getApiBaseUrl() => 'http://localhost:3000';

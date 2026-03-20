@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/utils/habit_icon_color.dart';
-import '../../../data/habit/habit_repository.dart';
 import '../../../data/local/entity/local_habit.dart';
 
 class StatisticsScreen extends ConsumerStatefulWidget {
@@ -21,16 +21,21 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
   Map<String, bool> _todayCompleted = {};
   Map<String, int> _weekCompleted = {};
   Map<String, int> _monthCompleted = {};
-  List<AiFeedbackItem> _aiFeedback = [];
   bool _loading = true;
   late TabController _tabController;
   int _sevenDayCompleted = 0;
   int _sevenDayPossible = 0;
   int _sevenDayPercent = 0;
+  int _weekSuccessCompleted = 0;
+  int _weekSuccessPossible = 0;
+  int _weekSuccessPercent = 0;
+  int _monthSuccessCompleted = 0;
+  int _monthSuccessPossible = 0;
+  int _monthSuccessPercent = 0;
 
-  /// 주 탭: 선택된 주의 월요일 (로컬)
+  /// Week tab: selected week's Monday (local).
   DateTime _selectedWeekStart = _thisWeekMonday();
-  /// 월 탭: 선택된 연·월
+  /// Month tab: selected year/month.
   int _selectedYear = DateTime.now().year;
   int _selectedMonth = DateTime.now().month;
 
@@ -61,15 +66,16 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
     final weekEnd = _selectedWeekStart.add(const Duration(days: 6));
     final weekCompleted = await repo.getCompletedCountByHabitForDateRange(_selectedWeekStart, weekEnd);
     final monthStart = DateTime(_selectedYear, _selectedMonth, 1);
-    final monthEnd = DateTime(_selectedYear, _selectedMonth + 1, 0); // 해당 달 마지막 날
+    final monthEnd = DateTime(_selectedYear, _selectedMonth + 1, 0); // last day of selected month
     final monthCompleted = await repo.getCompletedCountByHabitForDateRange(monthStart, monthEnd);
+    final weekSuccess = await repo.getSuccessRateForDateRange(_selectedWeekStart, weekEnd);
+    final monthSuccess = await repo.getSuccessRateForDateRange(monthStart, monthEnd);
     final streaks = <String, int>{};
     for (final h in habits) {
       if (h.serverId != null) {
         streaks[h.serverId!] = await repo.getStreakDays(h.serverId!);
       }
     }
-    final aiFeedback = await repo.getAiFeedbackList(limit: 20);
     final sevenDay = await repo.getRolling7DaySuccessRate();
     if (mounted) {
       setState(() {
@@ -78,10 +84,15 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
         _weekCompleted = weekCompleted;
         _monthCompleted = monthCompleted;
         _streaks = streaks;
-        _aiFeedback = aiFeedback;
         _sevenDayCompleted = sevenDay.completed;
         _sevenDayPossible = sevenDay.possible;
         _sevenDayPercent = sevenDay.percent;
+        _weekSuccessCompleted = weekSuccess.completed;
+        _weekSuccessPossible = weekSuccess.possible;
+        _weekSuccessPercent = weekSuccess.percent;
+        _monthSuccessCompleted = monthSuccess.completed;
+        _monthSuccessPossible = monthSuccess.possible;
+        _monthSuccessPercent = monthSuccess.percent;
         _loading = false;
       });
     }
@@ -127,10 +138,11 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
         '${end.month.toString().padLeft(2, '0')}.${end.day.toString().padLeft(2, '0')}';
   }
 
-  String _monthLabel() => '$_selectedYear년 $_selectedMonth월';
+  String _monthLabel(AppLocalizations l10n) => l10n.yearMonth(_selectedYear, _selectedMonth);
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final completedCount = _todayCompleted.values.where((v) => v).length;
     final weekTotal = _weekCompleted.values.fold<int>(0, (a, b) => a + b);
@@ -140,17 +152,17 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       appBar: AppBar(
         title: Text(
-          '통계',
+          l10n.navStats,
           style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppColors.primary,
           unselectedLabelColor: AppColors.mutedForeground,
-          tabs: const [
-            Tab(text: '일'),
-            Tab(text: '주'),
-            Tab(text: '월'),
+          tabs: [
+            Tab(text: l10n.day),
+            Tab(text: l10n.week),
+            Tab(text: l10n.month),
           ],
         ),
       ),
@@ -163,8 +175,8 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                 controller: _tabController,
                 children: [
                   _buildDayTab(isDark, completedCount),
-                  _buildWeekTab(isDark, weekTotal),
-                  _buildMonthTab(isDark, monthTotal),
+                  _buildWeekTab(isDark, weekTotal, l10n),
+                  _buildMonthTab(isDark, monthTotal, l10n),
                 ],
               ),
             ),
@@ -172,6 +184,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
   }
 
   Widget _buildDayTab(bool isDark, int completedCount) {
+    final l10n = AppLocalizations.of(context)!;
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -182,7 +195,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '오늘의 요약',
+                  l10n.todaySummary,
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -193,13 +206,13 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                 Row(
                   children: [
                     _SummaryChip(
-                      label: '전체 습관',
-                      value: '${_habits.length}개',
+                      label: l10n.totalHabits,
+                      value: l10n.countItems(_habits.length),
                     ),
                     const SizedBox(width: 16),
                     _SummaryChip(
-                      label: '오늘 완료',
-                      value: '$completedCount개',
+                      label: l10n.todayCompleted,
+                      value: l10n.countItems(completedCount),
                       valueColor: AppColors.primary,
                     ),
                   ],
@@ -216,7 +229,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '최근 7일 성공률',
+                  l10n.last7DaysSuccessRate,
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -225,7 +238,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '오늘을 포함한 7일 동안, 활성 습관의 시작일 이후「해야 할 날」대비 완료한 날의 비율입니다.',
+                  l10n.last7DaysSuccessRateDescription,
                   style: GoogleFonts.dmSans(
                     fontSize: 12,
                     height: 1.4,
@@ -235,7 +248,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                 const SizedBox(height: 16),
                 if (_sevenDayPossible == 0)
                   Text(
-                    '활성 습관이 없으면 표시되지 않습니다.',
+                    l10n.noActiveHabitsForRate,
                     style: GoogleFonts.dmSans(
                       fontSize: 14,
                       color: AppColors.mutedForeground,
@@ -246,7 +259,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '달성',
+                        l10n.achieved,
                         style: GoogleFonts.dmSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -275,7 +288,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '$_sevenDayCompleted / $_sevenDayPossible (습관·날 단위)',
+                    l10n.successPairCount(_sevenDayCompleted, _sevenDayPossible),
                     style: GoogleFonts.dmSans(
                       fontSize: 12,
                       color: AppColors.mutedForeground,
@@ -301,7 +314,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
         (_selectedYear == now.year && _selectedMonth < now.month);
   }
 
-  Widget _buildWeekTab(bool isDark, int totalCompleted) {
+  Widget _buildWeekTab(bool isDark, int totalCompleted, AppLocalizations l10n) {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -312,32 +325,138 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
           isDark: isDark,
         ),
         const SizedBox(height: 16),
-        _buildPeriodCard(isDark, '주간 요약', totalCompleted),
+        _buildPeriodCard(isDark, l10n.weeklySummary, totalCompleted, l10n),
+        const SizedBox(height: 16),
+        _buildSuccessRateBlock(
+          isDark,
+          title: l10n.weeklySuccessRate,
+          description: l10n.weeklySuccessRateDescription,
+          completed: _weekSuccessCompleted,
+          possible: _weekSuccessPossible,
+          percent: _weekSuccessPercent,
+        ),
         const SizedBox(height: 24),
         _buildHabitCompletionList(isDark, _weekCompleted),
       ],
     );
   }
 
-  Widget _buildMonthTab(bool isDark, int totalCompleted) {
+  Widget _buildMonthTab(bool isDark, int totalCompleted, AppLocalizations l10n) {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
         _PeriodSelector(
-          label: _monthLabel(),
+          label: _monthLabel(l10n),
           onPrev: _prevMonth,
           onNext: _canGoNextMonth ? _nextMonth : null,
           isDark: isDark,
         ),
         const SizedBox(height: 16),
-        _buildPeriodCard(isDark, '월간 요약', totalCompleted),
+        _buildPeriodCard(isDark, l10n.monthlySummary, totalCompleted, l10n),
+        const SizedBox(height: 16),
+        _buildSuccessRateBlock(
+          isDark,
+          title: l10n.monthlySuccessRate,
+          description: l10n.monthlySuccessRateDescription,
+          completed: _monthSuccessCompleted,
+          possible: _monthSuccessPossible,
+          percent: _monthSuccessPercent,
+        ),
         const SizedBox(height: 24),
         _buildHabitCompletionList(isDark, _monthCompleted),
       ],
     );
   }
 
-  Widget _buildPeriodCard(bool isDark, String periodLabel, int totalCompleted) {
+  Widget _buildSuccessRateBlock(
+    bool isDark, {
+    required String title,
+    required String description,
+    required int completed,
+    required int possible,
+    required int percent,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.dmSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.mutedForeground,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: GoogleFonts.dmSans(
+                fontSize: 12,
+                height: 1.4,
+                color: AppColors.mutedForeground,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (possible == 0)
+              Text(
+                l10n.noActiveHabitsForRate,
+                style: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  color: AppColors.mutedForeground,
+                ),
+              )
+            else ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    l10n.achieved,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+                    ),
+                  ),
+                  Text(
+                    '$percent%',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: percent / 100,
+                  minHeight: 10,
+                  backgroundColor: isDark ? AppColors.mutedDark : AppColors.muted,
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.successPairCount(completed, possible),
+                style: GoogleFonts.dmSans(
+                  fontSize: 12,
+                  color: AppColors.mutedForeground,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPeriodCard(bool isDark, String periodLabel, int totalCompleted, AppLocalizations l10n) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -356,13 +475,13 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
             Row(
               children: [
                 _SummaryChip(
-                  label: '전체 습관',
-                  value: '${_habits.length}개',
+                  label: l10n.totalHabits,
+                  value: l10n.countItems(_habits.length),
                 ),
                 const SizedBox(width: 16),
                 _SummaryChip(
-                  label: '완료 횟수',
-                  value: '$totalCompleted회',
+                  label: l10n.completedCountLabel,
+                  value: l10n.countTimes(totalCompleted),
                   valueColor: AppColors.primary,
                 ),
               ],
@@ -374,12 +493,13 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
   }
 
   Widget _buildHabitCompletionList(bool isDark, Map<String, int> byHabit) {
+    final l10n = AppLocalizations.of(context)!;
     final textColor = isDark ? AppColors.foregroundDark : AppColors.foreground;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '습관별 완료',
+          l10n.completedByHabit,
           style: GoogleFonts.dmSans(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -393,7 +513,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
               padding: const EdgeInsets.all(24),
               child: Center(
                 child: Text(
-                  '등록된 습관이 없어요.',
+                  l10n.noHabitsYet,
                   style: GoogleFonts.dmSans(fontSize: 15, color: AppColors.mutedForeground),
                 ),
               ),
@@ -429,7 +549,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                   ),
                 ),
                 trailing: Text(
-                  '$count회',
+                  l10n.countTimes(count),
                   style: GoogleFonts.dmSans(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -444,70 +564,13 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
   }
 
   Widget _buildRestOfStatistics(bool isDark) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-                  if (_aiFeedback.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    Text(
-                      'AI 피드백',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.foregroundDark : AppColors.foreground,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ..._aiFeedback.take(20).map((f) {
-                      final dateStr = f.recordDate.length >= 10
-                          ? f.recordDate
-                          : f.createdAt.length >= 10
-                              ? f.createdAt.substring(0, 10)
-                              : f.recordDate;
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    f.habitName,
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    dateStr,
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 12,
-                                      color: AppColors.mutedForeground,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                f.responseText,
-                                style: GoogleFonts.dmSans(
-                                  fontSize: 15,
-                                  color: isDark ? AppColors.foregroundDark : AppColors.foreground,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                  ],
                   const SizedBox(height: 24),
                   Text(
-                    '습관별 연속일',
+                    l10n.streakByHabit,
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -521,7 +584,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                         padding: const EdgeInsets.all(24),
                         child: Center(
                           child: Text(
-                            '등록된 습관이 없어요.',
+                            l10n.noHabitsYet,
                             style: GoogleFonts.dmSans(
                               fontSize: 15,
                               color: AppColors.mutedForeground,
@@ -576,7 +639,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                                 Icon(Icons.check_circle, size: 20, color: habitColor),
                               const SizedBox(width: 8),
                               Text(
-                                '$streak일',
+                                l10n.daysCount(streak),
                                 style: GoogleFonts.dmSans(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
@@ -654,11 +717,17 @@ class _SummaryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
-          color: AppColors.muted.withValues(alpha: 0.5),
+          color: isDark
+              ? AppColors.backgroundDark.withValues(alpha: 0.72)
+              : AppColors.muted.withValues(alpha: 0.5),
+          border: Border.all(
+            color: isDark ? AppColors.borderDark : AppColors.border,
+          ),
           borderRadius: BorderRadius.circular(AppTheme.radius),
         ),
         child: Column(

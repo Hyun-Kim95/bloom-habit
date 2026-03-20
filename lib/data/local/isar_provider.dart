@@ -11,7 +11,7 @@ const _schemas = [
   LocalHabitRecordSchema,
 ];
 
-/// Isar 인스턴스 (앱 시작 시 한 번 초기화)
+/// Isar instance initialized once at app start.
 Future<Isar> openIsar() async {
   final dir = await getApplicationDocumentsDirectory();
   return Isar.open(

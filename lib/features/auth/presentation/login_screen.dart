@@ -1,4 +1,8 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/router/app_providers.dart';
+import 'sns_login_buttons.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -15,19 +20,20 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  bool _loading = false;
+  /// Which provider is currently signing in: google | kakao | naver
+  String? _loadingFor;
   String? _error;
 
   Future<void> _signInWithGoogle() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
-      _loading = true;
+      _loadingFor = 'google';
       _error = null;
     });
     try {
       final repo = ref.read(authRepositoryProvider);
       final result = await repo.signInWithGoogle();
       if (!mounted) return;
-      setState(() => _loading = false);
       if (result.cancelled) return;
       if (result.isSuccess) {
         await repo.registerFcmToken();
@@ -37,28 +43,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           context.go(AppRoutes.home);
         });
       } else {
-        setState(() => _error = result.error ?? '로그인 실패');
+        setState(() => _error = result.error ?? l10n.loginFailed);
       }
     } catch (e, st) {
       if (!mounted) return;
       setState(() {
-        _loading = false;
-        _error = '로그인 중 오류: ${e.toString().split('\n').first}';
+        _error = l10n.loginError(e.toString().split('\n').first);
       });
       debugPrintStack(stackTrace: st, label: e.toString());
+    } finally {
+      if (mounted) setState(() => _loadingFor = null);
     }
   }
 
-  Future<void> _signInWithApple() async {
+  Future<void> _signInWithKakao() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
-      _loading = true;
+      _loadingFor = 'kakao';
       _error = null;
     });
     try {
       final repo = ref.read(authRepositoryProvider);
-      final result = await repo.signInWithApple();
+      final result = await repo.signInWithKakao();
       if (!mounted) return;
-      setState(() => _loading = false);
       if (result.cancelled) return;
       if (result.isSuccess) {
         await repo.registerFcmToken();
@@ -68,21 +75,57 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           context.go(AppRoutes.home);
         });
       } else {
-        setState(() => _error = result.error ?? '로그인 실패');
+        setState(() => _error = result.error ?? l10n.loginFailed);
       }
     } catch (e, st) {
       if (!mounted) return;
       setState(() {
-        _loading = false;
-        _error = '로그인 중 오류: ${e.toString().split('\n').first}';
+        _error = l10n.loginError(e.toString().split('\n').first);
       });
       debugPrintStack(stackTrace: st, label: e.toString());
+    } finally {
+      if (mounted) setState(() => _loadingFor = null);
+    }
+  }
+
+  Future<void> _signInWithNaver() async {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() {
+      _loadingFor = 'naver';
+      _error = null;
+    });
+    try {
+      final repo = ref.read(authRepositoryProvider);
+      final result = await repo.signInWithNaver();
+      if (!mounted) return;
+      if (result.cancelled) return;
+      if (result.isSuccess) {
+        await repo.registerFcmToken();
+        ref.invalidate(sessionRestoredProvider);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          context.go(AppRoutes.home);
+        });
+      } else {
+        setState(() => _error = result.error ?? l10n.loginFailed);
+      }
+    } catch (e, st) {
+      if (!mounted) return;
+      setState(() {
+        _error = l10n.loginError(e.toString().split('\n').first);
+      });
+      debugPrintStack(stackTrace: st, label: e.toString());
+    } finally {
+      if (mounted) setState(() => _loadingFor = null);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isAndroid = !kIsWeb && Platform.isAndroid;
+    final busy = _loadingFor != null;
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       body: SafeArea(
@@ -96,24 +139,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 24),
-                  Icon(
-                    Icons.eco,
-                    size: 56,
-                    color: AppColors.primary,
-                  ),
+                  Icon(Icons.eco, size: 56, color: AppColors.primary),
                   const SizedBox(height: 16),
                   Text(
                     'Bloom Habit',
                     style: GoogleFonts.lora(
                       fontSize: 28,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+                      color: isDark
+                          ? AppColors.foregroundDark
+                          : AppColors.foreground,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '소셜 계정으로 간편히 시작하세요',
+                    l10n.loginSubtitle,
                     style: GoogleFonts.dmSans(
                       fontSize: 15,
                       color: AppColors.mutedForeground,
@@ -139,33 +180,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 20),
                   ],
-                  SizedBox(
-                    height: 52,
-                    child: FilledButton(
-                      onPressed: _loading ? null : _signInWithGoogle,
-                      child: _loading
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(
-                              'Google로 로그인',
-                              style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w600),
-                            ),
-                    ),
+                  GoogleSignInButton(
+                    label: l10n.loginWithGoogle,
+                    loading: _loadingFor == 'google',
+                    onPressed: busy ? null : _signInWithGoogle,
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 52,
-                    child: OutlinedButton(
-                      onPressed: _loading ? null : _signInWithApple,
-                      child: Text(
-                        'Apple로 로그인',
-                        style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
-                      ),
+                  if (isAndroid) ...[
+                    const SizedBox(height: 12),
+                    KakaoSignInButton(
+                      label: l10n.loginWithKakao,
+                      loading: _loadingFor == 'kakao',
+                      onPressed: busy ? null : _signInWithKakao,
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    NaverSignInButton(
+                      label: l10n.loginWithNaver,
+                      loading: _loadingFor == 'naver',
+                      onPressed: busy ? null : _signInWithNaver,
+                    ),
+                  ],
                   const SizedBox(height: 48),
                 ],
               ),

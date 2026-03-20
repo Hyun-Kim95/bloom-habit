@@ -1,0 +1,296 @@
+{
+  "@@locale": "en",
+  "appTitle": "Bloom Habit",
+  "navHome": "Home",
+  "navHabits": "Habits",
+  "navStats": "Stats",
+  "navSettings": "Settings",
+  "pressBackAgainToExit": "Press once more to exit.",
+  "connectionErrorMessage": "Unable to connect to server.\nCheck if server is running. Use 10.0.2.2:3000 on emulator, and your PC LAN IP on real device.",
+  "retry": "Retry",
+  "todayHabitsTitle": "Today's Habits",
+  "addNewHabit": "Add New Habit",
+  "emptyHabitTitle": "No habits yet.",
+  "emptyHabitDescription": "Add your first habit with Add New Habit.",
+  "completedHeatmapTitle": "Completion Heatmap",
+  "heatmapLess": "Less",
+  "heatmapMore": "More",
+  "todayProgressLabel": "Today's Progress",
+  "todayProgressTitle": "Today's Progress",
+  "todayProgressDescription": "The ratio of habits completed against today's goal.",
+  "completedHabitCount": "{completed} / {total} habits completed",
+  "@completedHabitCount": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "completedTodayDialogTitle": "Completed today!",
+  "confirm": "OK",
+  "habitTitle": "Habits",
+  "addHabit": "Add Habit",
+  "noHabitsRegistered": "No habits registered.",
+  "addHabitGuide": "Tap + at the top right to add a habit.",
+  "activeHabits": "Active Habits",
+  "hiddenHabits": "Hidden Habits",
+  "settingsTitle": "Settings",
+  "accountManagement": "Account",
+  "announcements": "Announcements",
+  "serviceAnnouncementList": "Service announcements",
+  "terms": "Terms",
+  "privacyPolicy": "Privacy Policy",
+  "inquiry": "Inquiry",
+  "notificationSettings": "Notification settings",
+  "displaySettings": "Display settings",
+  "language": "Language",
+  "theme": "Theme",
+  "systemTheme": "Follow system",
+  "lightTheme": "Light mode",
+  "darkTheme": "Dark mode",
+  "weekdayMon": "Mon",
+  "weekdayTue": "Tue",
+  "weekdayWed": "Wed",
+  "weekdayThu": "Thu",
+  "weekdayFri": "Fri",
+  "weekdaySat": "Sat",
+  "weekdaySun": "Sun",
+  "ok": "OK",
+  "day": "Day",
+  "week": "Week",
+  "month": "Month",
+  "skip": "Skip",
+  "next": "Next",
+  "getStarted": "Get Started",
+  "onboardingSubtitle1": "Small habits change your life",
+  "onboardingBody1": "Track a little every day and build consistency.",
+  "onboardingTitle2": "Habit Tracking",
+  "onboardingSubtitle2": "Quickly check what you did today",
+  "onboardingBody2": "Every completion builds streaks and statistics.",
+  "onboardingTitle3": "Get Started",
+  "onboardingSubtitle3": "Create your first habit right now",
+  "onboardingBody3": "Sign in, add a habit, and start tracking today.",
+  "loginFailed": "Login failed",
+  "loginSubtitle": "Start easily with your social account",
+  "loginWithGoogle": "Continue with Google",
+  "loginWithKakao": "Continue with Kakao",
+  "loginWithNaver": "Continue with Naver",
+  "loginError": "Login error: {message}",
+  "@loginError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "hideHabit": "Hide Habit",
+  "hideHabitDescription": "Hide this habit? Hidden habits disappear from Home and are shown under Hidden Habits.",
+  "cancel": "Cancel",
+  "hide": "Hide",
+  "hideFailed": "Failed to hide habit.",
+  "unhideHabit": "Unhide Habit",
+  "unhideHabitDescription": "Unhide this habit? It will return to the active habit list.",
+  "unhide": "Unhide",
+  "unhideFailed": "Failed to unhide habit.",
+  "edit": "Edit",
+  "delete": "Delete",
+  "enterSubject": "Please enter a subject.",
+  "enterContent": "Please enter content.",
+  "inquirySubmitted": "Inquiry submitted. Please wait for admin response.",
+  "newInquiry": "New Inquiry",
+  "subject": "Subject",
+  "inquiryContent": "Inquiry content",
+  "submitInquiry": "Submit Inquiry",
+  "myInquiries": "My Inquiries",
+  "noInquiries": "No inquiries submitted.",
+  "answered": "Answered",
+  "pending": "Pending",
+  "replyAt": "Reply {date}",
+  "@replyAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "adminReply": "Admin Reply",
+  "replyTime": "Reply time: {date}",
+  "@replyTime": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "noContent": "(No content)",
+  "untitled": "(Untitled)",
+  "noNotices": "No announcements available."
+  ,
+  "korean": "한국어",
+  "profileAndLogout": "Profile and logout",
+  "inquirySubtitle": "Submit inquiry and check reply",
+  "notificationSettingsSubtitle": "Enable habit reminders here (app notification settings).",
+  "soundAndFeedback": "Sound & Feedback",
+  "sound": "Sound",
+  "soundSubtitle": "Play sound on completion",
+  "haptic": "Haptic",
+  "hapticSubtitle": "Vibration feedback",
+  "loading": "Loading…",
+  "onboarding": "Onboarding",
+  "replayOnboarding": "Replay onboarding",
+  "replayOnboardingSubtitle": "See the intro screens again",
+  "showOnlyFirstLaunch": "Show only on first launch",
+  "showOnlyFirstLaunchSubtitle": "Turn off to show onboarding every launch",
+  "logout": "Logout",
+  "versionLabel": "Version {version}",
+  "@versionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "yearMonth": "{year}-{month}",
+  "@yearMonth": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "int"
+      }
+    }
+  },
+  "todaySummary": "Today's Summary",
+  "totalHabits": "Total habits",
+  "countItems": "{count}",
+  "@countItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todayCompleted": "Completed today",
+  "last7DaysSuccessRate": "Last 7-day success rate",
+  "last7DaysSuccessRateDescription": "Completion ratio against required habit-days after each habit start date in the last 7 days including today.",
+  "noActiveHabitsForRate": "Not shown when there are no active habits.",
+  "achieved": "Achieved",
+  "successPairCount": "{completed} / {possible} (habit-day pairs)",
+  "@successPairCount": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "possible": {
+        "type": "int"
+      }
+    }
+  },
+  "weeklySummary": "Weekly Summary",
+  "weeklySuccessRate": "Weekly success rate",
+  "weeklySuccessRateDescription": "Completion ratio against required habit-days after each habit start date for the selected week.",
+  "monthlySummary": "Monthly Summary",
+  "monthlySuccessRate": "Monthly success rate",
+  "monthlySuccessRateDescription": "Completion ratio against required habit-days after each habit start date for the selected month.",
+  "completedCountLabel": "Completion count",
+  "countTimes": "{count} times",
+  "@countTimes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "completedByHabit": "Completed by habit",
+  "noHabitsYet": "No habits registered.",
+  "aiFeedback": "AI Feedback",
+  "streakByHabit": "Streak by habit",
+  "daysCount": "{count} days",
+  "@daysCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileLoadFailed": "Failed to load profile. Please check your network.",
+  "nickname": "Nickname",
+  "nicknameHint": "Nickname (leave empty to hide)",
+  "max20Chars": "Max 20 characters",
+  "save": "Save",
+  "saved": "Saved.",
+  "saveFailed": "Save failed: {message}",
+  "@saveFailed": {"placeholders": {"message": {"type": "String"}}},
+  "removeProfilePhoto": "Remove profile photo",
+  "removeProfilePhotoDescription": "Remove saved profile photo? (It may sync again after Google login.)",
+  "remove": "Remove",
+  "profilePhotoRemoved": "Profile photo removed.",
+  "processFailed": "Process failed: {message}",
+  "@processFailed": {"placeholders": {"message": {"type": "String"}}},
+  "deleteAccount": "Delete Account",
+  "deleteAccountDescription": "Your account will be deactivated and you will not be able to sign in.\nPlease enter a reason before proceeding.",
+  "withdrawReason": "Withdrawal reason",
+  "withdrawReasonHint": "Please enter the reason for withdrawal.",
+  "withdrawReasonRequired": "Please enter a withdrawal reason.",
+  "withdraw": "Withdraw",
+  "withdrawFailed": "Withdrawal failed: {message}",
+  "@withdrawFailed": {"placeholders": {"message": {"type": "String"}}},
+  "noName": "No name",
+  "loginWithProvider": "Login with {provider}",
+  "@loginWithProvider": {"placeholders": {"provider": {"type": "String"}}},
+  "changeNickname": "Change nickname",
+  "nicknameSubtitle": "Name shown in inquiries and app. (Max 20 chars)",
+  "revertToDefaultIcon": "Revert to default icon.",
+  "accountDataWarning": "Habit and record data are linked to this account. On account deletion, server and device data are removed permanently.",
+  "withdrawing": "Withdrawing…",
+  "enterHabitName": "Please enter a habit name.",
+  "notificationPermissionRequired": "Notification permission is required. Please allow it in settings.",
+  "serverSlowResponse": "Server response is delayed. Check if server and PostgreSQL are running.",
+  "goalTypeCompletion": "Completion",
+  "goalTypeCount": "Count",
+  "goalTypeDuration": "Duration",
+  "goalTypeNumber": "Number",
+  "createNewHabit": "Create New Habit",
+  "habitName": "Habit name",
+  "habitNameHint": "e.g. Morning water 500ml",
+  "categoryOptional": "Category (optional)",
+  "habitTemplateOptional": "Template (optional)",
+  "noneSelected": "None",
+  "goalType": "Goal type",
+  "goalCountHint": "Target count (e.g. 3)",
+  "goalDurationHint": "Target minutes (e.g. 30)",
+  "goalNumberHint": "Target value",
+  "startDate": "Start date",
+  "colorOptional": "Color (optional)",
+  "iconOptional": "Icon (optional)",
+  "reminderNotification": "Reminder notification",
+  "reminderNotificationSubtitle": "Notify this habit at the selected time every day",
+  "notificationTime": "Notification time",
+  "editFailedTryAgain": "Edit failed. Please try again.",
+  "deleteRecord": "Delete record",
+  "deleteRecordForDate": "Delete record for {date}?",
+  "@deleteRecordForDate": {"placeholders": {"date": {"type": "String"}}},
+  "processFailedTryAgain": "Could not process. Please try again.",
+  "completeToday": "Complete today",
+  "recordHistory": "Record history",
+  "noRecent30DaysRecords": "No records in the last 30 days.",
+  "deleteHabit": "Delete habit",
+  "deleteHabitDescription": "Delete this habit?",
+  "editHabit": "Edit habit",
+  "goalValue": "Goal value",
+  "color": "Color",
+  "icon": "Icon"
+  ,
+  "pageNotFound": "Page not found: {uri}",
+  "@pageNotFound": {
+    "placeholders": {
+      "uri": {
+        "type": "String"
+      }
+    }
+  }
+}

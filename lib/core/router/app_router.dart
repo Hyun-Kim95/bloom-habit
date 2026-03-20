@@ -14,10 +14,12 @@ import '../../features/statistics/presentation/statistics_screen.dart';
 import '../../features/inquiries/presentation/inquiries_screen.dart';
 import '../../features/habit_list/presentation/habit_list_screen.dart';
 import '../../features/legal/presentation/legal_view_screen.dart';
+import '../../features/notices/presentation/notices_screen.dart';
+import '../../l10n/app_localizations.dart';
 import 'app_providers.dart';
 import 'main_shell.dart';
 
-/// 라우트 경로
+/// Route paths.
 class AppRoutes {
   static const String onboarding = '/onboarding';
   static const String login = '/login';
@@ -31,6 +33,7 @@ class AppRoutes {
   static const String inquiries = '/inquiries';
   static const String legalTerms = '/legal/terms';
   static const String legalPrivacy = '/legal/privacy';
+  static const String notices = '/notices';
 }
 
 GoRouter createAppRouter(WidgetRef ref) {
@@ -40,14 +43,14 @@ GoRouter createAppRouter(WidgetRef ref) {
     redirect: (BuildContext context, GoRouterState state) async {
       final restored = await ref.read(sessionRestoredProvider.future);
       final path = state.uri.path;
-      // 로그인된 사용자: 로그인 화면이면 홈으로, 온보딩이면 홈으로 (첫 실행만 켜도 앱 실행마다 온보딩 안 보이게)
+      // If already authenticated, keep login/onboarding unreachable.
       if (restored && (path == AppRoutes.login || path == AppRoutes.onboarding)) {
         return AppRoutes.home;
       }
       if (!restored && path != AppRoutes.onboarding && path != AppRoutes.login && !path.startsWith('/legal/')) {
         return AppRoutes.login;
       }
-      // 비로그인 + 온보딩: 이미 봤고 '첫 실행만 보기' 켜져 있으면 로그인으로
+      // If onboarding was already seen and one-time mode is enabled, go to login.
       if (path == AppRoutes.onboarding && !restored) {
         final settings = await ref.read(appSettingsProvider.future);
         if (settings.hasSeenOnboarding && settings.showOnboardingOnlyFirstLaunch) {
@@ -136,10 +139,14 @@ GoRouter createAppRouter(WidgetRef ref) {
         path: AppRoutes.legalPrivacy,
         builder: (_, __) => const LegalViewScreen(type: 'privacy'),
       ),
+      GoRoute(
+        path: AppRoutes.notices,
+        builder: (_, __) => const NoticesScreen(),
+      ),
     ],
-    errorBuilder: (_, state) => Scaffold(
+    errorBuilder: (context, state) => Scaffold(
       body: Center(
-        child: Text('Not found: ${state.uri}'),
+        child: Text(AppLocalizations.of(context)!.pageNotFound(state.uri.toString())),
       ),
     ),
   );

@@ -5,7 +5,6 @@ export { AdminUser } from './admin-user.entity';
 export { HabitTemplate } from './habit-template.entity';
 export { Notice } from './notice.entity';
 export { SystemConfig } from './system-config.entity';
-export { AiFeedbackLog } from './ai-feedback-log.entity';
 export { Inquiry } from './inquiry.entity';
 export { LegalDocument } from './legal-document.entity';
 export { MissedHabitPushLog } from './missed-habit-push-log.entity';

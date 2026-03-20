@@ -1,6 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// 액세스·리프레시 토큰 보안 저장
+/// Secure storage for access/refresh tokens.
 class TokenStorage {
   TokenStorage() : _storage = const FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
 

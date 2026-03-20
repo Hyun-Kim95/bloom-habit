@@ -6,8 +6,8 @@ import '../local/entity/local_habit.dart';
 import '../local/entity/local_user.dart';
 import '../../core/network/api_endpoints.dart';
 
-/// 서버 ↔ 로컬 동기화 (docs/02-sync-policy 기준)
-/// 1차: 로그인 후 전량 풀, 로컬에 upsert
+/// Server <-> local sync repository.
+/// Initial flow: full pull after login, then local upsert.
 class SyncRepository {
   SyncRepository({
     required Dio dio,
@@ -18,7 +18,7 @@ class SyncRepository {
   final Dio _dio;
   final Future<Isar> _isarFuture;
 
-  /// since(ISO timestamp) 기준 증분 풀. null이면 전량
+  /// Incremental pull from `since` (ISO timestamp). Null means full pull.
   Future<void> pull({String? since}) async {
     final res = await _dio.get<Map<String, dynamic>>(
       ApiEndpoints.sync,

@@ -8,17 +8,18 @@ import 'package:timezone/data/latest.dart' as tz_data;
 
 import '../settings/app_settings.dart' as app_prefs;
 import '../../data/local/entity/local_habit.dart';
+import '../../l10n/app_strings.dart';
 
-/// 습관별 리마인더 알림 (로컬)
+/// Per-habit local reminder notifications.
 class NotificationService {
   NotificationService._();
   static final NotificationService _instance = NotificationService._();
   factory NotificationService() => _instance;
 
   static const _channelId = 'bloom_habit_reminder';
-  static const _channelName = '습관 리마인더';
+  static String get _channelName => AppStrings.notifChannelHabit;
   static const _fcmChannelId = 'bloom_habit_inquiry_reply';
-  static const _fcmChannelName = '문의 답변 알림';
+  static String get _fcmChannelName => AppStrings.notifChannelInquiry;
 
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
@@ -29,7 +30,7 @@ class NotificationService {
   Future<void> init() async {
     if (_initialized) return;
     tz_data.initializeTimeZones();
-    // 기기 로컬 타임존 설정 (에뮬레이터가 UTC를 반환하면 로컬 시간이 어긋남)
+    // Use device timezone. Emulator may return UTC unexpectedly.
     try {
       final tzInfo = await FlutterTimezone.getLocalTimezone();
       final id = tzInfo.identifier;
@@ -41,27 +42,27 @@ class NotificationService {
     } catch (_) {
       tz.setLocalLocation(tz.getLocation('Asia/Seoul'));
     }
-    debugPrint('[NotificationService] 타임존: ${tz.local.name}');
+    debugPrint('[NotificationService] timezone: ${tz.local.name}');
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const initSettings = InitializationSettings(android: android);
     await _plugin.initialize(
       initSettings,
       onDidReceiveNotificationResponse: _onTap,
     );
-    const androidChannel = AndroidNotificationChannel(
+    final androidChannel = AndroidNotificationChannel(
       _channelId,
       _channelName,
-      description: '습관별 설정한 시간에 리마인더가 울립니다.',
+      description: AppStrings.notifDescHabit,
       importance: Importance.defaultImportance,
     );
     await _plugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(androidChannel);
 
-    const fcmChannel = AndroidNotificationChannel(
+    final fcmChannel = AndroidNotificationChannel(
       _fcmChannelId,
       _fcmChannelName,
-      description: '문의 답변이 등록되었을 때 알림을 받습니다.',
+      description: AppStrings.notifDescInquiry,
       importance: Importance.max,
     );
     await _plugin
@@ -73,7 +74,7 @@ class NotificationService {
 
   void _onTap(NotificationResponse response) {}
 
-  /// Android 13+ 알림 권한 요청
+  /// Request notification permission on Android 13+.
   Future<bool> requestPermission() async {
     final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     if (android != null) {
@@ -83,12 +84,12 @@ class NotificationService {
     return true;
   }
 
-  /// 시스템 앱 알림 설정 화면으로 이동 (권한이 아닌 '알림' 메뉴에서 켜야 함)
+  /// Open OS app notification settings screen.
   Future<void> openNotificationSettings() async {
     await AppSettings.openAppSettings(type: AppSettingsType.notification);
   }
 
-  /// 앱 시작/스케줄 시점마다 권한 상태 확인 후 필요하면 재요청
+  /// Check current permission state and re-request if needed.
   Future<bool> ensurePermission() async {
     final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     if (android == null) return true;
@@ -98,13 +99,13 @@ class NotificationService {
     return granted ?? false;
   }
 
-  /// 습관별 알림 ID (양수, habit serverId 기반)
+  /// Positive notification ID derived from habit serverId.
   static int _notificationId(String? serverId) {
     if (serverId == null || serverId.isEmpty) return 0;
     return serverId.hashCode.abs() % 0x7FFFFFFF;
   }
 
-  /// 사용자가 설정한 시각(기기 로컬)의 다음 발생 시점. DateTime은 항상 기기 로컬이므로 정확함.
+  /// Next occurrence at user-selected local time.
   tz.TZDateTime _nextOccurrence(int hour, int minute) {
     final now = DateTime.now();
     var scheduled = DateTime(now.year, now.month, now.day, hour, minute);
@@ -113,8 +114,8 @@ class NotificationService {
     return tz.TZDateTime.fromMillisecondsSinceEpoch(tz.UTC, instant);
   }
 
-  /// 알림 켜진 습관들 기준으로 전체 스케줄 갱신 (전역 알림 off면 스케줄 안 함).
-  /// 동시 호출 시 한 번만 실행되며, 같은 습관(serverId)은 한 번만 스케줄됩니다.
+  /// Rebuild full schedule from enabled habits.
+  /// Concurrent calls are coalesced, and each habit is scheduled once.
   Future<void> rescheduleFromHabits(List<LocalHabit> habits) async {
     if (_rescheduling) return;
     _rescheduling = true;
@@ -135,25 +136,25 @@ class NotificationService {
           h.reminderHour != null &&
           h.reminderMinute != null &&
           h.serverId != null).toList();
-      debugPrint('[NotificationService] 리마인더 스케줄 대상 습관 수: ${toSchedule.length}');
-      const androidDetails = AndroidNotificationDetails(
+      debugPrint('[NotificationService] reminder target habits: ${toSchedule.length}');
+      final androidDetails = AndroidNotificationDetails(
         _channelId,
         _channelName,
-        channelDescription: '습관별 설정한 시간에 리마인더가 울립니다.',
+        channelDescription: AppStrings.notifDescHabit,
         importance: Importance.defaultImportance,
         priority: Priority.defaultPriority,
       );
-      const details = NotificationDetails(android: androidDetails);
+      final details = NotificationDetails(android: androidDetails);
       final scheduledIds = <int>{};
       for (final h in toSchedule) {
         if (h.serverId == null) continue;
         final id = _notificationId(h.serverId);
         if (scheduledIds.contains(id)) continue;
         scheduledIds.add(id);
-        final title = h.name?.isNotEmpty == true ? h.name! : '습관';
-        final body = '오늘의 "$title" 확인해 보세요 🌱';
+        final title = h.name?.isNotEmpty == true ? h.name! : AppStrings.notifFallbackTitle;
+        final body = AppStrings.notifFallbackBody(title);
         final scheduledAt = _nextOccurrence(h.reminderHour!, h.reminderMinute!);
-        debugPrint('[NotificationService] 스케줄: id=$id "$title" ${h.reminderHour}:${h.reminderMinute} -> $scheduledAt');
+        debugPrint('[NotificationService] schedule: id=$id "$title" ${h.reminderHour}:${h.reminderMinute} -> $scheduledAt');
         try {
           await _plugin.zonedSchedule(
             id,
@@ -166,7 +167,7 @@ class NotificationService {
             matchDateTimeComponents: DateTimeComponents.time,
           );
         } catch (e, st) {
-          debugPrint('[NotificationService] 스케줄 실패: $e\n$st');
+          debugPrint('[NotificationService] schedule failed: $e\n$st');
         }
       }
     } finally {
@@ -174,7 +175,7 @@ class NotificationService {
     }
   }
 
-  /// 특정 습관 알림만 취소
+  /// Cancel one habit notification only.
   Future<void> cancelHabit(String? serverId) async {
     if (serverId == null) return;
     await _plugin.cancel(_notificationId(serverId));
@@ -184,8 +185,7 @@ class NotificationService {
     await _plugin.cancelAll();
   }
 
-  /// FCM 수신을 전면(포그라운드)에서도 화면에 표시하기 위한 로컬 알림.
-  /// 현재 `remoteMessage.notification`이 있는 경우를 기준으로 사용합니다.
+  /// Show local notification for foreground FCM message handling.
   Future<void> showFcmNotification({
     required String title,
     required String body,
@@ -193,14 +193,14 @@ class NotificationService {
     await init();
     final id = DateTime.now().millisecondsSinceEpoch.remainder(1 << 31);
 
-    const androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       _fcmChannelId,
       _fcmChannelName,
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,
     );
-    const details = NotificationDetails(android: androidDetails);
+    final details = NotificationDetails(android: androidDetails);
     await _plugin.show(id, title, body, details);
   }
 }

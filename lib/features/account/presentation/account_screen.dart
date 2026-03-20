@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,7 +10,7 @@ import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
 
 String _maskEmail(String? email) {
-  if (email == null || email.isEmpty) return '연동된 이메일 없음';
+  if (email == null || email.isEmpty) return '';
   final at = email.indexOf('@');
   if (at < 0) return '***';
   if (at <= 1) return '***${email.substring(at)}';
@@ -26,7 +27,7 @@ String _providerLabel(String authProvider) {
     case 'apple':
       return 'Apple';
     default:
-      return '소셜';
+      return 'Social';
   }
 }
 
@@ -50,6 +51,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   }
 
   Future<void> _loadProfile() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _loadingProfile = true;
       _profileError = null;
@@ -60,31 +62,38 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     setState(() {
       _profile = p;
       _loadingProfile = false;
-      _profileError = p == null ? '프로필을 불러오지 못했습니다. 네트워크를 확인해 주세요.' : null;
+      _profileError = p == null ? l10n.profileLoadFailed : null;
     });
   }
 
-  Future<void> _editDisplayName() async {
+  Future<void> _editNickname() async {
+    final l10n = AppLocalizations.of(context)!;
     final auth = ref.read(authRepositoryProvider);
     final initial = _profile?.displayName ?? '';
     final controller = TextEditingController(text: initial);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('표시 이름'),
+        title: Text(l10n.nickname),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            hintText: '앱에서 보여 줄 이름',
-            counterText: '최대 80자',
+          decoration: InputDecoration(
+            hintText: l10n.nicknameHint,
+            counterText: l10n.max20Chars,
           ),
-          maxLength: 80,
+          maxLength: 20,
           autofocus: true,
           textInputAction: TextInputAction.done,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('저장')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.save),
+          ),
         ],
       ),
     );
@@ -94,26 +103,37 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       await auth.updateMeProfile(displayName: name);
       await _loadProfile();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('저장했어요.')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.saved)));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('저장 실패: ${e.toString().split('\n').first}')),
+          SnackBar(
+            content: Text(l10n.saveFailed(e.toString().split('\n').first)),
+          ),
         );
       }
     }
   }
 
   Future<void> _clearAvatar() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('프로필 사진 제거'),
-        content: const Text('저장된 프로필 사진을 지울까요? (Google로 다시 로그인하면 사진이 다시 동기화될 수 있어요.)'),
+        title: Text(l10n.removeProfilePhoto),
+        content: Text(l10n.removeProfilePhotoDescription),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('제거')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.remove),
+          ),
         ],
       ),
     );
@@ -122,44 +142,76 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       await ref.read(authRepositoryProvider).updateMeProfile(clearAvatar: true);
       await _loadProfile();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('프로필 사진을 지웠어요.')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.profilePhotoRemoved)));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('처리 실패: ${e.toString().split('\n').first}')),
+          SnackBar(
+            content: Text(l10n.processFailed(e.toString().split('\n').first)),
+          ),
         );
       }
     }
   }
 
   Future<void> _withdraw() async {
+    final l10n = AppLocalizations.of(context)!;
+    final reasonController = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('회원 탈퇴'),
-        content: const Text(
-          '탈퇴하면 모든 습관·기록 데이터가 삭제되며 복구할 수 없습니다.\n정말 탈퇴할까요?',
+        title: Text(l10n.deleteAccount),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.deleteAccountDescription),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              maxLength: 500,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: l10n.withdrawReason,
+                hintText: l10n.withdrawReasonHint,
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('취소'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.destructive),
-            child: const Text('탈퇴'),
+            onPressed: () {
+              final reason = reasonController.text.trim();
+              if (reason.isEmpty) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(content: Text(l10n.withdrawReasonRequired)),
+                );
+                return;
+              }
+              Navigator.pop(ctx, true);
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.destructive,
+            ),
+            child: Text(l10n.withdraw),
           ),
         ],
       ),
     );
     if (ok != true || !mounted) return;
+    final reason = reasonController.text.trim();
     setState(() => _withdrawing = true);
     try {
       final auth = ref.read(authRepositoryProvider);
       final habitRepo = ref.read(habitRepositoryProvider);
-      await auth.deleteAccount();
+      await auth.deleteAccount(reason);
       await habitRepo.clearAllLocalData();
       if (!mounted) return;
       ref.invalidate(sessionRestoredProvider);
@@ -168,7 +220,9 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       if (mounted) {
         setState(() => _withdrawing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('탈퇴 처리 중 오류가 났어요. ${e.toString().split('\n').first}')),
+          SnackBar(
+            content: Text(l10n.withdrawFailed(e.toString().split('\n').first)),
+          ),
         );
       }
     }
@@ -176,6 +230,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fg = isDark ? AppColors.foregroundDark : AppColors.foreground;
     final muted = AppColors.mutedForeground;
@@ -184,7 +239,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       appBar: AppBar(
         title: Text(
-          '계정 관리',
+          l10n.accountManagement,
           style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w600),
         ),
       ),
@@ -198,16 +253,24 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
             if (_loadingProfile)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
               )
             else if (_profileError != null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Column(
                   children: [
-                    Text(_profileError!, style: GoogleFonts.dmSans(fontSize: 14, color: muted)),
+                    Text(
+                      _profileError!,
+                      style: GoogleFonts.dmSans(fontSize: 14, color: muted),
+                    ),
                     const SizedBox(height: 12),
-                    FilledButton(onPressed: _loadProfile, child: const Text('다시 시도')),
+                    FilledButton(
+                      onPressed: _loadProfile,
+                      child: Text(l10n.retry),
+                    ),
                   ],
                 ),
               )
@@ -227,7 +290,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                             Text(
                               _profile?.displayName?.trim().isNotEmpty == true
                                   ? _profile!.displayName!.trim()
-                                  : '이름 없음',
+                                  : l10n.noName,
                               style: GoogleFonts.dmSans(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
@@ -237,12 +300,20 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                             const SizedBox(height: 6),
                             Text(
                               _maskEmail(_profile?.email),
-                              style: GoogleFonts.dmSans(fontSize: 13, color: muted),
+                              style: GoogleFonts.dmSans(
+                                fontSize: 13,
+                                color: muted,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${_providerLabel(_profile?.authProvider ?? '')} 로그인',
-                              style: GoogleFonts.dmSans(fontSize: 12, color: muted),
+                              l10n.loginWithProvider(
+                                _providerLabel(_profile?.authProvider ?? ''),
+                              ),
+                              style: GoogleFonts.dmSans(
+                                fontSize: 12,
+                                color: muted,
+                              ),
                             ),
                           ],
                         ),
@@ -257,20 +328,29 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                   children: [
                     ListTile(
                       leading: const Icon(Icons.badge_outlined),
-                      title: Text('표시 이름 변경', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
+                      title: Text(
+                        l10n.changeNickname,
+                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w600),
+                      ),
                       subtitle: Text(
-                        '문의·앱 내에 보이는 이름입니다.',
+                        l10n.nicknameSubtitle,
                         style: GoogleFonts.dmSans(fontSize: 12, color: muted),
                       ),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: _editDisplayName,
+                      onTap: _editNickname,
                     ),
-                    if (_profile?.avatarUrl != null && _profile!.avatarUrl!.isNotEmpty)
+                    if (_profile?.avatarUrl != null &&
+                        _profile!.avatarUrl!.isNotEmpty)
                       ListTile(
                         leading: const Icon(Icons.hide_image_outlined),
-                        title: Text('프로필 사진 제거', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
+                        title: Text(
+                          l10n.removeProfilePhoto,
+                          style: GoogleFonts.dmSans(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                         subtitle: Text(
-                          '기본 아이콘으로 돌아갑니다.',
+                          l10n.revertToDefaultIcon,
                           style: GoogleFonts.dmSans(fontSize: 12, color: muted),
                         ),
                         onTap: _clearAvatar,
@@ -290,8 +370,12 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          '습관·기록 데이터는 이 계정에 연동됩니다. 회원 탈퇴 시 서버와 기기에 저장된 데이터가 삭제되며 복구할 수 없습니다.',
-                          style: GoogleFonts.dmSans(fontSize: 13, height: 1.45, color: fg),
+                          l10n.accountDataWarning,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 13,
+                            height: 1.45,
+                            color: fg,
+                          ),
                         ),
                       ),
                     ],
@@ -312,7 +396,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                         context.go(AppRoutes.login);
                       },
                 icon: const Icon(Icons.logout, size: 20),
-                label: const Text('로그아웃'),
+                label: Text(l10n.logout),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.destructive,
                   side: const BorderSide(color: AppColors.destructive),
@@ -331,7 +415,9 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.person_off_outlined, size: 20),
-                label: Text(_withdrawing ? '탈퇴 처리 중…' : '회원 탈퇴'),
+                label: Text(
+                  _withdrawing ? l10n.withdrawing : l10n.deleteAccount,
+                ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.destructive,
                   side: const BorderSide(color: AppColors.destructive),
@@ -375,7 +461,7 @@ class _ProfileAvatar extends StatelessWidget {
                     color: AppColors.primary,
                     value: loadingProgress.expectedTotalBytes != null
                         ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
+                              loadingProgress.expectedTotalBytes!
                         : null,
                   ),
                 ),

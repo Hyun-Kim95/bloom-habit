@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,7 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
 
-/// Figma 스타일 온보딩: 프레임 단위 레이아웃, 일러스트 영역 + 타이포 + CTA
+/// Figma-style onboarding with framed layout, illustration, typography, and CTA.
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -37,6 +38,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? AppColors.backgroundDark : AppColors.background;
     final fg = isDark ? AppColors.foregroundDark : AppColors.foreground;
@@ -49,7 +51,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // 상단: 건너뛰기
+            // Top: skip action
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Align(
@@ -61,13 +63,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                   child: Text(
-                    '건너뛰기',
+                    l10n.skip,
                     style: GoogleFonts.dmSans(fontSize: 15, fontWeight: FontWeight.w500),
                   ),
                 ),
               ),
             ),
-            // 프레임 영역: PageView
+            // Framed content area: PageView
             Expanded(
               child: PageView(
                 controller: _pageController,
@@ -80,8 +82,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       backgroundColor: primary.withValues(alpha: 0.12),
                     ),
                     title: 'Bloom Habit',
-                    subtitle: '작은 습관이 인생을 바꿉니다',
-                    body: '매일 조금씩 기록하고, 꾸준함을 키워 보세요.',
+                    subtitle: l10n.onboardingSubtitle1,
+                    body: l10n.onboardingBody1,
                     isDark: isDark,
                   ),
                   _OnboardingFrame(
@@ -90,9 +92,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       color: primary,
                       backgroundColor: primary.withValues(alpha: 0.12),
                     ),
-                    title: '습관 기록',
-                    subtitle: '오늘 한 일을 간단히 체크',
-                    body: '완료할 때마다 기록하면 연속 달성일과 통계를 볼 수 있어요.',
+                    title: l10n.onboardingTitle2,
+                    subtitle: l10n.onboardingSubtitle2,
+                    body: l10n.onboardingBody2,
                     isDark: isDark,
                   ),
                   _OnboardingFrame(
@@ -101,15 +103,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       color: primary,
                       backgroundColor: primary.withValues(alpha: 0.12),
                     ),
-                    title: '시작하기',
-                    subtitle: '지금 바로 첫 습관을 만들어 보세요',
-                    body: '로그인 후 습관을 추가하고, 오늘부터 기록을 시작해요.',
+                    title: l10n.onboardingTitle3,
+                    subtitle: l10n.onboardingSubtitle3,
+                    body: l10n.onboardingBody3,
                     isDark: isDark,
                   ),
                 ],
               ),
             ),
-            // 하단: 인디케이터 + 버튼
+            // Bottom: page indicator + action button
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
               child: Row(
@@ -148,7 +150,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       ),
                     ),
                     child: Text(
-                      _currentPage >= _pages - 1 ? '시작하기' : '다음',
+                      _currentPage >= _pages - 1 ? l10n.getStarted : l10n.next,
                       style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -162,7 +164,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 }
 
-/// 한 페이지 프레임: 일러스트 영역 + 타이포
+/// One onboarding frame: illustration area + typography.
 class _OnboardingFrame extends StatelessWidget {
   const _OnboardingFrame({
     required this.illustration,
@@ -228,7 +230,7 @@ class _OnboardingFrame extends StatelessWidget {
   }
 }
 
-/// 일러스트 영역: 원형 배경 + 아이콘 (Figma 프레임 느낌)
+/// Illustration area: circular background with icon.
 class _OnboardingIllustration extends StatelessWidget {
   const _OnboardingIllustration({
     required this.icon,

@@ -7,6 +7,8 @@ type Template = {
   category?: string
   goalType: string
   goalValue?: number | null
+  colorHex?: string
+  iconName?: string
   isActive: boolean
 }
 
@@ -17,6 +19,23 @@ const GOAL_TYPE_OPTIONS = [
   { value: 'count', label: '횟수' },
   { value: 'duration', label: '시간(분)' },
   { value: 'number', label: '수치' },
+] as const
+
+const COLOR_PRESETS = ['22C55E', '3B82F6', 'F59E0B', 'EF4444', '8B5CF6', 'EC4899', '14B8A6', '6B7280'] as const
+
+const ICON_OPTIONS = [
+  'fitness_center',
+  'menu_book',
+  'local_drink',
+  'self_improvement',
+  'bedtime',
+  'eco',
+  'psychology',
+  'work',
+  'volunteer_activism',
+  'star',
+  'check_circle',
+  'flag',
 ] as const
 
 function goalTypeLabel(code: string): string {
@@ -34,6 +53,78 @@ function formatGoalCell(t: Template): string {
     return `${label} (${n})`
   }
   return `${label} (목표값 없음)`
+}
+
+function iconPreview(name?: string): string {
+  switch (name) {
+    case 'fitness_center':
+      return '🏋️'
+    case 'menu_book':
+      return '📖'
+    case 'local_drink':
+      return '💧'
+    case 'self_improvement':
+      return '🧘'
+    case 'bedtime':
+      return '🌙'
+    case 'eco':
+      return '🌿'
+    case 'psychology':
+      return '🧠'
+    case 'work':
+      return '💼'
+    case 'volunteer_activism':
+      return '💖'
+    case 'star':
+      return '⭐'
+    case 'check_circle':
+      return '✅'
+    case 'flag':
+      return '🚩'
+    default:
+      return '🔹'
+  }
+}
+
+function iconOptionLabel(name: string): string {
+  return `${iconPreview(name)} ${name}`
+}
+
+type ColorPickerProps = {
+  value: string
+  onChange: (next: string) => void
+}
+
+function ColorPicker({ value, onChange }: ColorPickerProps) {
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={() => onChange('')}
+        className={`rounded-md border px-2 py-1 text-xs ${
+          value === '' ? 'border-primary text-primary' : 'border-border text-muted-foreground'
+        }`}
+      >
+        선택 안 함
+      </button>
+      {COLOR_PRESETS.map((c) => {
+        const selected = value === c
+        return (
+          <button
+            key={c}
+            type="button"
+            onClick={() => onChange(c)}
+            aria-label={`#${c}`}
+            title={`#${c}`}
+            className={`inline-flex h-7 w-7 items-center justify-center rounded-full border ${
+              selected ? 'border-foreground ring-2 ring-primary/40' : 'border-border'
+            }`}
+            style={{ backgroundColor: `#${c}` }}
+          />
+        )
+      })}
+    </div>
+  )
 }
 
 function parseCategories(raw: string | undefined): string[] {
@@ -247,12 +338,16 @@ export default function HabitTemplates() {
   const [category, setCategory] = useState('')
   const [goalType, setGoalType] = useState<string>('completion')
   const [goalValueInput, setGoalValueInput] = useState('')
+  const [colorHex, setColorHex] = useState('')
+  const [iconName, setIconName] = useState('')
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState<Template | null>(null)
   const [editName, setEditName] = useState('')
   const [editCategory, setEditCategory] = useState('')
   const [editGoalType, setEditGoalType] = useState<string>('completion')
   const [editGoalValueInput, setEditGoalValueInput] = useState('')
+  const [editColorHex, setEditColorHex] = useState('')
+  const [editIconName, setEditIconName] = useState('')
   const [editSaving, setEditSaving] = useState(false)
   const [categoryModalOpen, setCategoryModalOpen] = useState(false)
   const [reseeding, setReseeding] = useState(false)
@@ -280,6 +375,10 @@ export default function HabitTemplates() {
   const create = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return
+    if (!colorHex.trim() || !iconName.trim()) {
+      setError('색상과 아이콘은 필수입니다.')
+      return
+    }
     setLoading(true)
     try {
       await api.createTemplate({
@@ -287,11 +386,15 @@ export default function HabitTemplates() {
         category: category.trim() || undefined,
         goalType,
         goalValue: parseGoalValue(goalType, goalValueInput),
+        colorHex: colorHex.trim() || undefined,
+        iconName: iconName.trim() || undefined,
       })
       setName('')
       setCategory('')
       setGoalType('completion')
       setGoalValueInput('')
+      setColorHex('')
+      setIconName('')
       await load()
     } catch (e) {
       setError(e instanceof Error ? e.message : '생성 실패')
@@ -308,11 +411,17 @@ export default function HabitTemplates() {
     setEditGoalValueInput(
       t.goalValue != null && Number.isFinite(Number(t.goalValue)) ? String(t.goalValue) : '',
     )
+    setEditColorHex(t.colorHex ?? '')
+    setEditIconName(t.iconName ?? '')
   }
 
   const saveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editing) return
+    if (!editColorHex.trim() || !editIconName.trim()) {
+      setError('색상과 아이콘은 필수입니다.')
+      return
+    }
     setEditSaving(true)
     try {
       await api.updateTemplate(editing.id, {
@@ -320,6 +429,8 @@ export default function HabitTemplates() {
         category: editCategory.trim() || undefined,
         goalType: editGoalType,
         goalValue: parseGoalValue(editGoalType, editGoalValueInput),
+        colorHex: editColorHex.trim() || undefined,
+        iconName: editIconName.trim() || undefined,
       })
       setEditing(null)
       await load()
@@ -453,10 +564,29 @@ export default function HabitTemplates() {
             />
           </div>
         )}
+        <div>
+          <label className="block text-sm font-medium text-foreground">색상</label>
+          <ColorPicker value={colorHex} onChange={setColorHex} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-foreground">아이콘</label>
+          <select
+            value={iconName}
+            onChange={(e) => setIconName(e.target.value)}
+            className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-foreground min-w-[170px]"
+          >
+            <option value="">선택 안 함</option>
+            {ICON_OPTIONS.map((icon) => (
+              <option key={icon} value={icon}>
+                {iconOptionLabel(icon)}
+              </option>
+            ))}
+          </select>
+        </div>
         <button
           type="submit"
-          disabled={loading}
-          className="rounded-md bg-primary px-4 py-2 text-primary-foreground"
+          disabled={loading || !name.trim() || !colorHex.trim() || !iconName.trim()}
+          className="rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
         >
           추가
         </button>
@@ -523,10 +653,29 @@ export default function HabitTemplates() {
                 />
               </div>
             )}
+            <div>
+              <label className="block text-xs text-muted-foreground">색상</label>
+              <ColorPicker value={editColorHex} onChange={setEditColorHex} />
+            </div>
+            <div>
+              <label className="block text-xs text-muted-foreground">아이콘</label>
+              <select
+                value={editIconName}
+                onChange={(e) => setEditIconName(e.target.value)}
+                className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-foreground text-sm min-w-[170px]"
+              >
+                <option value="">선택 안 함</option>
+                {ICON_OPTIONS.map((icon) => (
+                  <option key={icon} value={icon}>
+                    {iconOptionLabel(icon)}
+                  </option>
+                ))}
+              </select>
+            </div>
             <button
               type="submit"
-              disabled={editSaving}
-              className="rounded-md bg-primary px-3 py-2 text-primary-foreground text-sm"
+              disabled={editSaving || !editName.trim() || !editColorHex.trim() || !editIconName.trim()}
+              className="rounded-md bg-primary px-3 py-2 text-primary-foreground text-sm disabled:opacity-50"
             >
               저장
             </button>
@@ -548,6 +697,8 @@ export default function HabitTemplates() {
               <th className="text-left p-3 font-medium">이름</th>
               <th className="text-left p-3 font-medium">카테고리</th>
               <th className="text-left p-3 font-medium">목표 유형</th>
+              <th className="text-left p-3 font-medium">색상</th>
+              <th className="text-left p-3 font-medium">아이콘</th>
               <th className="text-right p-3 font-medium">수정 / 삭제</th>
             </tr>
           </thead>
@@ -557,6 +708,35 @@ export default function HabitTemplates() {
                 <td className="p-3">{t.name}</td>
                 <td className="p-3">{t.category ?? '-'}</td>
                 <td className="p-3">{formatGoalCell(t)}</td>
+                <td className="p-3">
+                  {t.colorHex ? (
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-block h-4 w-4 rounded-full border border-border"
+                        style={{ backgroundColor: `#${t.colorHex}` }}
+                      />
+                      <span>#{t.colorHex}</span>
+                    </div>
+                  ) : (
+                    '-'
+                  )}
+                </td>
+                <td className="p-3">
+                  {t.iconName ? (
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border bg-muted/40"
+                        aria-label={t.iconName}
+                        title={t.iconName}
+                      >
+                        {iconPreview(t.iconName)}
+                      </span>
+                      <span>{t.iconName}</span>
+                    </div>
+                  ) : (
+                    '-'
+                  )}
+                </td>
                 <td className="p-3 text-right space-x-2">
                   <button
                     type="button"

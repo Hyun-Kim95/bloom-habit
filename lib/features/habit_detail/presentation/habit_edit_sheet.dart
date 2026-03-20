@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../data/local/entity/local_habit.dart';
 
-const kGoalTypes = [
-  ('completion', '완료 여부'),
-  ('count', '횟수'),
-  ('duration', '시간'),
-  ('number', '수치'),
-];
+const kGoalTypes = ['completion', 'count', 'duration', 'number'];
 
 const kColorPresets = [
   '22C55E', '3B82F6', 'F59E0B', 'EF4444', '8B5CF6', 'EC4899', '14B8A6', '6B7280',
@@ -38,7 +34,7 @@ IconData iconDataFromName(String name) {
   }
 }
 
-/// 습관 수정용 데이터 (시트에서 편집 후 반환)
+/// Edit result payload returned from habit edit sheet.
 class HabitEditResult {
   const HabitEditResult({
     required this.name,
@@ -70,6 +66,19 @@ Future<HabitEditResult?> showHabitEditSheet(
     isScrollControlled: true,
     backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
     builder: (ctx) {
+      final l10n = AppLocalizations.of(ctx)!;
+      String goalTypeLabel(String type) {
+        switch (type) {
+          case 'count':
+            return l10n.goalTypeCount;
+          case 'duration':
+            return l10n.goalTypeDuration;
+          case 'number':
+            return l10n.goalTypeNumber;
+          default:
+            return l10n.goalTypeCompletion;
+        }
+      }
       return StatefulBuilder(
         builder: (ctx, setModalState) {
           return Padding(
@@ -81,14 +90,14 @@ Future<HabitEditResult?> showHabitEditSheet(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    '습관 수정',
+                    l10n.editHabit,
                     style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: '습관명',
+                    decoration: InputDecoration(
+                      labelText: l10n.habitName,
                       border: OutlineInputBorder(),
                     ),
                     onChanged: (_) => setModalState(() {}),
@@ -96,12 +105,12 @@ Future<HabitEditResult?> showHabitEditSheet(
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     value: goalType,
-                    decoration: const InputDecoration(
-                      labelText: '목표 유형',
+                    decoration: InputDecoration(
+                      labelText: l10n.goalType,
                       border: OutlineInputBorder(),
                     ),
                     items: kGoalTypes
-                        .map((e) => DropdownMenuItem(value: e.$1, child: Text(e.$2)))
+                        .map((e) => DropdownMenuItem(value: e, child: Text(goalTypeLabel(e))))
                         .toList(),
                     onChanged: (v) => setModalState(() => goalType = v ?? 'completion'),
                   ),
@@ -109,8 +118,8 @@ Future<HabitEditResult?> showHabitEditSheet(
                     const SizedBox(height: 12),
                     TextFormField(
                       initialValue: goalValue?.toInt().toString(),
-                      decoration: const InputDecoration(
-                        labelText: '목표값',
+                      decoration: InputDecoration(
+                        labelText: l10n.goalValue,
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
@@ -121,7 +130,7 @@ Future<HabitEditResult?> showHabitEditSheet(
                     ),
                   ],
                   const SizedBox(height: 16),
-                  const Text('색상', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  Text(l10n.color, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 10,
@@ -143,7 +152,7 @@ Future<HabitEditResult?> showHabitEditSheet(
                     }).toList(),
                   ),
                   const SizedBox(height: 16),
-                  const Text('아이콘', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  Text(l10n.icon, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -177,7 +186,7 @@ Future<HabitEditResult?> showHabitEditSheet(
                         iconName: iconName,
                       ));
                     },
-                    child: const Text('저장'),
+                    child: Text(l10n.save),
                   ),
                 ],
               ),

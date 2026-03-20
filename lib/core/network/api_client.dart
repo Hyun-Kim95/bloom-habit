@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 
 import 'api_interceptor.dart';
 
-/// 백엔드 API 클라이언트 (인증·에러 처리 공통)
+/// Backend API client with shared auth/error handling.
 class ApiClient {
   ApiClient({required String baseUrl, String? accessToken}) {
     _dio = Dio(BaseOptions(

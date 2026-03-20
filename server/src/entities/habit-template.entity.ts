@@ -23,6 +23,12 @@ export class HabitTemplate {
   @Column({ type: 'double precision', nullable: true })
   goalValue: number | null;
 
+  @Column({ type: 'varchar', nullable: true })
+  colorHex: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  iconName: string | null;
+
   @Column({ default: true })
   isActive: boolean;
 

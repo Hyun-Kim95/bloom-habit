@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// 습관 아이콘 이름 → Material IconData
+/// Habit icon name -> Material IconData.
 IconData habitIconFromName(String? name) {
   if (name == null || name.isEmpty) return Icons.star;
   switch (name) {
@@ -33,7 +33,7 @@ IconData habitIconFromName(String? name) {
   }
 }
 
-/// hex 색상 문자열(예: "22C55E" 또는 "#22C55E") → Color. 파싱 실패 시 fallback 반환.
+/// Hex color string (e.g. "22C55E" or "#22C55E") -> Color.
 Color habitColorFromHex(String? hex, {Color fallback = const Color(0xFF22C55E)}) {
   if (hex == null || hex.isEmpty) return fallback;
   String s = hex.trim();

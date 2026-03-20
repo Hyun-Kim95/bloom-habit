@@ -19,16 +19,24 @@ export class AuthController {
     return this.auth.loginGoogle(body);
   }
 
-  @Post('apple')
-  async apple(
+  @Post('kakao')
+  async kakao(
     @Body()
     body: {
-      identityToken: string;
-      email?: string;
-      displayName?: string;
+      accessToken: string;
     },
   ) {
-    return this.auth.loginApple(body);
+    return this.auth.loginKakao(body);
+  }
+
+  @Post('naver')
+  async naver(
+    @Body()
+    body: {
+      accessToken: string;
+    },
+  ) {
+    return this.auth.loginNaver(body);
   }
 
   @Post('logout')

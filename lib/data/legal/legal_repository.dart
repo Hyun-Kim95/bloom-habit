@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../core/network/api_endpoints.dart';
 
-/// 약관/개인정보 한 건 (앱 표시용)
+/// Legal document item for app display.
 class LegalDocumentItem {
   const LegalDocumentItem({
     required this.title,
@@ -13,7 +13,7 @@ class LegalDocumentItem {
   final String content;
 }
 
-/// 약관·개인정보처리방침 API (공개, 인증 불필요)
+/// Legal documents API repository (public, no auth required).
 class LegalRepository {
   LegalRepository({required Dio dio}) : _dio = dio;
 

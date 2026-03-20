@@ -15,9 +15,8 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ConfigService } from '../config/config.service';
-import { AiFeedbackService } from './ai-feedback.service';
 import { JwtGuard } from './jwt.guard';
-import { HabitsService, HabitDto, RecordDto } from './habits.service';
+import { HabitsService, HabitDto } from './habits.service';
 
 type ReqWithUser = Request & { userId: string };
 
@@ -28,7 +27,6 @@ const HABIT_CATEGORIES_KEY = 'habit_categories';
 export class HabitsController {
   constructor(
     private readonly habits: HabitsService,
-    private readonly aiFeedbackService: AiFeedbackService,
     private readonly config: ConfigService,
   ) {}
 
@@ -45,12 +43,10 @@ export class HabitsController {
     }
   }
 
-  /** 앱 통계용: 내 최근 AI 피드백 목록 */
-  @Get('ai-feedback')
-  async listAiFeedback(@Req() req: ReqWithUser, @Query('limit') limit?: string) {
-    const n = limit ? parseInt(limit, 10) : 30;
-    const take = Number.isFinite(n) && n >= 1 && n <= 100 ? n : 30;
-    return this.aiFeedbackService.listForUser(req.userId, take);
+  /** 앱에서 습관 생성 시 템플릿 선택 목록 (관리자 활성 템플릿) */
+  @Get('templates')
+  async templates() {
+    return this.habits.listActiveTemplates();
   }
 
   @Get()
@@ -153,20 +149,4 @@ export class HabitsController {
     return { ok: true };
   }
 
-  @Post(':habitId/records/:recordId/ai-feedback')
-  async aiFeedback(
-    @Req() req: ReqWithUser,
-    @Param('habitId') habitId: string,
-    @Param('recordId') recordId: string,
-  ) {
-    try {
-      return await this.aiFeedbackService.requestFeedback(
-        req.userId,
-        habitId,
-        recordId,
-      );
-    } catch (e) {
-      return { statusCode: 404, message: (e as Error).message };
-    }
-  }
 }

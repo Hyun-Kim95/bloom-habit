@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:lottie/lottie.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
@@ -70,6 +70,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     final now = DateTime.now();
     final from = now.subtract(const Duration(days: 30));
     final list = await repo.getRecordHistory(sid, from: from, to: now);
+    list.sort((a, b) => b.recordDate.compareTo(a.recordDate));
     if (mounted) setState(() {
       _recordHistory = list;
       _historyLoading = false;
@@ -81,7 +82,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     setState(() => _recording = true);
     try {
       final repo = ref.read(habitRepositoryProvider);
-      final record = await repo.recordToday(
+      await repo.recordToday(
         _habit.serverId!,
         completed: true,
       );
@@ -91,12 +92,6 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       final settings = ref.read(appSettingsProvider).value;
       if (settings?.hapticEnabled ?? true) HapticFeedback.mediumImpact();
       if (settings?.soundEnabled ?? true) SystemSound.play(SystemSoundType.click);
-      final comment = await repo.requestAiFeedback(
-        _habit.serverId!,
-        record.serverId ?? '',
-      );
-      if (!mounted) return;
-      await _showAiCommentDialog(context, comment);
     } catch (_) {
       if (mounted) setState(() => _recording = false);
     }
@@ -124,21 +119,22 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('수정에 실패했어요. 다시 시도해 주세요.')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.editFailedTryAgain)),
         );
       }
     }
   }
 
   Future<void> _archive() async {
+    final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('습관 보관'),
-        content: const Text('이 습관을 보관할까요? 보관한 습관은 홈 목록에서 숨겨지며, 보관함에서 다시 볼 수 있어요.'),
+        title: Text(l10n.hideHabit),
+        content: Text(l10n.hideHabitDescription),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('보관하기')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.hide)),
         ],
       ),
     );
@@ -151,13 +147,42 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('보관 처리에 실패했어요.')),
+          SnackBar(content: Text(l10n.hideFailed)),
+        );
+      }
+    }
+  }
+
+  Future<void> _unarchive() async {
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.unhideHabit),
+        content: Text(l10n.unhideHabitDescription),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.unhide)),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await ref.read(habitRepositoryProvider).archiveHabit(_habit.serverId!);
+      if (!mounted) return;
+      ref.read(homeRefreshTriggerProvider.notifier).state++;
+      context.go(AppRoutes.habits);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.unhideFailed)),
         );
       }
     }
   }
 
   Future<void> _onRecordAction(RecordSummary r, String action) async {
+    final l10n = AppLocalizations.of(context)!;
     if (action != 'delete') return;
     final recordId = r.recordId;
     final habitId = _habit.serverId;
@@ -165,14 +190,14 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('기록 삭제'),
-        content: Text('${r.recordDate} 기록을 삭제할까요?'),
+        title: Text(l10n.deleteRecord),
+        content: Text(l10n.deleteRecordForDate(r.recordDate)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.destructive),
-            child: const Text('삭제'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -188,74 +213,43 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('처리하지 못했어요. 다시 시도해 주세요.')),
+          SnackBar(content: Text(l10n.processFailedTryAgain)),
         );
       }
     }
   }
 
-  Future<void> _showAiCommentDialog(BuildContext context, String comment) async {
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.eco, color: AppColors.primary, size: 24),
-            const SizedBox(width: 8),
-            const Text('오늘 완료했어요!'),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                height: 100,
-                width: 100,
-                child: Lottie.network(
-                  'https://assets2.lottiefiles.com/packages/lf20_yqcyqv2y.json',
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Icon(Icons.check_circle, size: 64, color: AppColors.primary),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(comment),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('확인'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final h = _habit;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isHidden = h.archivedAt != null;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       appBar: AppBar(
         title: Text(
-          h.name ?? '습관',
+          h.name ?? l10n.habitTitle,
           style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) async {
               if (value == 'edit') await _openEdit();
-              else if (value == 'archive') await _archive();
+              else if (value == 'archive') {
+                if (isHidden) {
+                  await _unarchive();
+                } else {
+                  await _archive();
+                }
+              }
               else if (value == 'delete') await _confirmDelete();
             },
             itemBuilder: (ctx) => [
-              const PopupMenuItem(value: 'edit', child: Text('수정')),
-              const PopupMenuItem(value: 'archive', child: Text('보관하기')),
-              const PopupMenuItem(value: 'delete', child: Text('삭제', style: TextStyle(color: AppColors.destructive))),
+              PopupMenuItem(value: 'edit', child: Text(l10n.edit)),
+              PopupMenuItem(value: 'archive', child: Text(isHidden ? l10n.unhide : l10n.hide)),
+              PopupMenuItem(value: 'delete', child: Text(l10n.delete, style: const TextStyle(color: AppColors.destructive))),
             ],
           ),
         ],
@@ -294,7 +288,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    '$_streak일 연속',
+                    l10n.daysCount(_streak),
                     style: GoogleFonts.lora(
                       fontSize: 28,
                       fontWeight: FontWeight.w600,
@@ -314,7 +308,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                     size: 28,
                   ),
                   title: Text(
-                    '오늘 완료했어요!',
+                    l10n.completedTodayDialogTitle,
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -338,7 +332,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : Text(
-                          '오늘 완료하기',
+                          l10n.completeToday,
                           style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                 ),
@@ -347,7 +341,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
             _buildReminderSection(isDark),
             const SizedBox(height: 24),
             Text(
-              '기록 히스토리',
+              l10n.recordHistory,
               style: GoogleFonts.dmSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -362,7 +356,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Text(
-                    '최근 30일 기록이 없어요.',
+                    l10n.noRecent30DaysRecords,
                     style: GoogleFonts.dmSans(fontSize: 14, color: AppColors.mutedForeground),
                   ),
                 ),
@@ -394,9 +388,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                               icon: const Icon(Icons.more_vert, size: 22),
                               onSelected: (value) => _onRecordAction(r, value),
                               itemBuilder: (ctx) => [
-                                const PopupMenuItem(
+                                PopupMenuItem(
                                   value: 'delete',
-                                  child: Text('삭제', style: TextStyle(color: AppColors.destructive)),
+                                  child: Text(AppLocalizations.of(context)!.delete, style: const TextStyle(color: AppColors.destructive)),
                                 ),
                               ],
                             ),
@@ -414,17 +408,18 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   }
 
   Future<void> _confirmDelete() async {
+    final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('습관 삭제'),
-        content: const Text('이 습관을 삭제할까요?'),
+        title: Text(l10n.deleteHabit),
+        content: Text(l10n.deleteHabitDescription),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.destructive),
-            child: const Text('삭제'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -454,7 +449,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       await NotificationService().rescheduleFromHabits(habits);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('저장됨'), duration: Duration(seconds: 2)),
+          SnackBar(content: Text(AppLocalizations.of(context)!.saved), duration: const Duration(seconds: 2)),
         );
       }
     } finally {
@@ -463,11 +458,12 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   }
 
   Future<void> _toggleReminder(bool value) async {
+    final l10n = AppLocalizations.of(context)!;
     if (value) {
       final granted = await NotificationService().requestPermission();
       if (!granted && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('알림 권한이 필요합니다. 설정에서 허용해 주세요.')),
+          SnackBar(content: Text(l10n.notificationPermissionRequired)),
         );
         return;
       }
@@ -499,6 +495,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   }
 
   Widget _buildReminderSection(bool isDark) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -507,7 +504,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
             value: _reminderEnabled,
             onChanged: _reminderSaving ? null : _toggleReminder,
             title: Text(
-              '리마인더 알림',
+              l10n.reminderNotification,
               style: GoogleFonts.dmSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -515,7 +512,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
               ),
             ),
             subtitle: Text(
-              '매일 설정한 시간에 이 습관 알림',
+              l10n.reminderNotificationSubtitle,
               style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
             ),
             activeColor: AppColors.primary,
@@ -523,7 +520,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
           ListTile(
             leading: const Icon(Icons.schedule, color: AppColors.primary),
             title: Text(
-              '알림 시간',
+              l10n.notificationTime,
               style: GoogleFonts.dmSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,

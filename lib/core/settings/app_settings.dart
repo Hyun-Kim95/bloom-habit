@@ -1,13 +1,15 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// NotificationService에서도 사용
+/// Also used by NotificationService.
 const String keyNotificationsEnabled = 'settings_notifications_enabled';
 const _keySoundEnabled = 'settings_sound_enabled';
 const _keyHapticEnabled = 'settings_haptic_enabled';
 const _keyOnboardingSeen = 'settings_onboarding_seen';
 const _keyOnboardingOnlyFirstLaunch = 'settings_onboarding_only_first_launch';
+const _keyThemeMode = 'settings_theme_mode';
+const _keyLocale = 'settings_locale';
 
-/// 앱 전역 설정 (알림/사운드/햅틱/온보딩) - SharedPreferences
+/// App-wide settings (notification/sound/haptic/onboarding) in SharedPreferences.
 class AppSettings {
   AppSettings(this._prefs);
 
@@ -18,6 +20,8 @@ class AppSettings {
   bool get hapticEnabled => _prefs.getBool(_keyHapticEnabled) ?? true;
   bool get hasSeenOnboarding => _prefs.getBool(_keyOnboardingSeen) ?? false;
   bool get showOnboardingOnlyFirstLaunch => _prefs.getBool(_keyOnboardingOnlyFirstLaunch) ?? true;
+  String get themeMode => _prefs.getString(_keyThemeMode) ?? 'system';
+  String get localeCode => _prefs.getString(_keyLocale) ?? 'ko';
 
   Future<void> setNotificationsEnabled(bool value) async {
     await _prefs.setBool(keyNotificationsEnabled, value);
@@ -38,15 +42,23 @@ class AppSettings {
   Future<void> setShowOnboardingOnlyFirstLaunch(bool value) async {
     await _prefs.setBool(_keyOnboardingOnlyFirstLaunch, value);
   }
+
+  Future<void> setThemeMode(String value) async {
+    await _prefs.setString(_keyThemeMode, value);
+  }
+
+  Future<void> setLocaleCode(String value) async {
+    await _prefs.setString(_keyLocale, value);
+  }
 }
 
-/// 약관/개인정보 URL (정책 확정 후 값 설정)
+/// Terms/privacy URLs (set real values after policy is finalized).
 abstract class LegalUrls {
   static const String terms = '';
   static const String privacy = '';
 }
 
-/// 앱 공유용 스토어 링크 (배포 후 실제 URL로 교체)
+/// Store links for app sharing (replace with production URLs).
 abstract class StoreUrls {
   static const String android = '';
   static const String ios = '';

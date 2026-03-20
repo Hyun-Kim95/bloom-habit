@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -19,6 +20,27 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _versionText = '';
 
+  String _themeModeLabel(String mode) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (mode) {
+      case 'light':
+        return l10n.lightTheme;
+      case 'dark':
+        return l10n.darkTheme;
+      default:
+        return l10n.systemTheme;
+    }
+  }
+
+  String _localeLabel(String code) {
+    switch (code) {
+      case 'en':
+        return 'English';
+      default:
+        return '한국어';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -31,12 +53,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final settingsAsync = ref.watch(appSettingsProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       appBar: AppBar(
         title: Text(
-          '설정',
+          l10n.settingsTitle,
           style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w600),
         ),
       ),
@@ -45,38 +68,141 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         children: [
           _SettingsTile(
             icon: Icons.person_outline,
-            title: '계정 관리',
-            subtitle: '프로필 및 로그아웃',
+            title: l10n.accountManagement,
+            subtitle: l10n.profileAndLogout,
             onTap: () => context.push(AppRoutes.account),
           ),
           const SizedBox(height: 8),
           _SettingsTile(
+            icon: Icons.campaign_outlined,
+            title: l10n.announcements,
+            subtitle: l10n.serviceAnnouncementList,
+            onTap: () => context.push(AppRoutes.notices),
+          ),
+          _SettingsTile(
             icon: Icons.menu_book_outlined,
-            title: '약관',
-            subtitle: '이용약관',
+            title: l10n.terms,
+            subtitle: l10n.terms,
             onTap: () => context.push(AppRoutes.legalTerms),
           ),
           _SettingsTile(
             icon: Icons.privacy_tip_outlined,
-            title: '개인정보처리방침',
-            subtitle: '개인정보 처리 방침',
+            title: l10n.privacyPolicy,
+            subtitle: l10n.privacyPolicy,
             onTap: () => context.push(AppRoutes.legalPrivacy),
           ),
           _SettingsTile(
             icon: Icons.mail_outline,
-            title: '문의하기',
-            subtitle: '게시판으로 문의·답변 확인',
+            title: l10n.inquiry,
+            subtitle: l10n.inquirySubtitle,
             onTap: () => context.push(AppRoutes.inquiries),
           ),
           _SettingsTile(
             icon: Icons.notifications_outlined,
-            title: '알림 설정',
-            subtitle: '습관 리마인더는 여기서 켜세요. (권한이 아닌 알림 메뉴)',
+            title: l10n.notificationSettings,
+            subtitle: l10n.notificationSettingsSubtitle,
             onTap: () => NotificationService().openNotificationSettings(),
           ),
           const Divider(height: 24),
           Text(
-            '사운드·피드백',
+            l10n.displaySettings,
+            style: GoogleFonts.dmSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.mutedForeground,
+            ),
+          ),
+          const SizedBox(height: 8),
+          settingsAsync.when(
+            data: (settings) => Card(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.language_outlined, color: AppColors.primary, size: 24),
+                    title: Text(
+                      l10n.language,
+                      style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
+                    ),
+                    subtitle: Text(
+                      _localeLabel(settings.localeCode),
+                      style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
+                    ),
+                    trailing: const Icon(Icons.chevron_right, color: AppColors.mutedForeground),
+                    onTap: () async {
+                      final selected = await showModalBottomSheet<String>(
+                        context: context,
+                        showDragHandle: true,
+                        builder: (ctx) => SafeArea(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                title: const Text('한국어'),
+                                onTap: () => Navigator.pop(ctx, 'ko'),
+                              ),
+                              ListTile(
+                                title: const Text('English'),
+                                onTap: () => Navigator.pop(ctx, 'en'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                      if (selected == null) return;
+                      await settings.setLocaleCode(selected);
+                      ref.invalidate(appSettingsProvider);
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.dark_mode_outlined, color: AppColors.primary, size: 24),
+                    title: Text(
+                      l10n.theme,
+                      style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
+                    ),
+                    subtitle: Text(
+                      _themeModeLabel(settings.themeMode),
+                      style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
+                    ),
+                    trailing: const Icon(Icons.chevron_right, color: AppColors.mutedForeground),
+                    onTap: () async {
+                      final selected = await showModalBottomSheet<String>(
+                        context: context,
+                        showDragHandle: true,
+                        builder: (ctx) => SafeArea(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                title: Text(l10n.systemTheme),
+                                onTap: () => Navigator.pop(ctx, 'system'),
+                              ),
+                              ListTile(
+                                title: Text(l10n.lightTheme),
+                                onTap: () => Navigator.pop(ctx, 'light'),
+                              ),
+                              ListTile(
+                                title: Text(l10n.darkTheme),
+                                onTap: () => Navigator.pop(ctx, 'dark'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                      if (selected == null) return;
+                      await settings.setThemeMode(selected);
+                      ref.invalidate(appSettingsProvider);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+          const Divider(height: 24),
+          Text(
+            l10n.soundAndFeedback,
             style: GoogleFonts.dmSans(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -95,11 +221,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ref.invalidate(appSettingsProvider);
                     },
                     title: Text(
-                      '사운드',
+                      l10n.sound,
                       style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
                     ),
                     subtitle: Text(
-                      '기록 완료 시 효과음',
+                      l10n.soundSubtitle,
                       style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
                     ),
                     activeColor: AppColors.primary,
@@ -111,11 +237,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ref.invalidate(appSettingsProvider);
                     },
                     title: Text(
-                      '햅틱',
+                      l10n.haptic,
                       style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
                     ),
                     subtitle: Text(
-                      '진동 피드백',
+                      l10n.hapticSubtitle,
                       style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
                     ),
                     activeColor: AppColors.primary,
@@ -123,12 +249,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
               ),
             ),
-            loading: () => const Card(child: ListTile(title: Text('로딩…'))),
+            loading: () => Card(child: ListTile(title: Text(l10n.loading))),
             error: (_, __) => const SizedBox.shrink(),
           ),
           const SizedBox(height: 24),
           Text(
-            '온보딩',
+            l10n.onboarding,
             style: GoogleFonts.dmSans(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -143,11 +269,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ListTile(
                     leading: const Icon(Icons.replay, color: AppColors.primary, size: 24),
                     title: Text(
-                      '온보딩 다시 보기',
+                      l10n.replayOnboarding,
                       style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
                     ),
                     subtitle: Text(
-                      '시작 화면을 다시 볼 수 있어요',
+                      l10n.replayOnboardingSubtitle,
                       style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
                     ),
                     trailing: const Icon(Icons.chevron_right, color: AppColors.mutedForeground),
@@ -160,11 +286,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ref.invalidate(appSettingsProvider);
                     },
                     title: Text(
-                      '첫 실행만 보기',
+                      l10n.showOnlyFirstLaunch,
                       style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
                     ),
                     subtitle: Text(
-                      '끄면 앱을 열 때마다 온보딩을 볼 수 있어요',
+                      l10n.showOnlyFirstLaunchSubtitle,
                       style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
                     ),
                     activeColor: AppColors.primary,
@@ -179,7 +305,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 24),
             Center(
               child: Text(
-                '버전 $_versionText',
+                l10n.versionLabel(_versionText),
                 style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
               ),
             ),
@@ -187,7 +313,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(height: 24),
           _SettingsTile(
             icon: Icons.logout,
-            title: '로그아웃',
+            title: l10n.logout,
             subtitle: null,
             titleColor: AppColors.destructive,
             onTap: () async {

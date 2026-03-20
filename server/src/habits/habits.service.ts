@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { Habit as HabitEntity, HabitRecord as HabitRecordEntity } from '../entities';
+import {
+  Habit as HabitEntity,
+  HabitRecord as HabitRecordEntity,
+  HabitTemplate as HabitTemplateEntity,
+} from '../entities';
 
 export interface HabitDto {
   id: string;
@@ -27,6 +31,16 @@ export interface RecordDto {
   completed: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface HabitTemplateDto {
+  id: string;
+  name: string;
+  category?: string;
+  goalType: string;
+  goalValue?: number;
+  colorHex?: string;
+  iconName?: string;
 }
 
 function toHabitDto(e: HabitEntity): HabitDto {
@@ -65,7 +79,25 @@ export class HabitsService {
     private readonly habitRepo: Repository<HabitEntity>,
     @InjectRepository(HabitRecordEntity)
     private readonly recordRepo: Repository<HabitRecordEntity>,
+    @InjectRepository(HabitTemplateEntity)
+    private readonly templateRepo: Repository<HabitTemplateEntity>,
   ) {}
+
+  async listActiveTemplates(): Promise<HabitTemplateDto[]> {
+    const list = await this.templateRepo.find({
+      where: { isActive: true },
+      order: { createdAt: 'ASC' },
+    });
+    return list.map((t) => ({
+      id: t.id,
+      name: t.name,
+      category: t.category ?? undefined,
+      goalType: t.goalType,
+      goalValue: t.goalValue ?? undefined,
+      colorHex: t.colorHex ?? undefined,
+      iconName: t.iconName ?? undefined,
+    }));
+  }
 
   async list(userId: string, archived = false): Promise<HabitDto[]> {
     const qb = this.habitRepo
@@ -137,7 +169,7 @@ export class HabitsService {
   async archive(id: string, userId: string): Promise<HabitDto | undefined> {
     const h = await this.habitRepo.findOne({ where: { id, userId } });
     if (!h) return undefined;
-    h.archivedAt = new Date();
+    h.archivedAt = h.archivedAt ? null : new Date();
     await this.habitRepo.save(h);
     return toHabitDto(h);
   }

@@ -4,11 +4,11 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtGuard } from './jwt.guard';
 import { MeController } from './me.controller';
-import { User, Habit, HabitRecord, AiFeedbackLog } from '../entities';
+import { User, Habit, HabitRecord } from '../entities';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Habit, HabitRecord, AiFeedbackLog]),
+    TypeOrmModule.forFeature([User, Habit, HabitRecord]),
   ],
   controllers: [AuthController, MeController],
   providers: [AuthService, JwtGuard],

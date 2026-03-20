@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
@@ -35,6 +35,8 @@ export interface HabitTemplateDto {
   category?: string;
   goalType: string;
   goalValue?: number | null;
+  colorHex?: string;
+  iconName?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -60,12 +62,6 @@ export interface LegalDocumentDto {
   updatedAt: string;
 }
 
-const DEFAULT_AI_FALLBACK = JSON.stringify([
-  '오늘도 수고했어요!',
-  '꾸준함이 쌓여가고 있어요.',
-  '내일도 화이팅!',
-]);
-
 @Injectable()
 export class AdminDataService {
   constructor(
@@ -86,6 +82,21 @@ export class AdminDataService {
     private readonly pushService: PushService,
   ) {}
 
+  private requireTemplateVisuals(colorHex?: string | null, iconName?: string | null): {
+    colorHex: string;
+    iconName: string;
+  } {
+    const normalizedColorHex = (colorHex ?? '').trim();
+    const normalizedIconName = (iconName ?? '').trim();
+    if (!normalizedColorHex) {
+      throw new BadRequestException('colorHex is required');
+    }
+    if (!normalizedIconName) {
+      throw new BadRequestException('iconName is required');
+    }
+    return { colorHex: normalizedColorHex, iconName: normalizedIconName };
+  }
+
   async listTemplates(): Promise<HabitTemplateDto[]> {
     const list = await this.templateRepo.find({ order: { createdAt: 'ASC' } });
     return list.map((t) => ({
@@ -94,6 +105,8 @@ export class AdminDataService {
       category: t.category ?? undefined,
       goalType: t.goalType,
       goalValue: t.goalValue ?? undefined,
+      colorHex: t.colorHex ?? undefined,
+      iconName: t.iconName ?? undefined,
       isActive: t.isActive,
       createdAt: t.createdAt.toISOString(),
       updatedAt: t.updatedAt.toISOString(),
@@ -133,12 +146,15 @@ export class AdminDataService {
         : body.goalValue != null && Number.isFinite(Number(body.goalValue))
           ? Number(body.goalValue)
           : null;
+    const visuals = this.requireTemplateVisuals(body.colorHex, body.iconName);
     const t = this.templateRepo.create({
       id: `t-${uuidv4()}`,
       name: body.name!,
       category: body.category,
       goalType,
       goalValue,
+      colorHex: visuals.colorHex,
+      iconName: visuals.iconName,
       isActive: body.isActive ?? true,
     });
     await this.templateRepo.save(t);
@@ -148,6 +164,8 @@ export class AdminDataService {
       category: t.category ?? undefined,
       goalType: t.goalType,
       goalValue: t.goalValue ?? undefined,
+      colorHex: t.colorHex ?? undefined,
+      iconName: t.iconName ?? undefined,
       isActive: t.isActive,
       createdAt: t.createdAt.toISOString(),
       updatedAt: t.updatedAt.toISOString(),
@@ -164,6 +182,8 @@ export class AdminDataService {
     if (body.category !== undefined) t.category = body.category ?? null;
     if (body.goalType !== undefined) t.goalType = body.goalType;
     if (body.isActive !== undefined) t.isActive = body.isActive;
+    if (body.colorHex !== undefined) t.colorHex = body.colorHex ?? null;
+    if (body.iconName !== undefined) t.iconName = body.iconName ?? null;
     if (body.goalValue !== undefined) {
       t.goalValue =
         body.goalValue != null && Number.isFinite(Number(body.goalValue))
@@ -172,6 +192,9 @@ export class AdminDataService {
     }
     const gt = t.goalType;
     if (gt === 'completion') t.goalValue = null;
+    const visuals = this.requireTemplateVisuals(t.colorHex, t.iconName);
+    t.colorHex = visuals.colorHex;
+    t.iconName = visuals.iconName;
     await this.templateRepo.save(t);
     return {
       id: t.id,
@@ -179,6 +202,8 @@ export class AdminDataService {
       category: t.category ?? undefined,
       goalType: t.goalType,
       goalValue: t.goalValue ?? undefined,
+      colorHex: t.colorHex ?? undefined,
+      iconName: t.iconName ?? undefined,
       isActive: t.isActive,
       createdAt: t.createdAt.toISOString(),
       updatedAt: t.updatedAt.toISOString(),
@@ -208,6 +233,8 @@ export class AdminDataService {
           category: row.category,
           goalType,
           goalValue,
+          colorHex: row.colorHex ?? null,
+          iconName: row.iconName ?? null,
           isActive: true,
         }),
       );
@@ -276,9 +303,6 @@ export class AdminDataService {
     const rows = await this.configRepo.find();
     const out: Record<string, string> = {};
     for (const r of rows) out[r.key] = r.value;
-    if (!('ai_fallback_messages' in out)) {
-      out.ai_fallback_messages = DEFAULT_AI_FALLBACK;
-    }
     return out;
   }
 

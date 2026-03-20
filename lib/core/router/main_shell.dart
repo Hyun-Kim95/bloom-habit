@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:bloom_habit/l10n/app_localizations.dart';
 
 import '../theme/app_theme.dart';
 import 'app_router.dart';
 
-/// 메인 탭 루트 경로: 여기 있을 때 뒤로가기 2번이면 앱 종료
+/// Main tab root paths: double-back to exit here.
 bool _isShellRootPath(String path) {
   return path == AppRoutes.home ||
       path == AppRoutes.habits ||
-      path == AppRoutes.habitCreate ||
       path == AppRoutes.statistics ||
       path == AppRoutes.settings;
 }
 
-/// 하단 네비가 공통으로 보이는 메인 셸 (Home / Habits / Stats / Settings)
+/// Main shell with shared bottom navigation.
 class MainShell extends StatefulWidget {
   const MainShell({
     super.key,
@@ -52,6 +52,7 @@ class _MainShellState extends State<MainShell> {
   bool _onPopInvoked(bool didPop) {
     if (didPop) return true;
     final path = GoRouterState.of(context).uri.path;
+    final l10n = AppLocalizations.of(context)!;
     if (!_isShellRootPath(path)) return true;
     final now = DateTime.now();
     if (_lastBackPress != null && now.difference(_lastBackPress!).inMilliseconds < 2000) {
@@ -60,8 +61,8 @@ class _MainShellState extends State<MainShell> {
     }
     setState(() => _lastBackPress = now);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('한 번 더 누르면 앱이 종료됩니다.'),
+      SnackBar(
+        content: Text(l10n.pressBackAgainToExit),
         duration: Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
@@ -72,6 +73,7 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final path = GoRouterState.of(context).uri.path;
+    final l10n = AppLocalizations.of(context)!;
     final currentIndex = _selectedIndexFromPath(path);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? AppColors.backgroundDark : _shellBackground;
@@ -94,10 +96,10 @@ class _MainShellState extends State<MainShell> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _NavItem(label: 'Home', selected: currentIndex == 0, onTap: () => _onTap(context, 0)),
-            _NavItem(label: 'Habits', selected: currentIndex == 1, onTap: () => _onTap(context, 1)),
-            _NavItem(label: 'Stats', selected: currentIndex == 2, onTap: () => _onTap(context, 2)),
-            _NavItem(label: 'Settings', selected: currentIndex == 3, onTap: () => _onTap(context, 3)),
+            _NavItem(label: l10n.navHome, icon: Icons.home_rounded, selected: currentIndex == 0, onTap: () => _onTap(context, 0)),
+            _NavItem(label: l10n.navHabits, icon: Icons.list_rounded, selected: currentIndex == 1, onTap: () => _onTap(context, 1)),
+            _NavItem(label: l10n.navStats, icon: Icons.bar_chart_rounded, selected: currentIndex == 2, onTap: () => _onTap(context, 2)),
+            _NavItem(label: l10n.navSettings, icon: Icons.settings_rounded, selected: currentIndex == 3, onTap: () => _onTap(context, 3)),
           ],
         ),
       ),
@@ -112,34 +114,19 @@ const Color _shellBorder = Color(0xFFD9DFE4);
 class _NavItem extends StatelessWidget {
   const _NavItem({
     required this.label,
+    required this.icon,
     required this.selected,
     required this.onTap,
   });
 
   final String label;
+  final IconData icon;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final color = selected ? AppColors.primary : AppColors.mutedForeground;
-    IconData icon;
-    switch (label) {
-      case 'Home':
-        icon = Icons.home_rounded;
-        break;
-      case 'Habits':
-        icon = Icons.list_rounded;
-        break;
-      case 'Stats':
-        icon = Icons.bar_chart_rounded;
-        break;
-      case 'Settings':
-        icon = Icons.settings_rounded;
-        break;
-      default:
-        icon = Icons.circle;
-    }
     return InkWell(
       onTap: onTap,
       child: Column(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -55,14 +56,15 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
   }
 
   Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context)!;
     final subject = _subjectController.text.trim();
     final body = _bodyController.text.trim();
     if (subject.isEmpty) {
-      setState(() => _error = '제목을 입력해 주세요.');
+      setState(() => _error = l10n.enterSubject);
       return;
     }
     if (body.isEmpty) {
-      setState(() => _error = '내용을 입력해 주세요.');
+      setState(() => _error = l10n.enterContent);
       return;
     }
     setState(() {
@@ -78,7 +80,7 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
         setState(() => _submitting = false);
         _load();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('문의가 등록되었습니다. 관리자 답변을 기다려 주세요.')),
+          SnackBar(content: Text(l10n.inquirySubmitted)),
         );
       }
     } catch (e) {
@@ -91,6 +93,7 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fg = isDark ? AppColors.foregroundDark : AppColors.foreground;
     final muted = AppColors.mutedForeground;
@@ -99,7 +102,7 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       appBar: AppBar(
         title: Text(
-          '문의하기',
+          l10n.inquiry,
           style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w600),
         ),
       ),
@@ -109,14 +112,14 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              '새 문의',
+              l10n.newInquiry,
               style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w600, color: fg),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _subjectController,
               decoration: InputDecoration(
-                hintText: '제목',
+                hintText: l10n.subject,
                 filled: true,
                 fillColor: isDark ? AppColors.cardDark : AppColors.card,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radius)),
@@ -129,7 +132,7 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
               controller: _bodyController,
               maxLines: 4,
               decoration: InputDecoration(
-                hintText: '문의 내용',
+                hintText: l10n.inquiryContent,
                 alignLabelWithHint: true,
                 filled: true,
                 fillColor: isDark ? AppColors.cardDark : AppColors.card,
@@ -153,11 +156,11 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
               ),
               child: _submitting
                   ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text('문의 등록', style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w600)),
+                  : Text(l10n.submitInquiry, style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w600)),
             ),
             const SizedBox(height: 32),
             Text(
-              '내 문의 목록',
+              l10n.myInquiries,
               style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w600, color: fg),
             ),
             const SizedBox(height: 12),
@@ -168,13 +171,13 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Text(
-                    '등록한 문의가 없습니다.',
+                    l10n.noInquiries,
                     style: GoogleFonts.dmSans(fontSize: 14, color: muted),
                   ),
                 ),
               )
             else
-              ..._list.map((item) => _InquiryCard(item: item, isDark: isDark)),
+              ..._list.map((item) => _InquiryCard(item: item, isDark: isDark, l10n: l10n)),
           ],
         ),
       ),
@@ -183,10 +186,11 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
 }
 
 class _InquiryCard extends StatelessWidget {
-  const _InquiryCard({required this.item, required this.isDark});
+  const _InquiryCard({required this.item, required this.isDark, required this.l10n});
 
   final InquiryItem item;
   final bool isDark;
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
@@ -220,7 +224,7 @@ class _InquiryCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                item.status == 'answered' ? '답변 완료' : '대기 중',
+                item.status == 'answered' ? l10n.answered : l10n.pending,
                 style: GoogleFonts.dmSans(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
@@ -230,7 +234,7 @@ class _InquiryCard extends StatelessWidget {
             ),
             if (item.status == 'answered' && item.repliedAt != null && item.repliedAt!.isNotEmpty)
               Text(
-                '답변 ${_formatDate(item.repliedAt!)}',
+                l10n.replyAt(_formatDate(item.repliedAt!)),
                 style: GoogleFonts.dmSans(fontSize: 12, color: muted),
               ),
           ],
@@ -258,13 +262,13 @@ class _InquiryCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '관리자 답변',
+                          l10n.adminReply,
                           style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w600, color: primary),
                         ),
                         const SizedBox(height: 6),
                         if (item.repliedAt != null && item.repliedAt!.isNotEmpty)
                           Text(
-                            '답변 시간: ${_formatDate(item.repliedAt!)}',
+                            l10n.replyTime(_formatDate(item.repliedAt!)),
                             style: GoogleFonts.dmSans(fontSize: 11, color: muted),
                           ),
                         if (item.repliedAt != null && item.repliedAt!.isNotEmpty)
@@ -287,7 +291,7 @@ class _InquiryCard extends StatelessWidget {
 
   String _formatDate(String iso) {
     try {
-      // 서버가 toISOString()을 주므로, 파싱 후 로컬 시간 기준으로 포맷합니다.
+      // Server returns toISOString(); parse and render in local time.
       final dt = DateTime.parse(iso).toLocal();
       final yyyy = dt.year.toString().padLeft(4, '0');
       final mm = dt.month.toString().padLeft(2, '0');
@@ -296,7 +300,7 @@ class _InquiryCard extends StatelessWidget {
       final mi = dt.minute.toString().padLeft(2, '0');
       return '$yyyy.$mm.$dd $hh:$mi';
     } catch (_) {
-      // fallback: ISO 중 앞부분만 보여줌
+      // Fallback: show leading part of ISO string.
       if (iso.length >= 16) return iso.substring(0, 16).replaceFirst('T', ' ');
       if (iso.length >= 10) return iso.substring(0, 10);
       return iso;
