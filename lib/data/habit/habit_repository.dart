@@ -181,6 +181,61 @@ class HabitRepository {
     return getCompletedCountByHabitForDateRange(start, end);
   }
 
+  /// 오늘 포함 최근 7일(rolling) 성공률. 분모 = 활성 습관마다 해당 기간·시작일 기준 '해야 할 날' 수,
+  /// 분자 = 그중 완료한 (습관·날) 쌍 수(같은 날 중복 완료는 1회로 침).
+  Future<({int completed, int possible, int percent})> getRolling7DaySuccessRate() async {
+    final habits = await getActiveHabits();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final windowStart = today.subtract(const Duration(days: 6));
+
+    final startByHabit = <String, DateTime>{};
+    int possible = 0;
+    for (final h in habits) {
+      final id = h.serverId;
+      if (id == null) continue;
+      final sd = h.startDate;
+      final habitStart = sd != null
+          ? DateTime(sd.year, sd.month, sd.day)
+          : windowStart;
+      startByHabit[id] = habitStart;
+      var d = windowStart;
+      while (!d.isAfter(today)) {
+        if (!d.isBefore(habitStart)) possible++;
+        d = d.add(const Duration(days: 1));
+      }
+    }
+
+    if (possible == 0) {
+      return (completed: 0, possible: 0, percent: 0);
+    }
+
+    final isar = await _isarFuture;
+    final endExclusive = today.add(const Duration(days: 1));
+    final records = await isar.localHabitRecords
+        .filter()
+        .recordDateBetween(windowStart, endExclusive, includeLower: true, includeUpper: false)
+        .completedEqualTo(true)
+        .findAll();
+
+    final completedKeys = <String>{};
+    for (final r in records) {
+      final hid = r.habitId;
+      if (hid == null || r.recordDate == null) continue;
+      final habitStart = startByHabit[hid];
+      if (habitStart == null) continue;
+      final rd = r.recordDate!.toLocal();
+      final day = DateTime(rd.year, rd.month, rd.day);
+      if (day.isBefore(windowStart) || day.isAfter(today)) continue;
+      if (day.isBefore(habitStart)) continue;
+      completedKeys.add('$hid|${_dateString(day)}');
+    }
+
+    final completed = completedKeys.length;
+    final percent = ((completed / possible) * 100).round().clamp(0, 100);
+    return (completed: completed, possible: possible, percent: percent);
+  }
+
   /// 지정 기간 [start, end] (start·end 포함, 로컬 날짜 기준) 습관별 완료 횟수. habitId -> 완료 횟수.
   Future<Map<String, int>> getCompletedCountByHabitForDateRange(DateTime start, DateTime end) async {
     final isar = await _isarFuture;

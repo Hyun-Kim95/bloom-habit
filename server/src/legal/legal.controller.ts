@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { LegalService, LegalDocumentPublicDto } from './legal.service';
 
 @Controller('legal')
@@ -8,14 +8,14 @@ export class LegalController {
   @Get('terms')
   async getTerms(): Promise<LegalDocumentPublicDto | { content: ''; title: string }> {
     const doc = await this.legal.getLatest('terms');
-    if (!doc) return { title: '이용약관', content: '' };
+    if (!doc) return { title: '', content: '' };
     return doc;
   }
 
   @Get('privacy')
   async getPrivacy(): Promise<LegalDocumentPublicDto | { content: ''; title: string }> {
     const doc = await this.legal.getLatest('privacy');
-    if (!doc) return { title: '개인정보처리방침', content: '' };
+    if (!doc) return { title: '', content: '' };
     return doc;
   }
 }

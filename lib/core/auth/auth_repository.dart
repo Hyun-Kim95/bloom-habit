@@ -9,6 +9,40 @@ import '../network/api_client.dart';
 import '../network/api_endpoints.dart';
 import 'token_storage.dart';
 
+/// GET /me 프로필
+class MeProfile {
+  const MeProfile({
+    required this.id,
+    this.email,
+    this.displayName,
+    this.avatarUrl,
+    required this.authProvider,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String? email;
+  final String? displayName;
+  final String? avatarUrl;
+  /// `google` | `apple` | `unknown`
+  final String authProvider;
+  final String createdAt;
+
+  static MeProfile? fromJson(Map<String, dynamic>? json) {
+    if (json == null) return null;
+    final id = json['id'] as String?;
+    if (id == null) return null;
+    return MeProfile(
+      id: id,
+      email: json['email'] as String?,
+      displayName: json['displayName'] as String?,
+      avatarUrl: json['avatarUrl'] as String?,
+      authProvider: json['authProvider'] as String? ?? 'unknown',
+      createdAt: json['createdAt'] as String? ?? '',
+    );
+  }
+}
+
 /// 소셜 로그인 + 서버 토큰 발급
 class AuthRepository {
   AuthRepository({
@@ -48,6 +82,7 @@ class AuthRepository {
           'idToken': idToken,
           if (email.isNotEmpty) 'email': email,
           if (displayName != null && displayName.isNotEmpty) 'displayName': displayName,
+          'avatarUrl': account.photoUrl,
         },
       );
       return await _handleAuthResponse(res);
@@ -133,25 +168,37 @@ class AuthRepository {
     _api.setAccessToken(null);
   }
 
+  /// 내 프로필 (GET /me)
+  Future<MeProfile?> fetchProfile() async {
+    try {
+      final res = await _api.dio.get<Map<String, dynamic>>(ApiEndpoints.me);
+      return MeProfile.fromJson(res.data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 표시 이름·프로필 사진 URL 갱신 (PATCH /me). 전달한 필드만 서버에 반영됩니다.
+  Future<void> updateMeProfile({
+    String? displayName,
+    bool clearAvatar = false,
+  }) async {
+    final data = <String, dynamic>{};
+    if (displayName != null) {
+      data['displayName'] = displayName.trim();
+    }
+    if (clearAvatar) {
+      data['avatarUrl'] = null;
+    }
+    if (data.isEmpty) return;
+    await _api.dio.patch<Map<String, dynamic>>(ApiEndpoints.me, data: data);
+  }
+
   /// 회원 탈퇴: 서버에서 계정·데이터 삭제 후 로컬 토큰 제거
   Future<void> deleteAccount() async {
     await _api.dio.delete(ApiEndpoints.me);
     await _storage.clear();
     _api.setAccessToken(null);
-  }
-
-  /// 레벨 정보 (GET /me/level)
-  Future<({int level, String title})?> getLevel() async {
-    try {
-      final res = await _api.dio.get<Map<String, dynamic>>(ApiEndpoints.meLevel);
-      if (res.data == null) return null;
-      final level = res.data!['level'] as num?;
-      final title = res.data!['title'] as String?;
-      if (level == null) return null;
-      return (level: level.toInt(), title: title ?? 'New Planter');
-    } catch (_) {
-      return null;
-    }
   }
 
   /// 저장된 토큰으로 로그인 상태 복원

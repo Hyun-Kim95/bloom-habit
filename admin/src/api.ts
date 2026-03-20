@@ -65,13 +65,30 @@ export const api = {
       `/admin/stats/over-time${q ? `?${q}` : ''}`
     )
   },
-  getTemplates: () => request<{ id: string; name: string; category?: string; goalType: string; isActive: boolean }[]>('/admin/habit-templates'),
-  createTemplate: (body: { name: string; category?: string; goalType?: string }) =>
-    request('/admin/habit-templates', { method: 'POST', body: JSON.stringify(body) }),
+  getTemplates: () =>
+    request<
+      {
+        id: string
+        name: string
+        category?: string
+        goalType: string
+        goalValue?: number | null
+        isActive: boolean
+      }[]
+    >('/admin/habit-templates'),
+  getHabitCategoriesInUse: () => request<{ inUse: string[] }>('/admin/habit-categories-in-use'),
+  createTemplate: (body: {
+    name: string
+    category?: string
+    goalType?: string
+    goalValue?: number | null
+  }) => request('/admin/habit-templates', { method: 'POST', body: JSON.stringify(body) }),
   updateTemplate: (id: string, body: object) =>
     request(`/admin/habit-templates/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteTemplate: (id: string) =>
     request(`/admin/habit-templates/${id}`, { method: 'DELETE' }),
+  reseedHabitTemplates: () =>
+    request<{ inserted: number }>('/admin/habit-templates/reseed', { method: 'POST' }),
   getNotices: () => request<{ id: string; title: string; body: string; publishedAt?: string }[]>('/admin/notices'),
   createNotice: (body: { title: string; body: string }) =>
     request('/admin/notices', { method: 'POST', body: JSON.stringify(body) }),

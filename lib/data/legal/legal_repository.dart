@@ -22,9 +22,9 @@ class LegalRepository {
   Future<LegalDocumentItem> getTerms() async {
     final res = await _dio.get<Map<String, dynamic>>(ApiEndpoints.legalTerms);
     final data = res.data;
-    if (data == null) return const LegalDocumentItem(title: '이용약관', content: '');
+    if (data == null) return const LegalDocumentItem(title: '', content: '');
     return LegalDocumentItem(
-      title: data['title'] as String? ?? '이용약관',
+      title: data['title'] as String? ?? '',
       content: data['content'] as String? ?? '',
     );
   }
@@ -32,9 +32,9 @@ class LegalRepository {
   Future<LegalDocumentItem> getPrivacy() async {
     final res = await _dio.get<Map<String, dynamic>>(ApiEndpoints.legalPrivacy);
     final data = res.data;
-    if (data == null) return const LegalDocumentItem(title: '개인정보처리방침', content: '');
+    if (data == null) return const LegalDocumentItem(title: '', content: '');
     return LegalDocumentItem(
-      title: data['title'] as String? ?? '개인정보처리방침',
+      title: data['title'] as String? ?? '',
       content: data['content'] as String? ?? '',
     );
   }

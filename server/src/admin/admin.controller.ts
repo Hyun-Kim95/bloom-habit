@@ -85,10 +85,23 @@ export class AdminController {
     return this.adminData.listTemplates();
   }
 
+  @Get('habit-categories-in-use')
+  @UseGuards(AdminGuard)
+  async habitCategoriesInUse() {
+    const inUse = await this.adminData.listHabitCategoriesInUse();
+    return { inUse };
+  }
+
   @Post('habit-templates')
   @UseGuards(AdminGuard)
   async createTemplate(@Body() body: Partial<HabitTemplateDto>) {
     return this.adminData.createTemplate(body);
+  }
+
+  @Post('habit-templates/reseed')
+  @UseGuards(AdminGuard)
+  async reseedHabitTemplates() {
+    return this.adminData.reseedHabitTemplates();
   }
 
   @Patch('habit-templates/:id')

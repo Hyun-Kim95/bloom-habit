@@ -97,15 +97,6 @@ class _LegalViewScreenState extends ConsumerState<LegalViewScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (_doc != null) ...[
-                          Text(
-                            _doc!.title,
-                            style: GoogleFonts.dmSans(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: textColor,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
                           if (_doc!.content.isEmpty)
                             Text(
                               '등록된 내용이 없습니다.',

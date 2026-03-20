@@ -20,6 +20,9 @@ export class HabitTemplate {
   @Column({ default: 'completion' })
   goalType: string;
 
+  @Column({ type: 'double precision', nullable: true })
+  goalValue: number | null;
+
   @Column({ default: true })
   isActive: boolean;
 

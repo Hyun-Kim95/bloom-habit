@@ -6,7 +6,6 @@ const nav = [
   { path: '/', label: '대시보드' },
   { path: '/users', label: '회원 관리' },
   { path: '/habit-templates', label: '습관 템플릿' },
-  { path: '/habit-categories', label: '습관 카테고리' },
   { path: '/notices', label: '공지 관리' },
   { path: '/inquiries', label: '문의' },
   { path: '/legal', label: '약관·개인정보' },

@@ -12,7 +12,6 @@ const DEFAULT_PROMPT =
   '사용자가 오늘 "{{habitName}}" 습관을 완료했습니다. 한 문장으로 짧고 따뜻한 격려 한마디만 한국어로 답해 주세요. 이모지 없이.'
 
 export default function SystemConfig() {
-  const [config, setConfig] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const [aiPromptTemplate, setAiPromptTemplate] = useState(DEFAULT_PROMPT)
   const [aiFallback, setAiFallback] = useState('')
@@ -22,7 +21,6 @@ export default function SystemConfig() {
 
   useEffect(() => {
     api.getConfig().then((c) => {
-      setConfig(c)
       setAiPromptTemplate(c.ai_prompt_template?.trim() || DEFAULT_PROMPT)
       try {
         const arr = JSON.parse(c.ai_fallback_messages ?? '[]') as string[]
@@ -46,7 +44,6 @@ export default function SystemConfig() {
         app_jwt_expires_seconds: appJwtExpires.trim() || '604800',
       }
       await api.patchConfig(body)
-      setConfig((prev) => ({ ...prev, ...body }))
     } catch (e) {
       setError(e instanceof Error ? e.message : '저장 실패')
     } finally {

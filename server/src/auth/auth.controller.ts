@@ -12,6 +12,8 @@ export class AuthController {
       idToken: string;
       email?: string;
       displayName?: string;
+      /** Google 프로필 사진 URL */
+      avatarUrl?: string | null;
     },
   ) {
     return this.auth.loginGoogle(body);

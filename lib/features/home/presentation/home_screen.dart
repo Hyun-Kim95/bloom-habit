@@ -11,6 +11,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/notifications/notification_service.dart';
+import '../../../core/settings/app_settings.dart';
 import '../../../core/utils/habit_icon_color.dart';
 import '../../../core/widget/home_widget_update.dart';
 import '../../../data/local/entity/local_habit.dart';
@@ -40,10 +41,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   List<LocalHabit> _habits = [];
   Map<String, bool> _todayCompleted = {};
   Map<String, int> _heatmapCounts = {};
-  int? _level;
-  String? _levelTitle;
   bool _loading = true;
   String? _error;
+
+  String _buildShareText() {
+    final links = <String>[
+      if (StoreUrls.android.trim().isNotEmpty) 'Google Play: ${StoreUrls.android}',
+      if (StoreUrls.ios.trim().isNotEmpty) 'App Store: ${StoreUrls.ios}',
+    ];
+    final linkText = links.isNotEmpty
+        ? '\n\n${links.join('\n')}'
+        : '\n\n스토어에서 "Bloom Habit"을 검색해 다운로드해 주세요!';
+    return '습관 만들기, Bloom Habit과 함께 시작해 보세요.\n지금 바로 다운로드하세요!$linkText';
+  }
 
   Future<void> _rescheduleRemindersOnce(List<LocalHabit> habits) async {
     if (_remindersRescheduled) return;
@@ -73,14 +83,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final habits = await repo.getActiveHabits();
       final completed = await repo.getTodayCompletedByHabit();
       final heatmapCounts = await repo.getLast28DaysCompletionCounts();
-      final levelData = await authRepo.getLevel();
       if (mounted) {
         setState(() {
           _habits = habits;
           _todayCompleted = completed;
           _heatmapCounts = heatmapCounts;
-          _level = levelData?.level;
-          _levelTitle = levelData?.title;
           _loading = false;
         });
         _rescheduleRemindersOnce(habits);
@@ -130,7 +137,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             _TopBar(
               onShare: () => Share.share(
-                'Bloom Habit - 오늘의 습관을 함께 쌓아가요 🌱',
+                _buildShareText(),
                 subject: 'Bloom Habit',
               ),
             ),
@@ -147,11 +154,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         : ListView(
                             padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
                             children: [
-                              _LevelProgressCard(
+                              _TodayProgressCard(
                                 completedToday: _todayCompleted.values.where((v) => v).length,
                                 totalHabits: _habits.length,
-                                level: _level,
-                                levelTitle: _levelTitle,
                                 cardColor: cardColor,
                                 border: border,
                                 primary: primary,
@@ -325,12 +330,10 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-class _LevelProgressCard extends StatelessWidget {
-  const _LevelProgressCard({
+class _TodayProgressCard extends StatelessWidget {
+  const _TodayProgressCard({
     required this.completedToday,
     required this.totalHabits,
-    this.level,
-    this.levelTitle,
     required this.cardColor,
     required this.border,
     required this.primary,
@@ -342,8 +345,6 @@ class _LevelProgressCard extends StatelessWidget {
 
   final int completedToday;
   final int totalHabits;
-  final int? level;
-  final String? levelTitle;
   final Color cardColor;
   final Color border;
   final Color primary;
@@ -356,8 +357,6 @@ class _LevelProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = totalHabits > 0 ? totalHabits : 1;
     final pct = (completedToday / total * 100).round().clamp(0, 100);
-    final resolvedLevel = level ?? (completedToday >= 7 ? 3 : (completedToday >= 3 ? 2 : 1));
-    final resolvedTitle = levelTitle ?? (resolvedLevel >= 3 ? 'Budding Gardener' : (resolvedLevel >= 2 ? 'Growing Seed' : 'New Planter'));
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -373,62 +372,35 @@ class _LevelProgressCard extends StatelessWidget {
             children: [
               Container(
                 width: 68,
-                height: 72,
-                alignment: Alignment.bottomCenter,
-                child: Stack(
-                  alignment: Alignment.bottomCenter,
-                  children: [
-                    Container(
-                      width: 68,
-                      height: 68,
-                      decoration: BoxDecoration(
-                        color: iconBg,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: primary,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          'LVL $resolvedLevel',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                height: 68,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  shape: BoxShape.circle,
                 ),
+                child: Icon(Icons.local_florist_outlined, size: 32, color: primary),
               ),
               const SizedBox(width: 20),
               Expanded(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      resolvedTitle,
+                      '오늘의 진행',
                       style: GoogleFonts.lora(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         fontStyle: FontStyle.italic,
                         color: text,
                       ),
-                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'You\'re growing well this week!',
+                      '오늘 목표 중 달성한 습관 비율이에요.',
                       style: GoogleFonts.dmSans(
                         fontSize: 14,
                         color: textMuted,
                       ),
-                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
@@ -440,7 +412,7 @@ class _LevelProgressCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Weekly Progress',
+                '오늘 달성률',
                 style: GoogleFonts.dmSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -469,7 +441,7 @@ class _LevelProgressCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '$completedToday of $totalHabits daily goals met',
+            '$completedToday / $totalHabits 습관 완료',
             style: GoogleFonts.dmSans(
               fontSize: 12,
               fontWeight: FontWeight.w500,

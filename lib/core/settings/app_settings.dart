@@ -46,3 +46,9 @@ abstract class LegalUrls {
   static const String privacy = '';
 }
 
+/// 앱 공유용 스토어 링크 (배포 후 실제 URL로 교체)
+abstract class StoreUrls {
+  static const String android = '';
+  static const String ios = '';
+}
+

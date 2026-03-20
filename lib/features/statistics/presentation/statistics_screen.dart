@@ -24,6 +24,9 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
   List<AiFeedbackItem> _aiFeedback = [];
   bool _loading = true;
   late TabController _tabController;
+  int _sevenDayCompleted = 0;
+  int _sevenDayPossible = 0;
+  int _sevenDayPercent = 0;
 
   /// 주 탭: 선택된 주의 월요일 (로컬)
   DateTime _selectedWeekStart = _thisWeekMonday();
@@ -67,6 +70,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
       }
     }
     final aiFeedback = await repo.getAiFeedbackList(limit: 20);
+    final sevenDay = await repo.getRolling7DaySuccessRate();
     if (mounted) {
       setState(() {
         _habits = habits;
@@ -75,6 +79,9 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
         _monthCompleted = monthCompleted;
         _streaks = streaks;
         _aiFeedback = aiFeedback;
+        _sevenDayCompleted = sevenDay.completed;
+        _sevenDayPossible = sevenDay.possible;
+        _sevenDayPercent = sevenDay.percent;
         _loading = false;
       });
     }
@@ -197,6 +204,84 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                     ),
                   ],
                 ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '최근 7일 성공률',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.mutedForeground,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '오늘을 포함한 7일 동안, 활성 습관의 시작일 이후「해야 할 날」대비 완료한 날의 비율입니다.',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 12,
+                    height: 1.4,
+                    color: AppColors.mutedForeground,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (_sevenDayPossible == 0)
+                  Text(
+                    '활성 습관이 없으면 표시되지 않습니다.',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 14,
+                      color: AppColors.mutedForeground,
+                    ),
+                  )
+                else ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '달성',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+                        ),
+                      ),
+                      Text(
+                        '$_sevenDayPercent%',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      value: _sevenDayPercent / 100,
+                      minHeight: 10,
+                      backgroundColor: isDark ? AppColors.mutedDark : AppColors.muted,
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$_sevenDayCompleted / $_sevenDayPossible (습관·날 단위)',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12,
+                      color: AppColors.mutedForeground,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

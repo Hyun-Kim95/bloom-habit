@@ -2,8 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { HabitTemplate as HabitTemplateEntity, Inquiry as InquiryEntity, LegalDocument as LegalDocumentEntity, Notice as NoticeEntity, SystemConfig as SystemConfigEntity, User as UserEntity } from '../entities';
+import {
+  Habit as HabitEntity,
+  HabitTemplate as HabitTemplateEntity,
+  Inquiry as InquiryEntity,
+  LegalDocument as LegalDocumentEntity,
+  Notice as NoticeEntity,
+  SystemConfig as SystemConfigEntity,
+  User as UserEntity,
+} from '../entities';
 import type { LegalDocumentType } from '../entities/legal-document.entity';
+import { DEFAULT_HABIT_TEMPLATES } from '../config/default-habit-templates';
 import { PushService } from '../push/push.service';
 
 export interface InquiryAdminDto {
@@ -25,6 +34,7 @@ export interface HabitTemplateDto {
   name: string;
   category?: string;
   goalType: string;
+  goalValue?: number | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -61,6 +71,8 @@ export class AdminDataService {
   constructor(
     @InjectRepository(HabitTemplateEntity)
     private readonly templateRepo: Repository<HabitTemplateEntity>,
+    @InjectRepository(HabitEntity)
+    private readonly habitRepo: Repository<HabitEntity>,
     @InjectRepository(NoticeEntity)
     private readonly noticeRepo: Repository<NoticeEntity>,
     @InjectRepository(SystemConfigEntity)
@@ -81,18 +93,52 @@ export class AdminDataService {
       name: t.name,
       category: t.category ?? undefined,
       goalType: t.goalType,
+      goalValue: t.goalValue ?? undefined,
       isActive: t.isActive,
       createdAt: t.createdAt.toISOString(),
       updatedAt: t.updatedAt.toISOString(),
     }));
   }
 
+  /** 템플릿·(미보관) 회원 습관에서 참조 중인 카테고리 이름 */
+  async listHabitCategoriesInUse(): Promise<string[]> {
+    const tpl = await this.templateRepo
+      .createQueryBuilder('t')
+      .select('DISTINCT t.category', 'c')
+      .where('t.category IS NOT NULL')
+      .andWhere("TRIM(t.category) <> ''")
+      .getRawMany<{ c: string }>();
+    const hab = await this.habitRepo
+      .createQueryBuilder('h')
+      .select('DISTINCT h.category', 'c')
+      .where('h.archivedAt IS NULL')
+      .andWhere('h.category IS NOT NULL')
+      .andWhere("TRIM(h.category) <> ''")
+      .getRawMany<{ c: string }>();
+    const set = new Set<string>();
+    for (const r of tpl) {
+      if (r.c) set.add(String(r.c).trim());
+    }
+    for (const r of hab) {
+      if (r.c) set.add(String(r.c).trim());
+    }
+    return [...set];
+  }
+
   async createTemplate(body: Partial<HabitTemplateDto>): Promise<HabitTemplateDto> {
+    const goalType = body.goalType ?? 'completion';
+    const goalValue =
+      goalType === 'completion'
+        ? null
+        : body.goalValue != null && Number.isFinite(Number(body.goalValue))
+          ? Number(body.goalValue)
+          : null;
     const t = this.templateRepo.create({
       id: `t-${uuidv4()}`,
       name: body.name!,
       category: body.category,
-      goalType: body.goalType ?? 'completion',
+      goalType,
+      goalValue,
       isActive: body.isActive ?? true,
     });
     await this.templateRepo.save(t);
@@ -101,6 +147,7 @@ export class AdminDataService {
       name: t.name,
       category: t.category ?? undefined,
       goalType: t.goalType,
+      goalValue: t.goalValue ?? undefined,
       isActive: t.isActive,
       createdAt: t.createdAt.toISOString(),
       updatedAt: t.updatedAt.toISOString(),
@@ -113,13 +160,25 @@ export class AdminDataService {
   ): Promise<HabitTemplateDto | undefined> {
     const t = await this.templateRepo.findOne({ where: { id } });
     if (!t) return undefined;
-    Object.assign(t, body);
+    if (body.name !== undefined) t.name = body.name;
+    if (body.category !== undefined) t.category = body.category ?? null;
+    if (body.goalType !== undefined) t.goalType = body.goalType;
+    if (body.isActive !== undefined) t.isActive = body.isActive;
+    if (body.goalValue !== undefined) {
+      t.goalValue =
+        body.goalValue != null && Number.isFinite(Number(body.goalValue))
+          ? Number(body.goalValue)
+          : null;
+    }
+    const gt = t.goalType;
+    if (gt === 'completion') t.goalValue = null;
     await this.templateRepo.save(t);
     return {
       id: t.id,
       name: t.name,
       category: t.category ?? undefined,
       goalType: t.goalType,
+      goalValue: t.goalValue ?? undefined,
       isActive: t.isActive,
       createdAt: t.createdAt.toISOString(),
       updatedAt: t.updatedAt.toISOString(),
@@ -129,6 +188,31 @@ export class AdminDataService {
   async deleteTemplate(id: string): Promise<boolean> {
     const result = await this.templateRepo.delete(id);
     return (result.affected ?? 0) > 0;
+  }
+
+  /** 기존 템플릿 전부 삭제 후 기본 예시 템플릿으로 다시 채움 */
+  async reseedHabitTemplates(): Promise<{ inserted: number }> {
+    await this.templateRepo.clear();
+    for (const row of DEFAULT_HABIT_TEMPLATES) {
+      const goalType = row.goalType;
+      const goalValue =
+        goalType === 'completion'
+          ? null
+          : row.goalValue != null && Number.isFinite(row.goalValue)
+            ? row.goalValue
+            : null;
+      await this.templateRepo.save(
+        this.templateRepo.create({
+          id: `t-${uuidv4()}`,
+          name: row.name,
+          category: row.category,
+          goalType,
+          goalValue,
+          isActive: true,
+        }),
+      );
+    }
+    return { inserted: DEFAULT_HABIT_TEMPLATES.length };
   }
 
   async listNotices(): Promise<NoticeDto[]> {

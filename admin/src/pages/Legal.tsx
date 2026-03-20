@@ -22,7 +22,6 @@ export default function Legal() {
   const [error, setError] = useState('')
   const [editing, setEditing] = useState<LegalDoc | null>(null)
   const [creating, setCreating] = useState(false)
-  const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [effectiveFrom, setEffectiveFrom] = useState('')
   const [saving, setSaving] = useState(false)
@@ -37,7 +36,6 @@ export default function Legal() {
   const resetForm = () => {
     setEditing(null)
     setCreating(false)
-    setTitle('')
     setContent('')
     setEffectiveFrom('')
   }
@@ -50,7 +48,6 @@ export default function Legal() {
   const startEdit = (doc: LegalDoc) => {
     setCreating(false)
     setEditing(doc)
-    setTitle(doc.title)
     setContent(doc.content)
     setEffectiveFrom(doc.effectiveFrom ?? '')
   }
@@ -61,14 +58,14 @@ export default function Legal() {
     try {
       if (editing) {
         await api.updateLegalDocument(editing.id, {
-          title: title.trim(),
+          title: '',
           content: content.trim(),
           effectiveFrom: effectiveFrom.trim() || null,
         })
       } else if (creating) {
         await api.createLegalDocument({
           type: activeType,
-          title: title.trim(),
+          title: '',
           content: content.trim(),
           effectiveFrom: effectiveFrom.trim() || undefined,
         })
@@ -143,7 +140,6 @@ export default function Legal() {
                   }`}
                 >
                   <div className="font-medium text-foreground">v{doc.version}</div>
-                  <div className="text-xs text-muted-foreground truncate">{doc.title || '(제목 없음)'}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     {doc.effectiveFrom ? formatDate(doc.effectiveFrom) : '-'} · {formatDate(doc.updatedAt)}
                   </div>
@@ -156,15 +152,6 @@ export default function Legal() {
         <div className="flex-1 min-w-0 rounded-lg border border-border bg-card p-4">
           {(editing || creating) ? (
             <form onSubmit={save} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">제목</label>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
-                  placeholder={activeType === 'terms' ? '이용약관' : '개인정보처리방침'}
-                />
-              </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">시행일 (선택)</label>
                 <input

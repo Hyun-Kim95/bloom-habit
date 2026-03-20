@@ -14,7 +14,6 @@ abstract class ApiEndpoints {
           ? '/habits/$habitId/records'
           : '/habits/$habitId/records/$recordId';
   static String habitStats(String habitId) => '/habits/$habitId/stats';
-  static const String meLevel = '/me/level';
   static String aiFeedback(String habitId, String recordId) =>
       '/habits/$habitId/records/$recordId/ai-feedback';
   static String aiFeedbackList([int? limit]) =>
