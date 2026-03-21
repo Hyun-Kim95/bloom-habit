@@ -247,7 +247,12 @@ export class HabitsService {
   }
 
   async getSyncPayload(userId: string, _since?: string): Promise<{ habits: HabitDto[]; records: RecordDto[] }> {
-    const habitList = await this.list(userId, true);
+    // `list(userId, false)` = 활성, `true` = 숨김(아카이브). 둘 다 내려야 앱·다기기 동기화가 맞음.
+    const [active, archived] = await Promise.all([
+      this.list(userId, false),
+      this.list(userId, true),
+    ]);
+    const habitList = [...active, ...archived];
     const habitIds = habitList.map((h) => h.id);
     if (habitIds.length === 0) {
       return { habits: habitList, records: [] };

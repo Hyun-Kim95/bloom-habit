@@ -1,6 +1,6 @@
 {
-    "name": "bloom_habit",
-    "short_name": "bloom_habit",
+    "name": "Bloom Habit",
+    "short_name": "Bloom Habit",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

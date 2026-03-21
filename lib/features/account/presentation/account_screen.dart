@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,9 +27,22 @@ String _providerLabel(String authProvider) {
       return 'Google';
     case 'apple':
       return 'Apple';
+    case 'kakao':
+      return 'Kakao';
+    case 'naver':
+      return 'Naver';
     default:
       return 'Social';
   }
+}
+
+String _apiErrorMessage(Object e) {
+  if (e is DioException) {
+    final d = e.response?.data;
+    if (d is Map && d['message'] != null) return d['message'].toString();
+    return e.message ?? e.toString();
+  }
+  return e.toString().split('\n').first;
 }
 
 class AccountScreen extends ConsumerStatefulWidget {
@@ -43,11 +57,19 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   bool _loadingProfile = true;
   MeProfile? _profile;
   String? _profileError;
+  final _emailController = TextEditingController();
+  bool _emailSaving = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadProfile());
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadProfile() async {
@@ -63,6 +85,9 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       _profile = p;
       _loadingProfile = false;
       _profileError = p == null ? l10n.profileLoadFailed : null;
+      if (p == null || (p.email?.trim().isEmpty ?? true)) {
+        _emailController.clear();
+      }
     });
   }
 
@@ -154,6 +179,37 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _saveEmail() async {
+    final l10n = AppLocalizations.of(context)!;
+    final addr = _emailController.text.trim();
+    if (addr.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.emailRequired)));
+      }
+      return;
+    }
+    setState(() => _emailSaving = true);
+    try {
+      await ref.read(authRepositoryProvider).updateMeProfile(email: addr);
+      if (!mounted) return;
+      await _loadProfile();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.saved)));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.saveFailed(_apiErrorMessage(e)))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _emailSaving = false);
     }
   }
 
@@ -356,6 +412,141 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                         onTap: _clearAvatar,
                       ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.mail_outline,
+                            size: 22,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            l10n.emailSectionTitle,
+                            style: GoogleFonts.dmSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: fg,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        l10n.emailAccountNotice,
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12,
+                          height: 1.45,
+                          color: muted,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Builder(
+                        builder: (context) {
+                          final reg = _profile?.email?.trim();
+                          final hasEmail =
+                              reg != null && reg.isNotEmpty;
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? AppColors.cardDark
+                                  : AppColors.muted,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      hasEmail
+                                          ? Icons.verified_outlined
+                                          : Icons.help_outline,
+                                      size: 18,
+                                      color: hasEmail
+                                          ? AppColors.primary
+                                          : muted,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      hasEmail
+                                          ? l10n.emailStatusVerified
+                                          : l10n.emailStatusNone,
+                                      style: GoogleFonts.dmSans(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: fg,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (hasEmail) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    l10n.emailRegisteredLabel,
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 11,
+                                      color: muted,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _maskEmail(reg),
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 14,
+                                      color: fg,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      if ((_profile?.email?.trim().isEmpty ?? true)) ...[
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          autocorrect: false,
+                          decoration: InputDecoration(
+                            labelText: l10n.emailSectionTitle,
+                            hintText: l10n.emailEnterHint,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 48,
+                          child: FilledButton(
+                            onPressed:
+                                _emailSaving ? null : _saveEmail,
+                            child: _emailSaving
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(l10n.save),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

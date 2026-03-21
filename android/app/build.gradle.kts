@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -6,6 +8,15 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
     id("com.google.gms.google-services")
 }
+
+// local.properties is not merged into Gradle project properties — read keys explicitly.
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { localProperties.load(it) }
+}
+fun localProp(name: String): String =
+    localProperties.getProperty(name)?.trim().orEmpty()
 
 android {
     namespace = "com.example.bloom_habit"
@@ -36,10 +47,22 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        val kakaoNativeAppKey = (project.findProperty("KAKAO_NATIVE_APP_KEY") as String?) ?: ""
-        val naverClientId = (project.findProperty("NAVER_CLIENT_ID") as String?) ?: ""
-        val naverClientSecret = (project.findProperty("NAVER_CLIENT_SECRET") as String?) ?: ""
-        val naverClientName = (project.findProperty("NAVER_CLIENT_NAME") as String?) ?: ""
+        val kakaoNativeAppKey =
+            localProp("KAKAO_NATIVE_APP_KEY").ifBlank {
+                (project.findProperty("KAKAO_NATIVE_APP_KEY") as String?)?.trim().orEmpty()
+            }
+        val naverClientId =
+            localProp("NAVER_CLIENT_ID").ifBlank {
+                (project.findProperty("NAVER_CLIENT_ID") as String?)?.trim().orEmpty()
+            }
+        val naverClientSecret =
+            localProp("NAVER_CLIENT_SECRET").ifBlank {
+                (project.findProperty("NAVER_CLIENT_SECRET") as String?)?.trim().orEmpty()
+            }
+        val naverClientName =
+            localProp("NAVER_CLIENT_NAME").ifBlank {
+                (project.findProperty("NAVER_CLIENT_NAME") as String?)?.trim().orEmpty()
+            }
         manifestPlaceholders["KAKAO_SCHEME"] = if (kakaoNativeAppKey.isNotBlank()) "kakao$kakaoNativeAppKey" else "kakao"
         manifestPlaceholders["NAVER_CLIENT_ID"] = naverClientId
         manifestPlaceholders["NAVER_CLIENT_SECRET"] = naverClientSecret

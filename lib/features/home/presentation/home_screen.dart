@@ -468,8 +468,10 @@ class _TodaySection extends StatelessWidget {
         if (habits.isEmpty)
           _EmptyHabitsCard(
             l10n: l10n,
+            onAddNew: onAddNew,
             cardColor: cardColor,
             border: border,
+            primary: primary,
             text: text,
             textMuted: textMuted,
           )
@@ -601,51 +603,71 @@ class _DashboardHabitCard extends StatelessWidget {
 class _EmptyHabitsCard extends StatelessWidget {
   const _EmptyHabitsCard({
     required this.l10n,
+    required this.onAddNew,
     required this.cardColor,
     required this.border,
+    required this.primary,
     required this.text,
     required this.textMuted,
   });
 
   final AppLocalizations l10n;
+  final VoidCallback onAddNew;
   final Color cardColor;
   final Color border;
+  final Color primary;
   final Color text;
   final Color textMuted;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: cardColor,
-        border: Border.all(color: border),
-        borderRadius: BorderRadius.circular(AppTheme.radius),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.add_circle_outline, size: 48, color: textMuted),
-          const SizedBox(height: 16),
-          Text(
-            l10n.emptyHabitTitle,
-            style: GoogleFonts.dmSans(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: text,
+    final radius = BorderRadius.circular(AppTheme.radius);
+    return Semantics(
+      button: true,
+      label: l10n.addNewHabit,
+      child: SizedBox(
+        width: double.infinity,
+        child: Material(
+          color: cardColor,
+          borderRadius: radius,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onAddNew,
+            borderRadius: radius,
+            child: Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                border: Border.all(color: border),
+                borderRadius: radius,
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.add_circle_outline, size: 48, color: primary),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.emptyHabitTitle,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: text,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.emptyHabitDescription,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 14,
+                      color: textMuted,
+                      height: 1.4,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.emptyHabitDescription,
-            style: GoogleFonts.dmSans(
-              fontSize: 14,
-              color: textMuted,
-              height: 1.4,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+        ),
       ),
     );
   }

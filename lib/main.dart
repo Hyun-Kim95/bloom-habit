@@ -14,6 +14,7 @@ import 'l10n/app_strings.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initAndroidSocialSdks();
+  scheduleAndroidSocialSdkWarmup();
   try {
     await Firebase.initializeApp();
   } catch (_) {

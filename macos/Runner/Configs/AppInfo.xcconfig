@@ -5,7 +5,7 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = bloom_habit
+PRODUCT_NAME = Bloom Habit
 
 // The application's bundle identifier
 PRODUCT_BUNDLE_IDENTIFIER = com.example.bloomHabit

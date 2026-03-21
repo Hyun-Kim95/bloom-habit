@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -9,6 +11,7 @@ import 'package:flutter_naver_login/interface/types/naver_login_status.dart';
 
 import '../network/api_client.dart';
 import '../network/api_endpoints.dart';
+import '../social/android_social_sdk_init.dart';
 import 'token_storage.dart';
 import '../../l10n/app_strings.dart';
 
@@ -119,7 +122,21 @@ class AuthRepository {
     }
   }
 
+  String _kakaoLoginErrorMessage(Object e) {
+    final s = e.toString();
+    if (s.contains('keyHash') || s.contains('key hash')) {
+      return AppStrings.authKakaoKeyHashFailed;
+    }
+    return s.split('\n').first;
+  }
+
   Future<AuthResult> signInWithKakao() async {
+    if (!kIsWeb && Platform.isAndroid) {
+      await initAndroidSocialSdks();
+      if (!isKakaoSdkReady) {
+        return AuthResult.fail(AppStrings.authKakaoNotConfigured);
+      }
+    }
     try {
       kakao.OAuthToken token;
       if (await kakao.isKakaoTalkInstalled()) {
@@ -146,11 +163,14 @@ class AuthRepository {
           : null;
       return AuthResult.fail(msg ?? e.message ?? AppStrings.authNetworkError);
     } catch (e) {
-      return AuthResult.fail(e.toString().split('\n').first);
+      return AuthResult.fail(_kakaoLoginErrorMessage(e));
     }
   }
 
   Future<AuthResult> signInWithNaver() async {
+    if (!kIsWeb && Platform.isAndroid) {
+      await initAndroidSocialSdks();
+    }
     try {
       final result = await FlutterNaverLogin.logIn();
       if (result.status != NaverLoginStatus.loggedIn) {
@@ -162,9 +182,15 @@ class AuthRepository {
           msg != null && msg.isNotEmpty ? msg : 'Naver login failed',
         );
       }
-      final accessToken = result.accessToken?.accessToken ?? '';
-      if (accessToken.trim().isEmpty) {
-        return AuthResult.fail('Naver access token missing');
+      // Android plugin often returns loggedIn without accessToken in the map;
+      // token is still in NaverIdLoginSDK — fetch explicitly.
+      var accessToken = result.accessToken?.accessToken.trim() ?? '';
+      if (accessToken.isEmpty) {
+        final t = await FlutterNaverLogin.getCurrentAccessToken();
+        accessToken = t.accessToken.trim();
+      }
+      if (accessToken.isEmpty) {
+        return AuthResult.fail(AppStrings.authNaverAccessTokenMissing);
       }
       final res = await _api.dio.post<Map<String, dynamic>>(
         ApiEndpoints.authNaver,
@@ -221,14 +247,18 @@ class AuthRepository {
     }
   }
 
-  /// Update display name/avatar URL (PATCH /me), partial fields only.
+  /// Update profile (PATCH /me), partial fields only.
   Future<void> updateMeProfile({
     String? displayName,
+    String? email,
     bool clearAvatar = false,
   }) async {
     final data = <String, dynamic>{};
     if (displayName != null) {
       data['displayName'] = displayName.trim();
+    }
+    if (email != null) {
+      data['email'] = email.trim();
     }
     if (clearAvatar) {
       data['avatarUrl'] = null;

@@ -13,5 +13,7 @@
 | [07-admin-api.md](07-admin-api.md) | 관리자 API 사용 방법 (로그인·엔드포인트) |
 | [08-backlog-todo.md](08-backlog-todo.md) | 백로그/TODO (관리자 페이지 등 문서 대비 미구현 항목) |
 
+**클라이언트 연동 참고:** [Google 로그인 SHA-1](google-signin-setup.md) · [카카오 Android 키 해시](kakao-android-keyhash.md)
+
 **작성일:** 2026-03-17  
 **버전:** 초안 (개발 중 협의·조정 가능)

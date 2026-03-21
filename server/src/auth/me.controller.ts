@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Get, Patch, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Patch,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { JwtGuard } from './jwt.guard';
@@ -18,12 +26,19 @@ export class MeController {
   @Patch()
   async updateMe(
     @Req() req: ReqWithUser,
-    @Body() body: { fcmToken?: string | null; displayName?: string; avatarUrl?: string | null },
+    @Body()
+    body: {
+      fcmToken?: string | null;
+      displayName?: string;
+      avatarUrl?: string | null;
+      email?: string;
+    },
   ) {
     if (
       body.fcmToken !== undefined ||
       body.displayName !== undefined ||
-      body.avatarUrl !== undefined
+      body.avatarUrl !== undefined ||
+      body.email !== undefined
     ) {
       await this.auth.patchMe(req.userId, body);
     }

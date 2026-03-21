@@ -14,6 +14,10 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   email: string | null;
 
+  /** 이메일이 설정된 시각(OAuth 동기화 또는 앱에서 등록). */
+  @Column({ type: 'timestamptz', nullable: true })
+  emailVerifiedAt: Date | null;
+
   @Column({ type: 'varchar', length: 20, nullable: true })
   authProvider: 'google' | 'apple' | 'kakao' | 'naver' | null;
 

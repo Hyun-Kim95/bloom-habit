@@ -28,7 +28,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get connectionErrorMessage =>
-      'Unable to connect to server.\nCheck if server is running. Use 10.0.2.2:3000 on emulator, and your PC LAN IP on real device.';
+      'Unable to connect to server.\nCheck the API server on port 3000.\nWindows emulator: firewall often blocks 10.0.2.2. Run adb reverse tcp:3000 tcp:3000, then flutter run --dart-define=API_USE_LOCALHOST=true.\nReal device: set API_BASE_URL to your PC IP on the same Wi-Fi.';
 
   @override
   String get retry => 'Retry';
@@ -541,6 +541,28 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get accountDataWarning =>
       'Habit and record data are linked to this account. On account deletion, server and device data are removed permanently.';
+
+  @override
+  String get emailSectionTitle => 'Email';
+
+  @override
+  String get emailAccountNotice =>
+      'Used for account identification and notices. If your social login did not provide an email, register it once below.';
+
+  @override
+  String get emailStatusNone => 'Not registered';
+
+  @override
+  String get emailStatusVerified => 'Registered';
+
+  @override
+  String get emailRegisteredLabel => 'Registered email';
+
+  @override
+  String get emailEnterHint => 'you@example.com';
+
+  @override
+  String get emailRequired => 'Please enter your email address.';
 
   @override
   String get withdrawing => 'Withdrawing…';

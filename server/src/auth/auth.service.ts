@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { sign as signJwt } from './jwt-simple';
@@ -95,12 +100,23 @@ export class AuthService {
     }
 
     let user = await this.userRepo.findOne({ where: { id } });
+    // OAuth로 계산한 id가 예전 방식(예: Google 해시 폴백)과 달라지면 findOne이 실패해
+    // 동일 이메일·동일 provider로 이미 있는 계정(재활성화 포함)과 매칭한다.
+    if (!user && normalizedEmail != null) {
+      user = await this.findUserByEmailAndProviderForLogin(normalizedEmail, provider);
+    }
     if (!user) {
+      if (normalizedEmail == null) {
+        throw new BadRequestException(
+          '이메일이 필요합니다. 소셜 계정에서 이메일 제공에 동의했는지 확인하거나, 이메일을 제공하는 계정으로 로그인해 주세요.',
+        );
+      }
       const avatarUrl = avatarUpdate !== undefined ? avatarUpdate : null;
       user = this.userRepo.create({
         id,
         authProvider: provider,
         email: normalizedEmail,
+        emailVerifiedAt: new Date(),
         displayName,
         avatarUrl,
         isActive: true,
@@ -112,7 +128,10 @@ export class AuthService {
       }
       // 기존 사용자에게 이메일/표시명이 전달된 경우 연동 상태로 갱신
       user.authProvider = provider;
-      if (normalizedEmail != null) user.email = normalizedEmail;
+      if (normalizedEmail != null) {
+        user.email = normalizedEmail;
+        user.emailVerifiedAt = new Date();
+      }
       if (displayName != null && displayName !== '') user.displayName = displayName;
       if (avatarUpdate !== undefined) {
         user.avatarUrl = avatarUpdate;
@@ -151,7 +170,12 @@ export class AuthService {
 
   async patchMe(
     userId: string,
-    body: { fcmToken?: string | null; displayName?: string; avatarUrl?: string | null },
+    body: {
+      fcmToken?: string | null;
+      displayName?: string;
+      avatarUrl?: string | null;
+      email?: string;
+    },
   ): Promise<void> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
@@ -176,6 +200,26 @@ export class AuthService {
         if (u.length > 2048) throw new BadRequestException('avatarUrl이 너무 깁니다.');
         if (!/^https?:\/\//i.test(u)) throw new BadRequestException('avatarUrl은 http(s) URL이어야 합니다.');
         user.avatarUrl = u;
+      }
+    }
+    if (body.email !== undefined) {
+      const normalized = normalizeEmail(body.email);
+      if (normalized == null || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+        throw new BadRequestException('유효한 이메일 주소를 입력해 주세요.');
+      }
+      if (user.email != null) {
+        if (normalizeEmail(user.email) === normalized) {
+          // no-op
+        } else {
+          throw new BadRequestException('이미 등록된 이메일이 있습니다. 변경이 필요하면 문의해 주세요.');
+        }
+      } else {
+        const other = await this.findActiveUserByEmail(normalized, userId);
+        if (other != null) {
+          throw new ConflictException('이미 다른 계정에서 사용 중인 이메일입니다.');
+        }
+        user.email = normalized;
+        user.emailVerifiedAt = new Date();
       }
     }
     await this.userRepo.save(user);
@@ -261,6 +305,22 @@ export class AuthService {
     }
     await this.userRepo.save(user);
     return true;
+  }
+
+  /** 동일 이메일 + 동일 소셜 provider로 가입한 기존 행 (id 불일치 시 재매칭용). */
+  private async findUserByEmailAndProviderForLogin(
+    email: string,
+    provider: 'google' | 'apple' | 'kakao' | 'naver',
+  ): Promise<User | null> {
+    return this.userRepo
+      .createQueryBuilder('u')
+      .where('LOWER(u.email) = LOWER(:email)', { email })
+      .andWhere('(u.authProvider = :provider OR u.id LIKE :prefix)', {
+        provider,
+        prefix: `${provider}:%`,
+      })
+      .orderBy('u.createdAt', 'ASC')
+      .getOne();
   }
 
   private async findActiveUserByEmail(email: string, excludeId?: string): Promise<User | null> {

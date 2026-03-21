@@ -84,6 +84,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   isar_generator: ^3.1.0+1
   build_runner: ^2.4.8
+  flutter_launcher_icons: ^0.14.3
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -125,3 +126,13 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# 앱 런처 아이콘 (assets/images/app_icon_source.png 기준으로 생성)
+# 변경 후: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/images/app_icon_source.png
+  adaptive_icon_background: "#F0F8FF"
+  adaptive_icon_foreground: assets/images/app_icon_source.png
+  remove_alpha_ios: true

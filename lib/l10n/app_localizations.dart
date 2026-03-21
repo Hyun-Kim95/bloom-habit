@@ -137,7 +137,7 @@ abstract class AppLocalizations {
   /// No description provided for @connectionErrorMessage.
   ///
   /// In ko, this message translates to:
-  /// **'서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인하고, 에뮬레이터는 10.0.2.2:3000, 실기기는 같은 Wi-Fi의 PC IP로 연결해 보세요.'**
+  /// **'서버에 연결할 수 없습니다.\n서버(포트 3000)가 켜져 있는지 확인하세요.\nWindows 에뮬레이터: 방화벽이 10.0.2.2를 막는 경우가 많습니다. PC에서 adb reverse tcp:3000 tcp:3000 실행 후 앱을 flutter run --dart-define=API_USE_LOCALHOST=true 로 다시 띄워 보세요.\n실기기: 같은 Wi-Fi의 PC IP로 API_BASE_URL을 지정하세요.'**
   String get connectionErrorMessage;
 
   /// No description provided for @retry.
@@ -1069,6 +1069,48 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'습관·기록 데이터는 이 계정에 연동됩니다. 회원 탈퇴 시 서버와 기기에 저장된 데이터가 삭제되며 복구할 수 없습니다.'**
   String get accountDataWarning;
+
+  /// No description provided for @emailSectionTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'이메일'**
+  String get emailSectionTitle;
+
+  /// No description provided for @emailAccountNotice.
+  ///
+  /// In ko, this message translates to:
+  /// **'계정 식별·안내에 사용됩니다. 소셜 로그인에서 이메일을 받지 못한 경우에만 아래에서 한 번 등록할 수 있습니다.'**
+  String get emailAccountNotice;
+
+  /// No description provided for @emailStatusNone.
+  ///
+  /// In ko, this message translates to:
+  /// **'미등록'**
+  String get emailStatusNone;
+
+  /// No description provided for @emailStatusVerified.
+  ///
+  /// In ko, this message translates to:
+  /// **'등록됨'**
+  String get emailStatusVerified;
+
+  /// No description provided for @emailRegisteredLabel.
+  ///
+  /// In ko, this message translates to:
+  /// **'등록된 이메일'**
+  String get emailRegisteredLabel;
+
+  /// No description provided for @emailEnterHint.
+  ///
+  /// In ko, this message translates to:
+  /// **'example@email.com'**
+  String get emailEnterHint;
+
+  /// No description provided for @emailRequired.
+  ///
+  /// In ko, this message translates to:
+  /// **'이메일 주소를 입력해 주세요.'**
+  String get emailRequired;
 
   /// No description provided for @withdrawing.
   ///

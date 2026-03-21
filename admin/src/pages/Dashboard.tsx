@@ -266,10 +266,14 @@ export default function Dashboard() {
         <div className="rounded-lg border border-border bg-card p-4 text-card-foreground">
           <p className="text-sm text-muted-foreground">전체 습관</p>
           <p className="text-2xl font-semibold">{stats.totalHabits}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            전 회원 DB 합계 (앱 홈은 로그인한 계정의 습관만 표시)
+          </p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4 text-card-foreground">
           <p className="text-sm text-muted-foreground">전체 기록</p>
           <p className="text-2xl font-semibold">{stats.totalRecords}</p>
+          <p className="mt-1 text-xs text-muted-foreground">전 회원 DB 합계</p>
         </div>
       </div>
 
