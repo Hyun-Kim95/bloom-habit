@@ -1,3 +1,5 @@
+import java.nio.charset.StandardCharsets
+import java.util.Base64
 import java.util.Properties
 
 plugins {
@@ -87,6 +89,20 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// 실기기 테스트: PC와 같은 Wi-Fi에서 `ipconfig`로 본 IPv4로 설정 (에뮬레이터는 비워도 됨).
+// android/local.properties 예: API_BASE_URL=http://192.168.0.12:3000
+val apiBaseUrlFromLocal = localProp("API_BASE_URL")
+if (apiBaseUrlFromLocal.isNotBlank()) {
+    val encoded =
+        Base64.getEncoder().encodeToString(
+            "API_BASE_URL=$apiBaseUrlFromLocal".toByteArray(StandardCharsets.UTF_8),
+        )
+    val existingDartDefines = findProperty("dart-defines")?.toString()?.trim().orEmpty()
+    val merged =
+        if (existingDartDefines.isEmpty()) encoded else "$existingDartDefines,$encoded"
+    extra["dart-defines"] = merged
 }
 
 dependencies {

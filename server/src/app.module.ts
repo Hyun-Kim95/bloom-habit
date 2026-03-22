@@ -13,6 +13,7 @@ import { LegalModule } from './legal/legal.module';
 import { SyncModule } from './sync/sync.module';
 import { StaticAssetsModule } from './static/static-assets.module';
 import { PublicNoticesModule } from './notices/public-notices.module';
+import { MaintenanceModule } from './maintenance/maintenance.module';
 import {
   User,
   Habit,
@@ -59,6 +60,7 @@ import {
     AdminModule,
     StaticAssetsModule,
     PublicNoticesModule,
+    MaintenanceModule,
   ],
   controllers: [AppController],
   providers: [

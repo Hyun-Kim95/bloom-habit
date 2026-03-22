@@ -96,7 +96,7 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fg = isDark ? AppColors.foregroundDark : AppColors.foreground;
-    final muted = AppColors.mutedForeground;
+    final muted = AppColors.mutedFg(isDark);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
@@ -195,7 +195,7 @@ class _InquiryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fg = isDark ? AppColors.foregroundDark : AppColors.foreground;
-    final muted = AppColors.mutedForeground;
+    final muted = AppColors.mutedFg(isDark);
     final primary = isDark ? AppColors.primaryDark : AppColors.primary;
 
     return Card(

@@ -69,7 +69,7 @@ class _HabitListScreenState extends ConsumerState<HabitListScreen> {
     final cardColor = isDark ? AppColors.cardDark : AppColors.card;
     final border = isDark ? AppColors.borderDark : AppColors.border;
     final text = isDark ? AppColors.foregroundDark : AppColors.foreground;
-    final textMuted = AppColors.mutedForeground;
+    final textMuted = AppColors.mutedFg(isDark);
     final primary = AppColors.primary;
     const iconBg = Color(0xFFDCE9DE);
 

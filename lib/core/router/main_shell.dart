@@ -126,7 +126,10 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.primary : AppColors.mutedForeground;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = selected
+        ? (isDark ? AppColors.primaryDark : AppColors.primary)
+        : AppColors.mutedFg(isDark);
     return InkWell(
       onTap: onTap,
       child: Column(

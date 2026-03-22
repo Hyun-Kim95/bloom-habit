@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/completion_praise.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/notifications/notification_service.dart';
@@ -87,11 +88,23 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         completed: true,
       );
       if (!mounted) return;
-      setState(() => _todayCompleted = true);
+      setState(() {
+        _todayCompleted = true;
+        _recording = false;
+      });
       _loadRecordHistory();
       final settings = ref.read(appSettingsProvider).value;
       if (settings?.hapticEnabled ?? true) HapticFeedback.mediumImpact();
       if (settings?.soundEnabled ?? true) SystemSound.play(SystemSoundType.click);
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(completionPraiseMessage(l10n, _habit)),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+        ),
+      );
     } catch (_) {
       if (mounted) setState(() => _recording = false);
     }
@@ -224,6 +237,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     final l10n = AppLocalizations.of(context)!;
     final h = _habit;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = AppColors.mutedFg(isDark);
     final isHidden = h.archivedAt != null;
 
     return Scaffold(
@@ -264,7 +278,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                 h.category!,
                 style: GoogleFonts.dmSans(
                   fontSize: 14,
-                  color: AppColors.mutedForeground,
+                  color: muted,
                 ),
               ),
               const SizedBox(height: 8),
@@ -357,7 +371,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Text(
                     l10n.noRecent30DaysRecords,
-                    style: GoogleFonts.dmSans(fontSize: 14, color: AppColors.mutedForeground),
+                    style: GoogleFonts.dmSans(fontSize: 14, color: muted),
                   ),
                 ),
               )
@@ -381,7 +395,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                           if (r.completed)
                             Icon(Icons.check_circle, color: habitColorFromHex(_habit.colorHex), size: 22)
                           else
-                            Icon(Icons.cancel_outlined, color: AppColors.mutedForeground, size: 22),
+                            Icon(Icons.cancel_outlined, color: muted, size: 22),
                           if (r.recordId != null) ...[
                             const SizedBox(width: 8),
                             PopupMenuButton<String>(
@@ -513,12 +527,12 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
             ),
             subtitle: Text(
               l10n.reminderNotificationSubtitle,
-              style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
+              style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedFg(isDark)),
             ),
-            activeColor: AppColors.primary,
+            activeThumbColor: isDark ? AppColors.primaryDark : AppColors.primary,
           ),
           ListTile(
-            leading: const Icon(Icons.schedule, color: AppColors.primary),
+            leading: Icon(Icons.schedule, color: isDark ? AppColors.primaryDark : AppColors.primary),
             title: Text(
               l10n.notificationTime,
               style: GoogleFonts.dmSans(
@@ -538,7 +552,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                      color: isDark ? AppColors.primaryDark : AppColors.primary,
                     ),
                   ),
             onTap: _reminderEnabled && !_reminderSaving ? _pickReminderTime : null,

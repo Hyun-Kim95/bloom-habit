@@ -230,6 +230,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = AppColors.mutedFg(isDark);
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       appBar: AppBar(
@@ -270,7 +271,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
               ),
               hint: Text(
                 l10n.noneSelected,
-                style: GoogleFonts.dmSans(color: AppColors.mutedForeground),
+                style: GoogleFonts.dmSans(color: muted),
               ),
               items: [
                 DropdownMenuItem<String?>(
@@ -329,7 +330,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
               ),
               hint: Text(
                 l10n.noneSelected,
-                style: GoogleFonts.dmSans(color: AppColors.mutedForeground),
+                style: GoogleFonts.dmSans(color: muted),
               ),
               items: [
                 DropdownMenuItem<String?>(
@@ -509,8 +510,8 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                     child: Icon(
                       iconData,
                       color: selected
-                          ? AppColors.primary
-                          : AppColors.mutedForeground,
+                          ? (isDark ? AppColors.primaryDark : AppColors.primary)
+                          : muted,
                       size: 24,
                     ),
                   ),
@@ -541,15 +542,15 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                       l10n.reminderNotificationSubtitle,
                       style: GoogleFonts.dmSans(
                         fontSize: 13,
-                        color: AppColors.mutedForeground,
+                        color: muted,
                       ),
                     ),
-                    activeColor: AppColors.primary,
+                    activeThumbColor: isDark ? AppColors.primaryDark : AppColors.primary,
                   ),
                   ListTile(
-                    leading: const Icon(
+                    leading: Icon(
                       Icons.schedule,
-                      color: AppColors.primary,
+                      color: isDark ? AppColors.primaryDark : AppColors.primary,
                     ),
                     title: Text(
                       l10n.notificationTime,
@@ -566,7 +567,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                       style: GoogleFonts.dmSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
+                        color: isDark ? AppColors.primaryDark : AppColors.primary,
                       ),
                     ),
                     onTap: _reminderEnabled

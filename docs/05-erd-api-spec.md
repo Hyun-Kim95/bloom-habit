@@ -183,7 +183,7 @@
 - `GET /me` — 현재 사용자 프로필 (`email`, `displayName`, `avatarUrl`, `authProvider`, `createdAt` 등).
 - `PATCH /me` — `fcmToken`, `displayName`, `avatarUrl`, `email`(선택) 부분 수정.  
   - 신규 소셜 가입 시 이메일이 없으면 가입이 거절되며, 레거시 계정에만 `email`이 비어 있을 수 있음. 이 경우 `PATCH /me`로 **한 번** 이메일을 등록할 수 있음(이후 변경 불가, 동일 이메일 재전송은 무시).
-- `DELETE /me` — 회원 탈퇴.
+- `DELETE /me` — 회원 탈퇴(계정 즉시 비활성화). 서버 연계 데이터는 비활성화 시점부터 최대 365일(`INACTIVE_USER_RETENTION_DAYS`) 보관 후 배치 삭제(정책: `docs/04-account-policy.md`).
 
 ### 2.3 습관
 

@@ -251,6 +251,7 @@ class AuthRepository {
   Future<void> updateMeProfile({
     String? displayName,
     String? email,
+    String? avatarUrl,
     bool clearAvatar = false,
   }) async {
     final data = <String, dynamic>{};
@@ -262,6 +263,9 @@ class AuthRepository {
     }
     if (clearAvatar) {
       data['avatarUrl'] = null;
+    } else if (avatarUrl != null) {
+      final t = avatarUrl.trim();
+      data['avatarUrl'] = t.isEmpty ? null : t;
     }
     if (data.isEmpty) return;
     await _api.dio.patch<Map<String, dynamic>>(ApiEndpoints.me, data: data);

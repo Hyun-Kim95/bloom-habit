@@ -14,6 +14,8 @@ class AppColors {
   static const Color secondaryForeground = Color(0xFF5A5D72);
   static const Color muted = Color(0xFFF2F2F7);
   static const Color mutedForeground = Color(0xFF6B6E80);
+  /// Secondary text/icons on dark surfaces (cards ~#3A3C58).
+  static const Color mutedForegroundDark = Color(0xFFB8BCD4);
   static const Color accent = Color(0xFFD4F0E3);
   static const Color accentForeground = Color(0xFF4A4D5E);
   static const Color destructive = Color(0xFFE54D4D);
@@ -33,6 +35,8 @@ class AppColors {
   static const Color borderDark = Color(0xFF5A5D72);
   static const Color inputDark = Color(0xFF5A5D72);
   static const Color ringDark = Color(0xFF6DD99A);
+
+  static Color mutedFg(bool isDark) => isDark ? mutedForegroundDark : mutedForeground;
 }
 
 class AppTheme {
@@ -200,8 +204,8 @@ class AppTheme {
           borderRadius: BorderRadius.circular(radius),
           borderSide: const BorderSide(color: AppColors.ringDark, width: 2),
         ),
-        labelStyle: GoogleFonts.dmSans(color: AppColors.mutedForeground),
-        hintStyle: GoogleFonts.dmSans(color: AppColors.mutedForeground),
+        labelStyle: GoogleFonts.dmSans(color: AppColors.mutedForegroundDark),
+        hintStyle: GoogleFonts.dmSans(color: AppColors.mutedForegroundDark),
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: AppColors.primaryDark,

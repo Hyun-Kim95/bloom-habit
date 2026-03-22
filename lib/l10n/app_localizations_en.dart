@@ -326,8 +326,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inquirySubtitle => 'Submit inquiry and check reply';
 
   @override
-  String get notificationSettingsSubtitle =>
-      'Enable habit reminders here (app notification settings).';
+  String get notificationSettingsSubtitle => 'Enable habit reminders here.';
 
   @override
   String get soundAndFeedback => 'Sound & Feedback';
@@ -479,6 +478,29 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get profilePhotoManageTitle => 'Profile photo';
+
+  @override
+  String get profilePhotoManageSubtitle =>
+      'Change the image URL or revert to the default icon.';
+
+  @override
+  String get profilePhotoDialogTitle => 'Change profile photo';
+
+  @override
+  String get profilePhotoUrlHint => 'Image URL starting with https://';
+
+  @override
+  String get profilePhotoInvalidUrl =>
+      'Only http:// or https:// URLs are allowed.';
+
+  @override
+  String get profilePhotoUpdated => 'Profile photo updated.';
+
+  @override
+  String get resetProfilePhotoButton => 'Default icon';
+
+  @override
   String get removeProfilePhoto => 'Remove profile photo';
 
   @override
@@ -501,7 +523,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteAccountDescription =>
-      'Your account will be deactivated and you will not be able to sign in.\nPlease enter a reason before proceeding.';
+      'Your account is deactivated immediately and you cannot sign in again.\nHabits and records on the server are kept for up to one year (365 days) from deactivation, then deleted permanently. They cannot be restored before or after deletion.\nPlease enter a reason before proceeding.';
 
   @override
   String get withdrawReason => 'Withdrawal reason';
@@ -540,14 +562,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountDataWarning =>
-      'Habit and record data are linked to this account. On account deletion, server and device data are removed permanently.';
+      'Habits and records are linked to this account. If you delete your account, sign-in is blocked immediately; server data is kept for up to one year (365 days) and then deleted permanently. After deletion it cannot be recovered. Data left on the device can be cleared separately (e.g. app storage settings).';
 
   @override
   String get emailSectionTitle => 'Email';
-
-  @override
-  String get emailAccountNotice =>
-      'Used for account identification and notices. If your social login did not provide an email, register it once below.';
 
   @override
   String get emailStatusNone => 'Not registered';
@@ -655,6 +673,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get completeToday => 'Complete today';
+
+  @override
+  String get completionPraiseCategoryHealth =>
+      'You kept a health habit—your body will thank you!';
+
+  @override
+  String get completionPraiseCategoryExercise =>
+      'You moved your body today. Great job!';
+
+  @override
+  String get completionPraiseCategoryReading => 'Time with a book well spent.';
+
+  @override
+  String get completionPraiseCategoryLearning =>
+      'Another step in learning. Well done!';
+
+  @override
+  String get completionPraiseCategoryMeditation =>
+      'You cared for your mind too. Balanced day!';
+
+  @override
+  String get completionPraiseCategoryHobby =>
+      'Time for something you love—nice work!';
+
+  @override
+  String get completionPraiseCategoryWork =>
+      'One work habit checked off. Productive!';
+
+  @override
+  String get completionPraiseCategoryLife =>
+      'Daily life tidied up—feels good, right?';
+
+  @override
+  String get completionPraiseGoalCompletion =>
+      'You finished today’s goal. Give yourself credit!';
+
+  @override
+  String get completionPraiseGoalCount =>
+      'You hit your count goal. Consistency shines!';
+
+  @override
+  String get completionPraiseGoalDuration =>
+      'You stuck to the time you set. Strong focus!';
+
+  @override
+  String get completionPraiseGoalNumber =>
+      'One step closer to your number goal!';
 
   @override
   String get recordHistory => 'Record history';

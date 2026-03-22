@@ -227,7 +227,10 @@ export class AuthService {
 
   async logout(_userId: string) {}
 
-  /** 회원 탈퇴: 계정 비활성화 + 사유 저장 (데이터 보존) */
+  /**
+   * 회원 탈퇴: 계정 비활성화 + 사유 저장.
+   * 비활성화 시점부터 INACTIVE_USER_RETENTION_DAYS(기본 365일) 경과 후 배치가 관련 데이터·user 행을 삭제한다.
+   */
   async deactivateSelf(userId: string, reason: string): Promise<void> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');

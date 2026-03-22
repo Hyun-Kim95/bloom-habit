@@ -5,15 +5,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { Notice } from '../entities';
 
 /** DB에 공지가 하나도 없을 때만 삽입하는 샘플(개발·데모용). */
+const OBSOLETE_NOTICE_TITLE = '이메일 등록·인증 기능 안내';
+
 const SAMPLE_NOTICES: { title: string; body: string; publishedAt: Date }[] = [
-  {
-    title: '이메일 등록·인증 기능 안내',
-    body:
-      '계정 관리에서 이메일을 직접 등록하고 인증할 수 있습니다.\n' +
-      '인증을 완료하면 향후 계정 복구·찾기 등에 활용할 수 있어요.\n' +
-      '소셜 로그인만 사용 중이신 분도 이메일이 없다면 등록을 권장드립니다.',
-    publishedAt: new Date('2026-03-18T02:00:00.000Z'),
-  },
   {
     title: '공지사항을 앱에서 확인하세요',
     body:
@@ -57,6 +51,11 @@ export class NoticeSeedService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
+    const removed = await this.noticeRepo.delete({ title: OBSOLETE_NOTICE_TITLE });
+    if ((removed.affected ?? 0) > 0) {
+      this.logger.log(`구 공지 "${OBSOLETE_NOTICE_TITLE}" ${removed.affected}건을 제거했습니다.`);
+    }
+
     const count = await this.noticeRepo.count();
     if (count > 0) return;
     for (const row of SAMPLE_NOTICES) {

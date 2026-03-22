@@ -59,7 +59,7 @@ class _NoticesScreenState extends ConsumerState<NoticesScreen> {
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? AppColors.foregroundDark : AppColors.foreground;
-    final muted = AppColors.mutedForeground;
+    final muted = AppColors.mutedFg(isDark);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,

@@ -320,7 +320,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get inquirySubtitle => '게시판으로 문의·답변 확인';
 
   @override
-  String get notificationSettingsSubtitle => '습관 리마인더는 여기서 켜세요. (권한이 아닌 알림 메뉴)';
+  String get notificationSettingsSubtitle => '습관 리마인더는 여기서 켜세요.';
 
   @override
   String get soundAndFeedback => '사운드·피드백';
@@ -469,6 +469,27 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get profilePhotoManageTitle => '프로필 사진';
+
+  @override
+  String get profilePhotoManageSubtitle => '이미지 주소로 바꾸거나 기본 아이콘으로 되돌릴 수 있어요.';
+
+  @override
+  String get profilePhotoDialogTitle => '프로필 사진 변경';
+
+  @override
+  String get profilePhotoUrlHint => 'https:// 로 시작하는 이미지 주소';
+
+  @override
+  String get profilePhotoInvalidUrl => 'http 또는 https 로 시작하는 주소만 사용할 수 있어요.';
+
+  @override
+  String get profilePhotoUpdated => '프로필 사진을 반영했어요.';
+
+  @override
+  String get resetProfilePhotoButton => '기본 아이콘';
+
+  @override
   String get removeProfilePhoto => '프로필 사진 제거';
 
   @override
@@ -491,7 +512,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get deleteAccountDescription =>
-      '탈퇴하면 계정이 비활성화되며 로그인할 수 없습니다.\n사유를 입력한 뒤 탈퇴를 진행해 주세요.';
+      '탈퇴 즉시 계정이 비활성화되어 다시 로그인할 수 없습니다.\n서버의 습관·기록 등은 비활성화일 기준 최대 1년(365일) 후 자동 삭제되며, 그 전·후 모두 복구되지 않습니다.\n사유를 입력한 뒤 진행해 주세요.';
 
   @override
   String get withdrawReason => '탈퇴 사유';
@@ -529,14 +550,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get accountDataWarning =>
-      '습관·기록 데이터는 이 계정에 연동됩니다. 회원 탈퇴 시 서버와 기기에 저장된 데이터가 삭제되며 복구할 수 없습니다.';
+      '습관·기록 데이터는 이 계정에 연동됩니다. 회원 탈퇴 시 즉시 로그인이 제한되고, 서버 데이터는 최대 1년(365일) 보관 후 삭제됩니다. 삭제 후에는 복구할 수 없으며, 기기에 남은 데이터는 앱 설정 등으로 별도 삭제할 수 있습니다.';
 
   @override
   String get emailSectionTitle => '이메일';
-
-  @override
-  String get emailAccountNotice =>
-      '계정 식별·안내에 사용됩니다. 소셜 로그인에서 이메일을 받지 못한 경우에만 아래에서 한 번 등록할 수 있습니다.';
 
   @override
   String get emailStatusNone => '미등록';
@@ -642,6 +659,42 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get completeToday => '오늘 완료하기';
+
+  @override
+  String get completionPraiseCategoryHealth => '건강 습관을 지켜냈어요. 몸이 고마워할 거예요!';
+
+  @override
+  String get completionPraiseCategoryExercise => '오늘도 움직임으로 몸을 깨우셨네요. 멋져요!';
+
+  @override
+  String get completionPraiseCategoryReading => '책과 함께한 오늘, 쌓이는 시간이에요.';
+
+  @override
+  String get completionPraiseCategoryLearning => '배움의 한 걸음, 잘하셨어요!';
+
+  @override
+  String get completionPraiseCategoryMeditation => '마음까지 챙기는 하루. 오늘도 균형 잡혔어요.';
+
+  @override
+  String get completionPraiseCategoryHobby => '좋아하는 일에 시간 쓴 하루, 빛나요.';
+
+  @override
+  String get completionPraiseCategoryWork => '업무 습관 하나 지켰어요. 생산적인 하루!';
+
+  @override
+  String get completionPraiseCategoryLife => '생활을 가지런히 하셨네요. 속이 시원할 거예요.';
+
+  @override
+  String get completionPraiseGoalCompletion => '오늘 목표를 완료했어요. 스스로 칭찬해 주세요!';
+
+  @override
+  String get completionPraiseGoalCount => '목표 횟수를 채웠어요. 꾸준함이 빛나요!';
+
+  @override
+  String get completionPraiseGoalDuration => '정한 시간만큼 해냈어요. 집중력이 대단해요!';
+
+  @override
+  String get completionPraiseGoalNumber => '수치 목표에 한 걸음 더 가까워졌어요!';
 
   @override
   String get recordHistory => '기록 히스토리';

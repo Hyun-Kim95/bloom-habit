@@ -52,6 +52,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = AppColors.mutedFg(isDark);
     final settingsAsync = ref.watch(appSettingsProvider);
     final l10n = AppLocalizations.of(context)!;
 
@@ -109,7 +110,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             style: GoogleFonts.dmSans(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppColors.mutedForeground,
+              color: muted,
             ),
           ),
           const SizedBox(height: 8),
@@ -118,16 +119,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.language_outlined, color: AppColors.primary, size: 24),
+                    leading: Icon(Icons.language_outlined, color: isDark ? AppColors.primaryDark : AppColors.primary, size: 24),
                     title: Text(
                       l10n.language,
                       style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
                     ),
                     subtitle: Text(
                       _localeLabel(settings.localeCode),
-                      style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
+                      style: GoogleFonts.dmSans(fontSize: 13, color: muted),
                     ),
-                    trailing: const Icon(Icons.chevron_right, color: AppColors.mutedForeground),
+                    trailing: Icon(Icons.chevron_right, color: muted),
                     onTap: () async {
                       final selected = await showModalBottomSheet<String>(
                         context: context,
@@ -155,16 +156,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   const Divider(height: 1),
                   ListTile(
-                    leading: const Icon(Icons.dark_mode_outlined, color: AppColors.primary, size: 24),
+                    leading: Icon(Icons.dark_mode_outlined, color: isDark ? AppColors.primaryDark : AppColors.primary, size: 24),
                     title: Text(
                       l10n.theme,
                       style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
                     ),
                     subtitle: Text(
                       _themeModeLabel(settings.themeMode),
-                      style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
+                      style: GoogleFonts.dmSans(fontSize: 13, color: muted),
                     ),
-                    trailing: const Icon(Icons.chevron_right, color: AppColors.mutedForeground),
+                    trailing: Icon(Icons.chevron_right, color: muted),
                     onTap: () async {
                       final selected = await showModalBottomSheet<String>(
                         context: context,
@@ -206,7 +207,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             style: GoogleFonts.dmSans(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppColors.mutedForeground,
+              color: muted,
             ),
           ),
           const SizedBox(height: 8),
@@ -226,9 +227,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     subtitle: Text(
                       l10n.soundSubtitle,
-                      style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
+                      style: GoogleFonts.dmSans(fontSize: 13, color: muted),
                     ),
-                    activeColor: AppColors.primary,
+                    activeThumbColor: isDark ? AppColors.primaryDark : AppColors.primary,
                   ),
                   SwitchListTile(
                     value: settings.hapticEnabled,
@@ -242,9 +243,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     subtitle: Text(
                       l10n.hapticSubtitle,
-                      style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
+                      style: GoogleFonts.dmSans(fontSize: 13, color: muted),
                     ),
-                    activeColor: AppColors.primary,
+                    activeThumbColor: isDark ? AppColors.primaryDark : AppColors.primary,
                   ),
                 ],
               ),
@@ -258,7 +259,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             style: GoogleFonts.dmSans(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppColors.mutedForeground,
+              color: muted,
             ),
           ),
           const SizedBox(height: 8),
@@ -267,16 +268,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.replay, color: AppColors.primary, size: 24),
+                    leading: Icon(Icons.replay, color: isDark ? AppColors.primaryDark : AppColors.primary, size: 24),
                     title: Text(
                       l10n.replayOnboarding,
                       style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
                     ),
                     subtitle: Text(
                       l10n.replayOnboardingSubtitle,
-                      style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
+                      style: GoogleFonts.dmSans(fontSize: 13, color: muted),
                     ),
-                    trailing: const Icon(Icons.chevron_right, color: AppColors.mutedForeground),
+                    trailing: Icon(Icons.chevron_right, color: muted),
                     onTap: () => context.go(AppRoutes.onboarding),
                   ),
                   SwitchListTile(
@@ -291,9 +292,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     subtitle: Text(
                       l10n.showOnlyFirstLaunchSubtitle,
-                      style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
+                      style: GoogleFonts.dmSans(fontSize: 13, color: muted),
                     ),
-                    activeColor: AppColors.primary,
+                    activeThumbColor: isDark ? AppColors.primaryDark : AppColors.primary,
                   ),
                 ],
               ),
@@ -306,7 +307,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             Center(
               child: Text(
                 l10n.versionLabel(_versionText),
-                style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
+                style: GoogleFonts.dmSans(fontSize: 13, color: muted),
               ),
             ),
           ],
@@ -348,10 +349,12 @@ class _SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fg = titleColor ?? (isDark ? AppColors.foregroundDark : AppColors.foreground);
+    final muted = AppColors.mutedFg(isDark);
+    final iconColor = titleColor ?? (isDark ? AppColors.primaryDark : AppColors.primary);
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Icon(icon, color: titleColor ?? AppColors.primary, size: 24),
+        leading: Icon(icon, color: iconColor, size: 24),
         title: Text(
           title,
           style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500, color: fg),
@@ -359,10 +362,10 @@ class _SettingsTile extends StatelessWidget {
         subtitle: subtitle != null
             ? Text(
                 subtitle!,
-                style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedForeground),
+                style: GoogleFonts.dmSans(fontSize: 13, color: muted),
               )
             : null,
-        trailing: const Icon(Icons.chevron_right, color: AppColors.mutedForeground),
+        trailing: Icon(Icons.chevron_right, color: muted),
         onTap: onTap,
       ),
     );

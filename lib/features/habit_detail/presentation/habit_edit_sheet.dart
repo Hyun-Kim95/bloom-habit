@@ -168,7 +168,13 @@ Future<HabitEditResult?> showHabitEditSheet(
                             color: selected ? AppColors.primary.withValues(alpha: 0.2) : AppColors.muted.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(AppTheme.radius),
                           ),
-                          child: Icon(iconDataFromName(name), color: selected ? AppColors.primary : AppColors.mutedForeground, size: 24),
+                          child: Icon(
+                            iconDataFromName(name),
+                            color: selected
+                                ? (isDark ? AppColors.primaryDark : AppColors.primary)
+                                : AppColors.mutedFg(isDark),
+                            size: 24,
+                          ),
                         ),
                       );
                     }).toList(),

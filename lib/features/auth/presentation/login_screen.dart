@@ -139,7 +139,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 24),
-                  Icon(Icons.eco, size: 56, color: AppColors.primary),
+                  Icon(Icons.eco, size: 56, color: isDark ? AppColors.primaryDark : AppColors.primary),
                   const SizedBox(height: 16),
                   Text(
                     'Bloom Habit',
@@ -157,7 +157,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     l10n.loginSubtitle,
                     style: GoogleFonts.dmSans(
                       fontSize: 15,
-                      color: AppColors.mutedForeground,
+                      color: AppColors.mutedFg(isDark),
                     ),
                     textAlign: TextAlign.center,
                   ),

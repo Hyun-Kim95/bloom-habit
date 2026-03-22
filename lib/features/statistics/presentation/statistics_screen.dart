@@ -157,8 +157,8 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
         ),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.mutedForeground,
+          labelColor: isDark ? AppColors.primaryDark : AppColors.primary,
+          unselectedLabelColor: AppColors.mutedFg(isDark),
           tabs: [
             Tab(text: l10n.day),
             Tab(text: l10n.week),
@@ -199,7 +199,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.mutedForeground,
+                    color: AppColors.mutedFg(isDark),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -233,7 +233,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.mutedForeground,
+                    color: AppColors.mutedFg(isDark),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -242,7 +242,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                   style: GoogleFonts.dmSans(
                     fontSize: 12,
                     height: 1.4,
-                    color: AppColors.mutedForeground,
+                    color: AppColors.mutedFg(isDark),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -251,7 +251,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                     l10n.noActiveHabitsForRate,
                     style: GoogleFonts.dmSans(
                       fontSize: 14,
-                      color: AppColors.mutedForeground,
+                      color: AppColors.mutedFg(isDark),
                     ),
                   )
                 else ...[
@@ -291,7 +291,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                     l10n.successPairCount(_sevenDayCompleted, _sevenDayPossible),
                     style: GoogleFonts.dmSans(
                       fontSize: 12,
-                      color: AppColors.mutedForeground,
+                      color: AppColors.mutedFg(isDark),
                     ),
                   ),
                 ],
@@ -388,7 +388,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
               style: GoogleFonts.dmSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.mutedForeground,
+                color: AppColors.mutedFg(isDark),
               ),
             ),
             const SizedBox(height: 8),
@@ -397,7 +397,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
               style: GoogleFonts.dmSans(
                 fontSize: 12,
                 height: 1.4,
-                color: AppColors.mutedForeground,
+                color: AppColors.mutedFg(isDark),
               ),
             ),
             const SizedBox(height: 16),
@@ -406,7 +406,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                 l10n.noActiveHabitsForRate,
                 style: GoogleFonts.dmSans(
                   fontSize: 14,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.mutedFg(isDark),
                 ),
               )
             else ...[
@@ -446,7 +446,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                 l10n.successPairCount(completed, possible),
                 style: GoogleFonts.dmSans(
                   fontSize: 12,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.mutedFg(isDark),
                 ),
               ),
             ],
@@ -468,7 +468,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
               style: GoogleFonts.dmSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.mutedForeground,
+                color: AppColors.mutedFg(isDark),
               ),
             ),
             const SizedBox(height: 12),
@@ -514,7 +514,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
               child: Center(
                 child: Text(
                   l10n.noHabitsYet,
-                  style: GoogleFonts.dmSans(fontSize: 15, color: AppColors.mutedForeground),
+                  style: GoogleFonts.dmSans(fontSize: 15, color: AppColors.mutedFg(isDark)),
                 ),
               ),
             ),
@@ -587,7 +587,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                             l10n.noHabitsYet,
                             style: GoogleFonts.dmSans(
                               fontSize: 15,
-                              color: AppColors.mutedForeground,
+                              color: AppColors.mutedFg(isDark),
                             ),
                           ),
                         ),
@@ -628,7 +628,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                                   h.category!,
                                   style: GoogleFonts.dmSans(
                                     fontSize: 13,
-                                    color: AppColors.mutedForeground,
+                                    color: AppColors.mutedFg(isDark),
                                   ),
                                 )
                               : null,
@@ -678,9 +678,9 @@ class _PeriodSelector extends StatelessWidget {
         IconButton(
           onPressed: onPrev,
           icon: const Icon(Icons.chevron_left),
-          color: AppColors.primary,
+          color: isDark ? AppColors.primaryDark : AppColors.primary,
           style: IconButton.styleFrom(
-            backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+            backgroundColor: (isDark ? AppColors.primaryDark : AppColors.primary).withValues(alpha: 0.12),
           ),
         ),
         Text(
@@ -694,9 +694,11 @@ class _PeriodSelector extends StatelessWidget {
         IconButton(
           onPressed: onNext,
           icon: const Icon(Icons.chevron_right),
-          color: onNext != null ? AppColors.primary : AppColors.mutedForeground,
+          color: onNext != null
+              ? (isDark ? AppColors.primaryDark : AppColors.primary)
+              : AppColors.mutedFg(isDark),
           style: IconButton.styleFrom(
-            backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+            backgroundColor: (isDark ? AppColors.primaryDark : AppColors.primary).withValues(alpha: 0.12),
           ),
         ),
       ],
@@ -737,7 +739,7 @@ class _SummaryChip extends StatelessWidget {
               label,
               style: GoogleFonts.dmSans(
                 fontSize: 12,
-                color: AppColors.mutedForeground,
+                color: AppColors.mutedFg(isDark),
               ),
             ),
             const SizedBox(height: 4),

@@ -10,6 +10,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/notifications/notification_service.dart';
+import '../../../core/utils/completion_praise.dart';
 import '../../../core/utils/habit_icon_color.dart';
 import '../../../core/widget/home_widget_update.dart';
 import '../../../data/local/entity/local_habit.dart';
@@ -26,6 +27,17 @@ class _DashboardColors {
   static const Color card = Color(0xFFFFFFFF);
 }
 
+/// 달력 월을 단조 증가 인덱스로 (히트맵 PageView용).
+int _linearHeatmapMonthIndex(DateTime d) => d.year * 12 + d.month - 1;
+
+DateTime _heatmapMonthFromLinearIndex(int idx) {
+  final y = idx ~/ 12;
+  final m = idx % 12 + 1;
+  return DateTime(y, m, 1);
+}
+
+final int _kHeatmapEarliestLinearIdx = _linearHeatmapMonthIndex(DateTime(2020, 1, 1));
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -38,10 +50,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   List<LocalHabit> _habits = [];
   Map<String, bool> _todayCompleted = {};
-  Map<String, int> _heatmapCounts = {};
-  /// Currently displayed heatmap month (based on day 1).
+  /// 히트맵 월별 완료 수 (선형 월 인덱스 → 날짜키 → 횟수).
+  final Map<int, Map<String, int>> _heatmapCache = {};
+  late final PageController _heatmapPageController;
+  /// PageView와 동기화된 표시 중인 달 (1일).
   DateTime _heatmapMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
-  int _heatmapSlideDirection = 1; // 1: next month, -1: previous month
   bool _loading = true;
   String? _error;
 
@@ -70,12 +83,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     await NotificationService().rescheduleFromHabits(habits);
   }
 
+  int _heatmapMaxLinearIdx() {
+    final n = DateTime.now();
+    return _linearHeatmapMonthIndex(DateTime(n.year, n.month, 1));
+  }
+
   @override
   void initState() {
     super.initState();
+    final startIdx = _linearHeatmapMonthIndex(_heatmapMonth);
+    _heatmapPageController = PageController(
+      initialPage: startIdx - _kHeatmapEarliestLinearIdx,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _load();
     });
+  }
+
+  @override
+  void dispose() {
+    _heatmapPageController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -91,16 +119,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (!mounted) return;
       final habits = await repo.getActiveHabits();
       final completed = await repo.getTodayCompletedByHabit();
-      final heatmapStart = DateTime(_heatmapMonth.year, _heatmapMonth.month, 1);
-      final heatmapEnd = DateTime(_heatmapMonth.year, _heatmapMonth.month + 1, 0);
-      final heatmapCounts = await repo.getCompletionCountsForDateRange(heatmapStart, heatmapEnd);
+      final nowMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+      final curIdx = _linearHeatmapMonthIndex(nowMonth);
+      final heatmapCounts = await _loadHeatmapCountsFor(nowMonth);
       if (mounted) {
         setState(() {
           _habits = habits;
           _todayCompleted = completed;
-          _heatmapCounts = heatmapCounts;
+          _heatmapCache
+            ..clear()
+            ..[curIdx] = heatmapCounts;
+          _heatmapMonth = nowMonth;
           _loading = false;
         });
+        final page = curIdx - _kHeatmapEarliestLinearIdx;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !_heatmapPageController.hasClients) return;
+          _heatmapPageController.jumpToPage(page);
+        });
+        _prefetchAdjacentHeatmapMonths(curIdx);
         _rescheduleRemindersOnce(habits);
         final completedCount = _completedCountForActiveHabits(habits, completed);
         updateHomeWidget(todayCompleted: completedCount, totalHabits: habits.length);
@@ -132,27 +169,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return repo.getCompletionCountsForDateRange(heatmapStart, heatmapEnd);
   }
 
-  Future<void> _prevHeatmapMonth() async {
-    final targetMonth = DateTime(_heatmapMonth.year, _heatmapMonth.month - 1, 1);
-    final nextCounts = await _loadHeatmapCountsFor(targetMonth);
+  Future<void> _ensureHeatmapMonthLoaded(int linearIdx) async {
+    if (_heatmapCache.containsKey(linearIdx)) return;
+    if (linearIdx < _kHeatmapEarliestLinearIdx || linearIdx > _heatmapMaxLinearIdx()) {
+      return;
+    }
+    final m = _heatmapMonthFromLinearIndex(linearIdx);
+    final data = await _loadHeatmapCountsFor(m);
     if (!mounted) return;
-    setState(() {
-      _heatmapSlideDirection = -1;
-      _heatmapMonth = targetMonth;
-      _heatmapCounts = nextCounts;
-    });
+    setState(() => _heatmapCache[linearIdx] = data);
   }
 
-  Future<void> _nextHeatmapMonth() async {
+  void _prefetchAdjacentHeatmapMonths(int linearIdx) {
+    _ensureHeatmapMonthLoaded(linearIdx - 1);
+    _ensureHeatmapMonthLoaded(linearIdx);
+    _ensureHeatmapMonthLoaded(linearIdx + 1);
+  }
+
+  void _onHeatmapPageChanged(int page) {
+    final idx = _kHeatmapEarliestLinearIdx + page;
+    setState(() => _heatmapMonth = _heatmapMonthFromLinearIndex(idx));
+    _prefetchAdjacentHeatmapMonths(idx);
+  }
+
+  void _heatmapGoPrevPage() {
+    final p = _heatmapPageController.page?.round() ?? _heatmapPageController.initialPage;
+    if (p <= 0) return;
+    _heatmapPageController.animateToPage(
+      p - 1,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _heatmapGoNextPage() {
     if (!_canGoNextHeatmap) return;
-    final targetMonth = DateTime(_heatmapMonth.year, _heatmapMonth.month + 1, 1);
-    final nextCounts = await _loadHeatmapCountsFor(targetMonth);
-    if (!mounted) return;
-    setState(() {
-      _heatmapSlideDirection = 1;
-      _heatmapMonth = targetMonth;
-      _heatmapCounts = nextCounts;
-    });
+    final maxPage = _heatmapMaxLinearIdx() - _kHeatmapEarliestLinearIdx;
+    final p = _heatmapPageController.page?.round() ?? _heatmapPageController.initialPage;
+    if (p >= maxPage) return;
+    _heatmapPageController.animateToPage(
+      p + 1,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   @override
@@ -166,11 +225,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final bg = isDark ? AppColors.backgroundDark : _DashboardColors.background;
     final primary = isDark ? AppColors.primaryDark : _DashboardColors.primary;
     final text = isDark ? AppColors.foregroundDark : _DashboardColors.text;
-    final textMuted = isDark ? AppColors.mutedForeground : _DashboardColors.textMuted;
+    final textMuted = isDark ? AppColors.mutedForegroundDark : _DashboardColors.textMuted;
     final cardColor = isDark ? AppColors.cardDark : _DashboardColors.card;
     final border = isDark ? AppColors.borderDark : _DashboardColors.border;
     final progressTrack = isDark ? AppColors.mutedDark : _DashboardColors.progressTrack;
-    final iconBg = isDark ? AppColors.accent : _DashboardColors.iconBg;
+    final iconBg = isDark ? AppColors.mutedDark : _DashboardColors.iconBg;
     final completedTodayCount = _completedCountForActiveHabits(_habits, _todayCompleted);
 
     return Scaffold(
@@ -223,12 +282,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                               const SizedBox(height: 24),
                               _HeatmapSection(
-                                displayMonthStart: _heatmapMonth,
-                                slideDirection: _heatmapSlideDirection,
+                                pageController: _heatmapPageController,
+                                minLinearIdx: _kHeatmapEarliestLinearIdx,
+                                maxLinearIdx: _heatmapMaxLinearIdx(),
+                                cache: _heatmapCache,
+                                onPageChanged: _onHeatmapPageChanged,
+                                onPrevPage: _heatmapGoPrevPage,
+                                onNextPage: _canGoNextHeatmap ? _heatmapGoNextPage : null,
                                 l10n: l10n,
-                                completedCounts: _heatmapCounts,
-                                onPrevMonth: _prevHeatmapMonth,
-                                onNextMonth: _canGoNextHeatmap ? _nextHeatmapMonth : null,
                                 cardColor: cardColor,
                                 border: border,
                                 primary: primary,
@@ -259,7 +320,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final settings = ref.read(appSettingsProvider).value;
       if (settings?.hapticEnabled ?? true) HapticFeedback.mediumImpact();
       if (settings?.soundEnabled ?? true) SystemSound.play(SystemSoundType.click);
-      if (!context.mounted) return;
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(completionPraiseMessage(l10n, h)),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+        ),
+      );
       // Refresh list and heatmap after server/local persistence.
       await _load();
     } catch (_) {
@@ -675,12 +744,14 @@ class _EmptyHabitsCard extends StatelessWidget {
 
 class _HeatmapSection extends StatelessWidget {
   const _HeatmapSection({
-    required this.displayMonthStart,
-    required this.slideDirection,
+    required this.pageController,
+    required this.minLinearIdx,
+    required this.maxLinearIdx,
+    required this.cache,
+    required this.onPageChanged,
+    required this.onPrevPage,
+    required this.onNextPage,
     required this.l10n,
-    required this.completedCounts,
-    required this.onPrevMonth,
-    required this.onNextMonth,
     required this.cardColor,
     required this.border,
     required this.primary,
@@ -689,12 +760,14 @@ class _HeatmapSection extends StatelessWidget {
     required this.progressTrack,
   });
 
-  final DateTime displayMonthStart;
-  final int slideDirection;
+  final PageController pageController;
+  final int minLinearIdx;
+  final int maxLinearIdx;
+  final Map<int, Map<String, int>> cache;
+  final ValueChanged<int> onPageChanged;
+  final VoidCallback onPrevPage;
+  final VoidCallback? onNextPage;
   final AppLocalizations l10n;
-  final Map<String, int> completedCounts;
-  final VoidCallback onPrevMonth;
-  final VoidCallback? onNextMonth;
   final Color cardColor;
   final Color border;
   final Color primary;
@@ -712,7 +785,18 @@ class _HeatmapSection extends StatelessWidget {
     return d.isAfter(t);
   }
 
-  /// 0 completion uses track color, positive values scale light->strong green.
+  /// 고정 높이 PageView용(최대 6행 그리드 기준).
+  static double _pageHeightForInnerWidth(double innerW) {
+    const verticalPadding = 40.0;
+    const headerApprox = 48.0 + 8 + 22.0 + 8;
+    final cell = (innerW - 36.0) / 7.0;
+    const rows = 6;
+    final gridH = rows * cell + (rows - 1) * 6.0;
+    const legendH = 36.0;
+    const layoutSlack = 20.0;
+    return verticalPadding + headerApprox + gridH + legendH + layoutSlack;
+  }
+
   Color _colorForCount(int count, int maxCount) {
     if (count <= 0) return progressTrack;
     if (maxCount <= 1) return primary;
@@ -723,26 +807,10 @@ class _HeatmapSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final y = displayMonthStart.year;
-    final m = displayMonthStart.month;
-    final firstDay = DateTime(y, m, 1);
-    final lastDay = DateTime(y, m + 1, 0);
-    final daysInMonth = lastDay.day;
-    final leading = firstDay.weekday - 1; // Monday-based week start
-    final now = DateTime.now();
-    final todayCal = DateTime(now.year, now.month, now.day);
-
-    var maxCount = 0;
-    for (var day = 1; day <= daysInMonth; day++) {
-      final d = DateTime(y, m, day);
-      if (_isFutureCalendarDay(d, todayCal)) continue;
-      final c = completedCounts[_dateKey(d)] ?? 0;
-      if (c > maxCount) maxCount = c;
+    final itemCount = maxLinearIdx - minLinearIdx + 1;
+    if (itemCount <= 0) {
+      return const SizedBox.shrink();
     }
-
-    final totalCells = leading + daysInMonth;
-    final rowCount = (totalCells + 6) ~/ 7;
-    final paddedCells = rowCount * 7;
 
     final dayLabels = [
       l10n.weekdayMon,
@@ -767,184 +835,213 @@ class _HeatmapSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        GestureDetector(
-          onHorizontalDragEnd: (details) {
-            final v = details.primaryVelocity ?? 0;
-            if (v.abs() < 200) return;
-            if (v < 0 && onNextMonth != null) {
-              onNextMonth!.call();
-              return;
-            }
-            if (v > 0) onPrevMonth();
-          },
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: cardColor,
-              border: Border.all(color: border),
-              borderRadius: BorderRadius.circular(AppTheme.radius),
-            ),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 360),
-              switchInCurve: Curves.easeInOutCubic,
-              switchOutCurve: Curves.easeInOutCubic,
-              transitionBuilder: (child, animation) {
-                final beginX = slideDirection > 0 ? 1.0 : -1.0;
-                final offsetAnim = Tween<Offset>(
-                  begin: Offset(beginX, 0),
-                  end: Offset.zero,
-                ).animate(animation);
-                return ClipRect(
-                  child: SlideTransition(
-                    position: offsetAnim,
-                    child: FadeTransition(opacity: animation, child: child),
-                  ),
-                );
-              },
-              child: Column(
-                key: ValueKey<String>('heatmap-$y-$m'),
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: onPrevMonth,
-                        icon: const Icon(Icons.chevron_left),
-                        color: primary,
-                        style: IconButton.styleFrom(
-                          backgroundColor: primary.withValues(alpha: 0.12),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          l10n.yearMonth(y, m),
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.dmSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: text,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: onNextMonth,
-                        icon: const Icon(Icons.chevron_right),
-                        color: onNextMonth != null ? primary : textMuted,
-                        style: IconButton.styleFrom(
-                          backgroundColor: primary.withValues(alpha: onNextMonth != null ? 0.12 : 0.04),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: List.generate(
-                      7,
-                      (c) => Expanded(
-                        child: Text(
-                          dayLabels[c],
-                          style: GoogleFonts.dmSans(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: textMuted,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final innerW = (constraints.maxWidth - 40).clamp(0.0, double.infinity);
+            final pageH = _pageHeightForInnerWidth(innerW);
+            return SizedBox(
+              height: pageH,
+              child: PageView.builder(
+                controller: pageController,
+                itemCount: itemCount,
+                onPageChanged: onPageChanged,
+                itemBuilder: (context, page) {
+                  final linearIdx = minLinearIdx + page;
+                  final displayMonthStart = _heatmapMonthFromLinearIndex(linearIdx);
+                  final y = displayMonthStart.year;
+                  final m = displayMonthStart.month;
+                  final completedCounts = cache[linearIdx];
+                  final firstDay = DateTime(y, m, 1);
+                  final lastDay = DateTime(y, m + 1, 0);
+                  final daysInMonth = lastDay.day;
+                  final leading = firstDay.weekday - 1;
+                  final now = DateTime.now();
+                  final todayCal = DateTime(now.year, now.month, now.day);
+
+                  var maxCount = 0;
+                  if (completedCounts != null) {
+                    for (var day = 1; day <= daysInMonth; day++) {
+                      final d = DateTime(y, m, day);
+                      if (_isFutureCalendarDay(d, todayCal)) continue;
+                      final c = completedCounts[_dateKey(d)] ?? 0;
+                      if (c > maxCount) maxCount = c;
+                    }
+                  }
+
+                  final totalCells = leading + daysInMonth;
+                  final rowCount = (totalCells + 6) ~/ 7;
+                  final paddedCells = rowCount * 7;
+
+                  return Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      border: Border.all(color: border),
+                      borderRadius: BorderRadius.circular(AppTheme.radius),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 7,
-                      mainAxisSpacing: 6,
-                      crossAxisSpacing: 6,
-                      childAspectRatio: 1,
-                    ),
-                    itemCount: paddedCells,
-                    itemBuilder: (context, i) {
-                      if (i < leading || i >= leading + daysInMonth) {
-                        return const SizedBox.shrink();
-                      }
-                      final dayNum = i - leading + 1;
-                      final d = DateTime(y, m, dayNum);
-                      final isFuture = _isFutureCalendarDay(d, todayCal);
-                      final count = isFuture ? 0 : (completedCounts[_dateKey(d)] ?? 0);
-                      final cellColor = isFuture
-                          ? progressTrack.withValues(alpha: 0.45)
-                          : _colorForCount(count, maxCount);
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: cellColor,
-                          borderRadius: BorderRadius.circular(4),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: page > 0 ? onPrevPage : null,
+                              icon: const Icon(Icons.chevron_left),
+                              color: page > 0 ? primary : textMuted,
+                              style: IconButton.styleFrom(
+                                backgroundColor: primary.withValues(alpha: page > 0 ? 0.12 : 0.04),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                l10n.yearMonth(y, m),
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: text,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: onNextPage != null && page < itemCount - 1 ? onNextPage : null,
+                              icon: const Icon(Icons.chevron_right),
+                              color: onNextPage != null && page < itemCount - 1 ? primary : textMuted,
+                              style: IconButton.styleFrom(
+                                backgroundColor: primary.withValues(
+                                  alpha: onNextPage != null && page < itemCount - 1 ? 0.12 : 0.04,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '$dayNum',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: isFuture ? textMuted : text,
+                        const SizedBox(height: 8),
+                        Row(
+                          children: List.generate(
+                            7,
+                            (c) => Expanded(
+                              child: Text(
+                                dayLabels[c],
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: textMuted,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
                           ),
                         ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        l10n.heatmapLess,
-                        style: GoogleFonts.dmSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: textMuted,
+                        const SizedBox(height: 8),
+                        if (completedCounts == null)
+                          Expanded(
+                            child: Center(
+                              child: SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: primary,
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          Expanded(
+                            child: GridView.builder(
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 7,
+                                mainAxisSpacing: 6,
+                                crossAxisSpacing: 6,
+                                childAspectRatio: 1,
+                              ),
+                              itemCount: paddedCells,
+                              itemBuilder: (context, i) {
+                                if (i < leading || i >= leading + daysInMonth) {
+                                  return const SizedBox.shrink();
+                                }
+                                final dayNum = i - leading + 1;
+                                final d = DateTime(y, m, dayNum);
+                                final isFuture = _isFutureCalendarDay(d, todayCal);
+                                final count = isFuture ? 0 : (completedCounts[_dateKey(d)] ?? 0);
+                                final cellColor = isFuture
+                                    ? progressTrack.withValues(alpha: 0.45)
+                                    : _colorForCount(count, maxCount);
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    color: cellColor,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '$dayNum',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: isFuture ? textMuted : text,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              l10n.heatmapLess,
+                              style: GoogleFonts.dmSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                                color: textMuted,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: progressTrack,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: primary.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: primary,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              l10n.heatmapMore,
+                              style: GoogleFonts.dmSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                                color: textMuted,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: progressTrack,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: primary.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: primary,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        l10n.heatmapMore,
-                        style: GoogleFonts.dmSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  );
+                },
               ),
-            ),
-          ),
+            );
+          },
         ),
       ],
     );

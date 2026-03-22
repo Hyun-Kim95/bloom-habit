@@ -701,7 +701,7 @@ abstract class AppLocalizations {
   /// No description provided for @notificationSettingsSubtitle.
   ///
   /// In ko, this message translates to:
-  /// **'습관 리마인더는 여기서 켜세요. (권한이 아닌 알림 메뉴)'**
+  /// **'습관 리마인더는 여기서 켜세요.'**
   String get notificationSettingsSubtitle;
 
   /// No description provided for @soundAndFeedback.
@@ -962,6 +962,48 @@ abstract class AppLocalizations {
   /// **'저장 실패: {message}'**
   String saveFailed(String message);
 
+  /// No description provided for @profilePhotoManageTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'프로필 사진'**
+  String get profilePhotoManageTitle;
+
+  /// No description provided for @profilePhotoManageSubtitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'이미지 주소로 바꾸거나 기본 아이콘으로 되돌릴 수 있어요.'**
+  String get profilePhotoManageSubtitle;
+
+  /// No description provided for @profilePhotoDialogTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'프로필 사진 변경'**
+  String get profilePhotoDialogTitle;
+
+  /// No description provided for @profilePhotoUrlHint.
+  ///
+  /// In ko, this message translates to:
+  /// **'https:// 로 시작하는 이미지 주소'**
+  String get profilePhotoUrlHint;
+
+  /// No description provided for @profilePhotoInvalidUrl.
+  ///
+  /// In ko, this message translates to:
+  /// **'http 또는 https 로 시작하는 주소만 사용할 수 있어요.'**
+  String get profilePhotoInvalidUrl;
+
+  /// No description provided for @profilePhotoUpdated.
+  ///
+  /// In ko, this message translates to:
+  /// **'프로필 사진을 반영했어요.'**
+  String get profilePhotoUpdated;
+
+  /// No description provided for @resetProfilePhotoButton.
+  ///
+  /// In ko, this message translates to:
+  /// **'기본 아이콘'**
+  String get resetProfilePhotoButton;
+
   /// No description provided for @removeProfilePhoto.
   ///
   /// In ko, this message translates to:
@@ -1001,7 +1043,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteAccountDescription.
   ///
   /// In ko, this message translates to:
-  /// **'탈퇴하면 계정이 비활성화되며 로그인할 수 없습니다.\n사유를 입력한 뒤 탈퇴를 진행해 주세요.'**
+  /// **'탈퇴 즉시 계정이 비활성화되어 다시 로그인할 수 없습니다.\n서버의 습관·기록 등은 비활성화일 기준 최대 1년(365일) 후 자동 삭제되며, 그 전·후 모두 복구되지 않습니다.\n사유를 입력한 뒤 진행해 주세요.'**
   String get deleteAccountDescription;
 
   /// No description provided for @withdrawReason.
@@ -1067,7 +1109,7 @@ abstract class AppLocalizations {
   /// No description provided for @accountDataWarning.
   ///
   /// In ko, this message translates to:
-  /// **'습관·기록 데이터는 이 계정에 연동됩니다. 회원 탈퇴 시 서버와 기기에 저장된 데이터가 삭제되며 복구할 수 없습니다.'**
+  /// **'습관·기록 데이터는 이 계정에 연동됩니다. 회원 탈퇴 시 즉시 로그인이 제한되고, 서버 데이터는 최대 1년(365일) 보관 후 삭제됩니다. 삭제 후에는 복구할 수 없으며, 기기에 남은 데이터는 앱 설정 등으로 별도 삭제할 수 있습니다.'**
   String get accountDataWarning;
 
   /// No description provided for @emailSectionTitle.
@@ -1075,12 +1117,6 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'이메일'**
   String get emailSectionTitle;
-
-  /// No description provided for @emailAccountNotice.
-  ///
-  /// In ko, this message translates to:
-  /// **'계정 식별·안내에 사용됩니다. 소셜 로그인에서 이메일을 받지 못한 경우에만 아래에서 한 번 등록할 수 있습니다.'**
-  String get emailAccountNotice;
 
   /// No description provided for @emailStatusNone.
   ///
@@ -1285,6 +1321,78 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'오늘 완료하기'**
   String get completeToday;
+
+  /// No description provided for @completionPraiseCategoryHealth.
+  ///
+  /// In ko, this message translates to:
+  /// **'건강 습관을 지켜냈어요. 몸이 고마워할 거예요!'**
+  String get completionPraiseCategoryHealth;
+
+  /// No description provided for @completionPraiseCategoryExercise.
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘도 움직임으로 몸을 깨우셨네요. 멋져요!'**
+  String get completionPraiseCategoryExercise;
+
+  /// No description provided for @completionPraiseCategoryReading.
+  ///
+  /// In ko, this message translates to:
+  /// **'책과 함께한 오늘, 쌓이는 시간이에요.'**
+  String get completionPraiseCategoryReading;
+
+  /// No description provided for @completionPraiseCategoryLearning.
+  ///
+  /// In ko, this message translates to:
+  /// **'배움의 한 걸음, 잘하셨어요!'**
+  String get completionPraiseCategoryLearning;
+
+  /// No description provided for @completionPraiseCategoryMeditation.
+  ///
+  /// In ko, this message translates to:
+  /// **'마음까지 챙기는 하루. 오늘도 균형 잡혔어요.'**
+  String get completionPraiseCategoryMeditation;
+
+  /// No description provided for @completionPraiseCategoryHobby.
+  ///
+  /// In ko, this message translates to:
+  /// **'좋아하는 일에 시간 쓴 하루, 빛나요.'**
+  String get completionPraiseCategoryHobby;
+
+  /// No description provided for @completionPraiseCategoryWork.
+  ///
+  /// In ko, this message translates to:
+  /// **'업무 습관 하나 지켰어요. 생산적인 하루!'**
+  String get completionPraiseCategoryWork;
+
+  /// No description provided for @completionPraiseCategoryLife.
+  ///
+  /// In ko, this message translates to:
+  /// **'생활을 가지런히 하셨네요. 속이 시원할 거예요.'**
+  String get completionPraiseCategoryLife;
+
+  /// No description provided for @completionPraiseGoalCompletion.
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘 목표를 완료했어요. 스스로 칭찬해 주세요!'**
+  String get completionPraiseGoalCompletion;
+
+  /// No description provided for @completionPraiseGoalCount.
+  ///
+  /// In ko, this message translates to:
+  /// **'목표 횟수를 채웠어요. 꾸준함이 빛나요!'**
+  String get completionPraiseGoalCount;
+
+  /// No description provided for @completionPraiseGoalDuration.
+  ///
+  /// In ko, this message translates to:
+  /// **'정한 시간만큼 해냈어요. 집중력이 대단해요!'**
+  String get completionPraiseGoalDuration;
+
+  /// No description provided for @completionPraiseGoalNumber.
+  ///
+  /// In ko, this message translates to:
+  /// **'수치 목표에 한 걸음 더 가까워졌어요!'**
+  String get completionPraiseGoalNumber;
 
   /// No description provided for @recordHistory.
   ///

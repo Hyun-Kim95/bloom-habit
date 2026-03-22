@@ -41,8 +41,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? AppColors.backgroundDark : AppColors.background;
-    final fg = isDark ? AppColors.foregroundDark : AppColors.foreground;
-    final muted = AppColors.mutedForeground;
+    final muted = AppColors.mutedFg(isDark);
     final primary = isDark ? AppColors.primaryDark : AppColors.primary;
     final dotInactive = isDark ? AppColors.borderDark : AppColors.border;
 
@@ -183,7 +182,7 @@ class _OnboardingFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fg = isDark ? AppColors.foregroundDark : AppColors.foreground;
-    final muted = AppColors.mutedForeground;
+    final muted = AppColors.mutedFg(isDark);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 32),

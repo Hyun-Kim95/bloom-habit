@@ -1,5 +1,19 @@
 import com.android.build.gradle.LibraryExtension
 
+// isar_flutter_libs가 compileSdk 30 고정 → release 리소스 링크(lStar) 실패 방지
+gradle.beforeProject {
+    if (name == "isar_flutter_libs") {
+        afterEvaluate {
+            extensions.findByType(LibraryExtension::class.java)?.apply {
+                compileSdk = 34
+                if (namespace == null || namespace!!.isEmpty()) {
+                    namespace = "dev.isar.isar_flutter_libs"
+                }
+            }
+        }
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -19,17 +33,6 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
-}
-
-// isar_flutter_libs namespace 미지정 라이브러리 호환 (AGP 8+)
-subprojects {
-    if (project.name == "isar_flutter_libs") {
-        project.plugins.withId("com.android.library") {
-            project.extensions.configure<LibraryExtension> {
-                namespace = "dev.isar.isar_flutter_libs"
-            }
-        }
-    }
 }
 
 tasks.register<Delete>("clean") {

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Dev: allow HTTP to host PC from emulator (10.0.2.2) and local tooling. Production should use HTTPS only. -->
+<!-- 개발용: LAN IP(http://192.168.x.x) 등 평문 HTTP 허용. 스토어 배포 전 HTTPS 전용으로 좁히는 것을 권장합니다. -->
 <network-security-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">10.0.2.2</domain>
-        <domain includeSubdomains="true">localhost</domain>
-        <domain includeSubdomains="true">127.0.0.1</domain>
-    </domain-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
 </network-security-config>

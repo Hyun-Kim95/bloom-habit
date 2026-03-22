@@ -9,11 +9,11 @@ class AppStrings {
       ? 'Google 로그인 설정이 필요합니다. 개발 PC에서 docs/google-signin-setup.md를 참고해 Google Cloud에 SHA-1을 등록해 주세요.'
       : 'Google sign-in setup is required. Please register SHA-1 in Google Cloud (see docs/google-signin-setup.md).';
   static String get authServerTimeout => isKo
-      ? '서버 연결 시간이 초과되었습니다. PC에서 서버(포트 3000)가 실행 중인지 확인해 주세요.'
-      : 'Server connection timed out. Check if server (port 3000) is running on your PC.';
+      ? '서버 연결 시간이 초과되었습니다. 실제 폰은 PC와 같은 Wi-Fi에서 android/local.properties에 API_BASE_URL=http://PC_IP:3000 을 넣고 앱을 다시 빌드하세요. PC에서 서버(포트 3000) 실행·방화벽도 확인하세요.'
+      : 'Connection timed out. On a real phone, set API_BASE_URL in android/local.properties to your PC IP (same Wi-Fi), rebuild, and ensure the server on port 3000 is reachable.';
   static String get authServerUnreachable => isKo
-      ? '서버에 연결할 수 없습니다. Windows 에뮬레이터는 adb reverse tcp:3000 tcp:3000 후 --dart-define=API_USE_LOCALHOST=true 를 써 보세요.'
-      : 'Cannot reach server. On Windows emulator try adb reverse tcp:3000 tcp:3000 and --dart-define=API_USE_LOCALHOST=true.';
+      ? '서버에 연결할 수 없습니다. 실제 폰은 android/local.properties에 API_BASE_URL=http://PC_WiFi_IP:3000 을 넣은 뒤 APK를 다시 빌드하세요. 에뮬레이터(Windows)는 adb reverse tcp:3000 tcp:3000 및 API_USE_LOCALHOST=true 를 참고하세요.'
+      : 'Cannot reach server. On a real phone, set API_BASE_URL in android/local.properties and rebuild the APK. For Windows emulator, use adb reverse and API_USE_LOCALHOST=true.';
   static String get authNetworkError => isKo ? '네트워크 오류' : 'Network error';
   static String get authEmptyResponse => isKo ? '응답 없음' : 'Empty response';
   static String get authTokenMissing => isKo ? '토큰 없음' : 'Token missing';

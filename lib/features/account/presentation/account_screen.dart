@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +8,12 @@ import '../../../core/auth/auth_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
+
+bool _isValidHttpAvatarUrl(String url) {
+  final t = url.trim();
+  if (t.isEmpty) return false;
+  return RegExp(r'^https?://', caseSensitive: false).hasMatch(t);
+}
 
 String _maskEmail(String? email) {
   if (email == null || email.isEmpty) return '';
@@ -36,15 +41,6 @@ String _providerLabel(String authProvider) {
   }
 }
 
-String _apiErrorMessage(Object e) {
-  if (e is DioException) {
-    final d = e.response?.data;
-    if (d is Map && d['message'] != null) return d['message'].toString();
-    return e.message ?? e.toString();
-  }
-  return e.toString().split('\n').first;
-}
-
 class AccountScreen extends ConsumerStatefulWidget {
   const AccountScreen({super.key});
 
@@ -57,19 +53,11 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   bool _loadingProfile = true;
   MeProfile? _profile;
   String? _profileError;
-  final _emailController = TextEditingController();
-  bool _emailSaving = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadProfile());
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadProfile() async {
@@ -85,9 +73,6 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       _profile = p;
       _loadingProfile = false;
       _profileError = p == null ? l10n.profileLoadFailed : null;
-      if (p == null || (p.email?.trim().isEmpty ?? true)) {
-        _emailController.clear();
-      }
     });
   }
 
@@ -182,34 +167,65 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     }
   }
 
-  Future<void> _saveEmail() async {
+  Future<void> _manageProfilePhoto() async {
     final l10n = AppLocalizations.of(context)!;
-    final addr = _emailController.text.trim();
-    if (addr.isEmpty) {
+    final controller = TextEditingController(text: (_profile?.avatarUrl ?? '').trim());
+    final newUrl = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.profilePhotoDialogTitle),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(hintText: l10n.profilePhotoUrlHint),
+          keyboardType: TextInputType.url,
+          autocorrect: false,
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _clearAvatar();
+            },
+            child: Text(l10n.resetProfilePhotoButton),
+          ),
+          FilledButton(
+            onPressed: () {
+              final u = controller.text.trim();
+              if (!_isValidHttpAvatarUrl(u)) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(content: Text(l10n.profilePhotoInvalidUrl)),
+                );
+                return;
+              }
+              Navigator.pop(ctx, u);
+            },
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || newUrl == null) return;
+    try {
+      await ref.read(authRepositoryProvider).updateMeProfile(avatarUrl: newUrl);
+      await _loadProfile();
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(l10n.emailRequired)));
+        ).showSnackBar(SnackBar(content: Text(l10n.profilePhotoUpdated)));
       }
-      return;
-    }
-    setState(() => _emailSaving = true);
-    try {
-      await ref.read(authRepositoryProvider).updateMeProfile(email: addr);
-      if (!mounted) return;
-      await _loadProfile();
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.saved)));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.saveFailed(_apiErrorMessage(e)))),
+          SnackBar(
+            content: Text(l10n.processFailed(e.toString().split('\n').first)),
+          ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _emailSaving = false);
     }
   }
 
@@ -289,7 +305,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fg = isDark ? AppColors.foregroundDark : AppColors.foreground;
-    final muted = AppColors.mutedForeground;
+    final muted = AppColors.mutedFg(isDark);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
@@ -395,158 +411,20 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                       trailing: const Icon(Icons.chevron_right),
                       onTap: _editNickname,
                     ),
-                    if (_profile?.avatarUrl != null &&
-                        _profile!.avatarUrl!.isNotEmpty)
-                      ListTile(
-                        leading: const Icon(Icons.hide_image_outlined),
-                        title: Text(
-                          l10n.removeProfilePhoto,
-                          style: GoogleFonts.dmSans(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        subtitle: Text(
-                          l10n.revertToDefaultIcon,
-                          style: GoogleFonts.dmSans(fontSize: 12, color: muted),
-                        ),
-                        onTap: _clearAvatar,
+                    ListTile(
+                      leading: const Icon(Icons.account_circle_outlined),
+                      title: Text(
+                        l10n.profilePhotoManageTitle,
+                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w600),
                       ),
+                      subtitle: Text(
+                        l10n.profilePhotoManageSubtitle,
+                        style: GoogleFonts.dmSans(fontSize: 12, color: muted),
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: _manageProfilePhoto,
+                    ),
                   ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.mail_outline,
-                            size: 22,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            l10n.emailSectionTitle,
-                            style: GoogleFonts.dmSans(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: fg,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        l10n.emailAccountNotice,
-                        style: GoogleFonts.dmSans(
-                          fontSize: 12,
-                          height: 1.45,
-                          color: muted,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Builder(
-                        builder: (context) {
-                          final reg = _profile?.email?.trim();
-                          final hasEmail =
-                              reg != null && reg.isNotEmpty;
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? AppColors.cardDark
-                                  : AppColors.muted,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      hasEmail
-                                          ? Icons.verified_outlined
-                                          : Icons.help_outline,
-                                      size: 18,
-                                      color: hasEmail
-                                          ? AppColors.primary
-                                          : muted,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      hasEmail
-                                          ? l10n.emailStatusVerified
-                                          : l10n.emailStatusNone,
-                                      style: GoogleFonts.dmSans(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: fg,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (hasEmail) ...[
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    l10n.emailRegisteredLabel,
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 11,
-                                      color: muted,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _maskEmail(reg),
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 14,
-                                      color: fg,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                      if ((_profile?.email?.trim().isEmpty ?? true)) ...[
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          autocorrect: false,
-                          decoration: InputDecoration(
-                            labelText: l10n.emailSectionTitle,
-                            hintText: l10n.emailEnterHint,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          height: 48,
-                          child: FilledButton(
-                            onPressed:
-                                _emailSaving ? null : _saveEmail,
-                            child: _emailSaving
-                                ? const SizedBox(
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : Text(l10n.save),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
                 ),
               ),
               const SizedBox(height: 16),
