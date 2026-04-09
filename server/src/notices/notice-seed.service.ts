@@ -7,12 +7,22 @@ import { Notice } from '../entities';
 /** DB에 공지가 하나도 없을 때만 삽입하는 샘플(개발·데모용). */
 const OBSOLETE_NOTICE_TITLE = '이메일 등록·인증 기능 안내';
 
-const SAMPLE_NOTICES: { title: string; body: string; publishedAt: Date }[] = [
+const SAMPLE_NOTICES: {
+  title: string;
+  body: string;
+  titleEn: string;
+  bodyEn: string;
+  publishedAt: Date;
+}[] = [
   {
     title: '공지사항을 앱에서 확인하세요',
     body:
       '설정 > 공지사항에서 서비스 안내와 업데이트 소식을 확인할 수 있습니다.\n' +
       '앞으로도 이용에 참고 부탁드립니다.',
+    titleEn: 'Check announcements in the app',
+    bodyEn:
+      'Go to Settings > Announcements for service updates and news.\n' +
+      'We hope this helps you get the most out of the app.',
     publishedAt: new Date('2026-03-10T06:00:00.000Z'),
   },
   {
@@ -21,6 +31,11 @@ const SAMPLE_NOTICES: { title: string; body: string; publishedAt: Date }[] = [
       '통계 화면에서 주·월 단위로 달성률을 확인할 수 있고,\n' +
       '홈에서는 완료 히트맵으로 한눈에 기록을 살펴볼 수 있어요.\n' +
       '꾸준한 기록에 도움이 되시길 바랍니다.',
+    titleEn: 'Habit stats and heatmap',
+    bodyEn:
+      'On the Stats screen you can see weekly and monthly completion rates.\n' +
+      'On Home, the completion heatmap gives you a quick overview.\n' +
+      'We hope it helps you stay consistent.',
     publishedAt: new Date('2026-02-28T09:00:00.000Z'),
   },
   {
@@ -29,6 +44,11 @@ const SAMPLE_NOTICES: { title: string; body: string; publishedAt: Date }[] = [
       '기기 설정과 앱 알림 설정에서 리마인더 알림을 켜 두시면\n' +
       '습관 시간에 맞춰 알림을 받을 수 있습니다.\n' +
       '방해가 된다면 습관별로 알림을 끄거나 시간을 조정해 보세요.',
+    titleEn: 'Push notification settings',
+    bodyEn:
+      'Turn on reminders in device settings and in-app notification settings\n' +
+      'to get nudges at your habit times.\n' +
+      'If they bother you, turn them off per habit or adjust the time.',
     publishedAt: new Date('2026-02-15T08:00:00.000Z'),
   },
   {
@@ -37,6 +57,11 @@ const SAMPLE_NOTICES: { title: string; body: string; publishedAt: Date }[] = [
       'Bloom Habit은 작은 습관을 매일 기록하고 통계로 확인할 수 있는 서비스입니다.\n' +
       'Google·카카오·네이버 계정으로 간편하게 시작할 수 있어요.\n' +
       '문의는 앱 내 문의하기를 이용해 주세요.',
+    titleEn: 'Welcome to Bloom Habit',
+    bodyEn:
+      'Bloom Habit helps you log small daily habits and review them with stats.\n' +
+      'Sign in easily with Google, Kakao, or Naver.\n' +
+      'For questions, use In-app contact.',
     publishedAt: new Date('2026-02-01T10:00:00.000Z'),
   },
 ];
@@ -56,6 +81,8 @@ export class NoticeSeedService implements OnModuleInit {
       this.logger.log(`구 공지 "${OBSOLETE_NOTICE_TITLE}" ${removed.affected}건을 제거했습니다.`);
     }
 
+    await this.backfillEnglishForMatchingSamples();
+
     const count = await this.noticeRepo.count();
     if (count > 0) return;
     for (const row of SAMPLE_NOTICES) {
@@ -64,10 +91,36 @@ export class NoticeSeedService implements OnModuleInit {
           id: `n-${uuidv4()}`,
           title: row.title,
           body: row.body,
+          titleEn: row.titleEn,
+          bodyEn: row.bodyEn,
           publishedAt: row.publishedAt,
         }),
       );
     }
     this.logger.log(`샘플 공지 ${SAMPLE_NOTICES.length}건을 등록했습니다.`);
+  }
+
+  /**
+   * 예전에 한글만 넣혀 있던 샘플 공지(제목·본문이 SAMPLE_NOTICES와 동일)에 titleEn/bodyEn을 채움.
+   * 커스텀 공지는 제목/본문이 다르므로 건드리지 않음.
+   */
+  private async backfillEnglishForMatchingSamples(): Promise<void> {
+    let filled = 0;
+    for (const row of SAMPLE_NOTICES) {
+      const candidates = await this.noticeRepo.find({ where: { title: row.title } });
+      for (const doc of candidates) {
+        if (doc.body.trim() !== row.body.trim()) continue;
+        const needTitle = !doc.titleEn?.trim();
+        const needBody = !doc.bodyEn?.trim();
+        if (!needTitle && !needBody) continue;
+        if (needTitle) doc.titleEn = row.titleEn;
+        if (needBody) doc.bodyEn = row.bodyEn;
+        await this.noticeRepo.save(doc);
+        filled += 1;
+      }
+    }
+    if (filled > 0) {
+      this.logger.log(`기존 등록 공지 ${filled}건에 영문(titleEn/bodyEn)을 채웠습니다.`);
+    }
   }
 }

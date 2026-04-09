@@ -22,6 +22,8 @@ class HabitTemplateItem {
     required this.id,
     required this.name,
     this.category,
+    this.nameEn,
+    this.categoryEn,
     required this.goalType,
     this.goalValue,
     this.colorHex,
@@ -31,10 +33,20 @@ class HabitTemplateItem {
   final String id;
   final String name;
   final String? category;
+  final String? nameEn;
+  final String? categoryEn;
   final String goalType;
   final double? goalValue;
   final String? colorHex;
   final String? iconName;
+
+  String resolvedName(String languageCode) {
+    if (languageCode == 'en') {
+      final n = nameEn?.trim();
+      if (n != null && n.isNotEmpty) return n;
+    }
+    return name;
+  }
 }
 
 /// Habit/record repository with API + local Isar persistence.
@@ -138,6 +150,8 @@ class HabitRepository {
             id: m['id'] as String? ?? '',
             name: m['name'] as String? ?? '',
             category: m['category'] as String?,
+            nameEn: m['nameEn'] as String?,
+            categoryEn: m['categoryEn'] as String?,
             goalType: m['goalType'] as String? ?? 'completion',
             goalValue: (m['goalValue'] as num?)?.toDouble(),
             colorHex: m['colorHex'] as String?,

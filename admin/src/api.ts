@@ -80,7 +80,9 @@ export const api = {
       {
         id: string
         name: string
+        nameEn?: string
         category?: string
+        categoryEn?: string
         goalType: string
         goalValue?: number | null
         colorHex?: string
@@ -91,7 +93,9 @@ export const api = {
   getHabitCategoriesInUse: () => request<{ inUse: string[] }>('/admin/habit-categories-in-use'),
   createTemplate: (body: {
     name: string
+    nameEn?: string
     category?: string
+    categoryEn?: string
     goalType?: string
     goalValue?: number | null
     colorHex?: string
@@ -103,8 +107,11 @@ export const api = {
     request(`/admin/habit-templates/${id}`, { method: 'DELETE' }),
   reseedHabitTemplates: () =>
     request<{ inserted: number }>('/admin/habit-templates/reseed', { method: 'POST' }),
-  getNotices: () => request<{ id: string; title: string; body: string; publishedAt?: string }[]>('/admin/notices'),
-  createNotice: (body: { title: string; body: string }) =>
+  getNotices: () =>
+    request<{ id: string; title: string; body: string; titleEn?: string; bodyEn?: string; publishedAt?: string }[]>(
+      '/admin/notices',
+    ),
+  createNotice: (body: { title: string; body: string; titleEn?: string; bodyEn?: string }) =>
     request('/admin/notices', { method: 'POST', body: JSON.stringify(body) }),
   updateNotice: (id: string, body: object) =>
     request(`/admin/notices/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
@@ -143,21 +150,38 @@ export const api = {
       updatedAt: string
     }>(`/admin/inquiries/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
 
-  getLegalDocuments: (type?: 'terms' | 'privacy') =>
-    request<{
+  getLegalDocuments: (type?: 'terms' | 'privacy', locale?: 'ko' | 'en' | 'all') => {
+    const params = new URLSearchParams()
+    if (type) params.set('type', type)
+    if (locale) params.set('locale', locale)
+    const q = params.toString()
+    return request<{
       id: string
       type: string
+      locale: string
       version: number
       title: string
       content: string
       effectiveFrom: string | null
       createdAt: string
       updatedAt: string
-    }[]>(`/admin/legal-documents${type ? `?type=${type}` : ''}`),
-  createLegalDocument: (body: { type: 'terms' | 'privacy'; title?: string; content?: string; effectiveFrom?: string }) =>
+    }[]>(`/admin/legal-documents${q ? `?${q}` : ''}`)
+  },
+  createLegalDocument: (body: {
+    type: 'terms' | 'privacy'
+    locale?: 'ko' | 'en'
+    title?: string
+    content?: string
+    effectiveFrom?: string
+    titleKo?: string
+    contentKo?: string
+    titleEn?: string
+    contentEn?: string
+  }) =>
     request<{
       id: string
       type: string
+      locale: string
       version: number
       title: string
       content: string
@@ -165,10 +189,24 @@ export const api = {
       createdAt: string
       updatedAt: string
     }>('/admin/legal-documents', { method: 'POST', body: JSON.stringify(body) }),
+  updateLegalDocumentVersion: (body: {
+    type: 'terms' | 'privacy'
+    version: number
+    effectiveFrom?: string | null
+    titleKo?: string
+    contentKo?: string
+    titleEn?: string
+    contentEn?: string
+  }) =>
+    request<{ ok: boolean }>('/admin/legal-documents/version', {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
   updateLegalDocument: (id: string, body: { title?: string; content?: string; effectiveFrom?: string | null }) =>
     request<{
       id: string
       type: string
+      locale: string
       version: number
       title: string
       content: string

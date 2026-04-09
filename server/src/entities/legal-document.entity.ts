@@ -16,6 +16,10 @@ export class LegalDocument {
   @Column({ type: 'varchar', length: 20 })
   type: LegalDocumentType;
 
+  /** Document language; public API returns latest `ko` by default. */
+  @Column({ type: 'varchar', length: 5, default: 'ko' })
+  locale: string;
+
   @Column({ type: 'int', default: 1 })
   version: number;
 

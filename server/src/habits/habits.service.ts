@@ -36,7 +36,9 @@ export interface RecordDto {
 export interface HabitTemplateDto {
   id: string;
   name: string;
+  nameEn?: string;
   category?: string;
+  categoryEn?: string;
   goalType: string;
   goalValue?: number;
   colorHex?: string;
@@ -91,7 +93,9 @@ export class HabitsService {
     return list.map((t) => ({
       id: t.id,
       name: t.name,
+      nameEn: t.nameEn ?? undefined,
       category: t.category ?? undefined,
+      categoryEn: t.categoryEn ?? undefined,
       goalType: t.goalType,
       goalValue: t.goalValue ?? undefined,
       colorHex: t.colorHex ?? undefined,

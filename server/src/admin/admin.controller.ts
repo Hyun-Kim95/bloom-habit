@@ -139,7 +139,9 @@ export class AdminController {
 
   @Post('notices')
   @UseGuards(AdminGuard)
-  async createNotice(@Body() body: { title: string; body: string; publishedAt?: string }) {
+  async createNotice(
+    @Body() body: { title: string; body: string; titleEn?: string; bodyEn?: string; publishedAt?: string },
+  ) {
     return this.adminData.createNotice(body);
   }
 
@@ -191,16 +193,60 @@ export class AdminController {
 
   @Get('legal-documents')
   @UseGuards(AdminGuard)
-  async listLegalDocuments(@Query('type') type?: 'terms' | 'privacy'): Promise<LegalDocumentDto[]> {
-    return this.adminData.listLegalDocuments(type);
+  async listLegalDocuments(
+    @Query('type') type?: 'terms' | 'privacy',
+    @Query('locale') locale?: 'ko' | 'en' | 'all',
+  ): Promise<LegalDocumentDto[]> {
+    const loc: 'ko' | 'en' | 'all' =
+      locale === 'en' ? 'en' : locale === 'ko' ? 'ko' : 'all';
+    return this.adminData.listLegalDocuments(type, loc);
   }
 
   @Post('legal-documents')
   @UseGuards(AdminGuard)
   async createLegalDocument(
-    @Body() body: { type: 'terms' | 'privacy'; title?: string; content?: string; effectiveFrom?: string },
+    @Body()
+    body: {
+      type: 'terms' | 'privacy';
+      locale?: 'ko' | 'en';
+      title?: string;
+      content?: string;
+      effectiveFrom?: string;
+      titleKo?: string;
+      contentKo?: string;
+      titleEn?: string;
+      contentEn?: string;
+    },
   ): Promise<LegalDocumentDto> {
     return this.adminData.createLegalDocument(body);
+  }
+
+  @Patch('legal-documents/version')
+  @UseGuards(AdminGuard)
+  async updateLegalDocumentVersion(
+    @Body()
+    body: {
+      type: 'terms' | 'privacy';
+      version: number;
+      effectiveFrom?: string | null;
+      titleKo?: string;
+      contentKo?: string;
+      titleEn?: string;
+      contentEn?: string;
+    },
+  ) {
+    const v = Number(body.version);
+    if (!Number.isFinite(v) || v < 1) {
+      return { statusCode: 400, message: 'Invalid version' };
+    }
+    await this.adminData.updateLegalDocumentVersion(body.type, Math.floor(v), {
+      effectiveFrom: body.effectiveFrom,
+      titleKo: body.titleKo,
+      contentKo: body.contentKo,
+      titleEn: body.titleEn,
+      contentEn: body.contentEn,
+    });
+    return { ok: true };
   }
 
   @Patch('legal-documents/:id')

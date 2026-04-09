@@ -26,17 +26,23 @@ class _LegalViewScreenState extends ConsumerState<LegalViewScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _load();
+    });
   }
 
   Future<void> _load() async {
     final repo = ref.read(legalRepositoryProvider);
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final doc = widget.type == 'privacy' ? await repo.getPrivacy() : await repo.getTerms();
+      final lang = Localizations.localeOf(context).languageCode;
+      final doc = widget.type == 'privacy'
+          ? await repo.getPrivacy(languageCode: lang)
+          : await repo.getTerms(languageCode: lang);
       if (mounted) {
         setState(() {
           _doc = doc;

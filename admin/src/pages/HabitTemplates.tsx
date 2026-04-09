@@ -1,10 +1,19 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
+import { useI18n } from '../i18n/I18nContext'
+import {
+  displayCategory,
+  displayTemplateCategoryStored,
+  displayTemplateNameStored,
+} from '../i18n/dataDisplay'
+import { interpolate } from '../i18n/messages'
 
 type Template = {
   id: string
   name: string
+  nameEn?: string
   category?: string
+  categoryEn?: string
   goalType: string
   goalValue?: number | null
   colorHex?: string
@@ -13,13 +22,6 @@ type Template = {
 }
 
 const CONFIG_KEY = 'habit_categories'
-
-const GOAL_TYPE_OPTIONS = [
-  { value: 'completion', label: '완료 여부' },
-  { value: 'count', label: '횟수' },
-  { value: 'duration', label: '시간(분)' },
-  { value: 'number', label: '수치' },
-] as const
 
 const COLOR_PRESETS = ['22C55E', '3B82F6', 'F59E0B', 'EF4444', '8B5CF6', 'EC4899', '14B8A6', '6B7280'] as const
 
@@ -38,21 +40,36 @@ const ICON_OPTIONS = [
   'flag',
 ] as const
 
-function goalTypeLabel(code: string): string {
-  return GOAL_TYPE_OPTIONS.find((o) => o.value === code)?.label ?? code
+function goalTypeLabel(
+  code: string,
+  goalLabels: { completion: string; count: string; duration: string; number: string },
+): string {
+  const map: Record<string, string> = {
+    completion: goalLabels.completion,
+    count: goalLabels.count,
+    duration: goalLabels.duration,
+    number: goalLabels.number,
+  }
+  return map[code] ?? code
 }
 
-function formatGoalCell(t: Template): string {
-  const label = goalTypeLabel(t.goalType)
-  if (t.goalType === 'completion') return label
-  const v = t.goalValue
+function formatGoalCell(
+  tpl: Template,
+  goalLabels: { completion: string; count: string; duration: string; number: string },
+  t: (k: string, v?: Record<string, string | number>) => string,
+): string {
+  const label = goalTypeLabel(tpl.goalType, goalLabels)
+  if (tpl.goalType === 'completion') return label
+  const v = tpl.goalValue
   if (v != null && Number.isFinite(Number(v))) {
     const n = Number(v)
-    if (t.goalType === 'duration') return `${label} (${n}분)`
-    if (t.goalType === 'count') return `${label} (${n}회)`
+    if (tpl.goalType === 'duration')
+      return `${label} (${interpolate(t('habit.goalValueMin'), { n })})`
+    if (tpl.goalType === 'count')
+      return `${label} (${interpolate(t('habit.goalValueCount'), { n })})`
     return `${label} (${n})`
   }
-  return `${label} (목표값 없음)`
+  return `${label} (${t('habit.goalValueMissing')})`
 }
 
 function iconPreview(name?: string): string {
@@ -96,6 +113,7 @@ type ColorPickerProps = {
 }
 
 function ColorPicker({ value, onChange }: ColorPickerProps) {
+  const { t } = useI18n()
   return (
     <div className="mt-1 flex flex-wrap items-center gap-2">
       <button
@@ -105,7 +123,7 @@ function ColorPicker({ value, onChange }: ColorPickerProps) {
           value === '' ? 'border-primary text-primary' : 'border-border text-muted-foreground'
         }`}
       >
-        선택 안 함
+        {t('habit.colorNone')}
       </button>
       {COLOR_PRESETS.map((c) => {
         const selected = value === c
@@ -144,6 +162,7 @@ type CategoriesModalProps = {
 }
 
 function CategoriesModal({ open, onClose, onSaved }: CategoriesModalProps) {
+  const { t, lang } = useI18n()
   const [list, setList] = useState<string[]>([])
   const [inUse, setInUse] = useState<Set<string>>(new Set())
   const [newName, setNewName] = useState('')
@@ -159,9 +178,9 @@ function CategoriesModal({ open, onClose, onSaved }: CategoriesModalProps) {
         setInUse(new Set((u.inUse ?? []).map((s) => s.trim())))
         setError('')
       })
-      .catch((e) => setError(e instanceof Error ? e.message : '불러오기 실패'))
+      .catch((e) => setError(e instanceof Error ? e.message : t('habit.loadFail')))
       .finally(() => setLoading(false))
-  }, [])
+  }, [t])
 
   useEffect(() => {
     if (open) load()
@@ -173,7 +192,7 @@ function CategoriesModal({ open, onClose, onSaved }: CategoriesModalProps) {
     const name = newName.trim()
     if (!name) return
     if (list.includes(name)) {
-      setError('이미 있는 카테고리입니다.')
+      setError(t('habit.catDuplicate'))
       return
     }
     setList((prev) => [...prev, name])
@@ -185,7 +204,7 @@ function CategoriesModal({ open, onClose, onSaved }: CategoriesModalProps) {
     const name = list[index]?.trim()
     if (!name) return
     if (inUse.has(name)) {
-      setError('템플릿 또는 회원 습관에서 사용 중인 카테고리는 삭제할 수 없습니다.')
+      setError(t('habit.catInUseDelete'))
       return
     }
     setList((prev) => prev.filter((_, i) => i !== index))
@@ -195,9 +214,7 @@ function CategoriesModal({ open, onClose, onSaved }: CategoriesModalProps) {
   const save = async () => {
     const missing = [...inUse].filter((c) => !list.includes(c))
     if (missing.length > 0) {
-      setError(
-        `다음 카테고리는 사용 중이라 목록에 포함되어야 합니다: ${missing.join(', ')}`,
-      )
+      setError(t('habit.catMustInclude', { list: missing.join(', ') }))
       return
     }
     setSaving(true)
@@ -207,7 +224,7 @@ function CategoriesModal({ open, onClose, onSaved }: CategoriesModalProps) {
       onSaved()
       onClose()
     } catch (e) {
-      setError(e instanceof Error ? e.message : '저장 실패')
+      setError(e instanceof Error ? e.message : t('habit.saveFail'))
     } finally {
       setSaving(false)
     }
@@ -227,22 +244,20 @@ function CategoriesModal({ open, onClose, onSaved }: CategoriesModalProps) {
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h3 id="categories-modal-title" className="text-base font-semibold text-foreground">
-            습관 카테고리 관리
+            {t('habit.modalTitle')}
           </h3>
           <button
             type="button"
             onClick={onClose}
             className="rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           >
-            닫기
+            {t('habit.close')}
           </button>
         </div>
         <div className="max-h-[70vh] overflow-y-auto p-4 space-y-4">
-          <p className="text-sm text-muted-foreground">
-            앱에서 습관·템플릿에 쓸 카테고리입니다. 템플릿 또는 회원 습관에서 쓰는 이름은 삭제할 수 없습니다.
-          </p>
+          <p className="text-sm text-muted-foreground">{t('habit.catIntro')}</p>
           {loading ? (
-            <p className="text-sm text-muted-foreground">불러오는 중…</p>
+            <p className="text-sm text-muted-foreground">{t('habit.loading')}</p>
           ) : (
             <>
               <div className="flex gap-2">
@@ -251,7 +266,7 @@ function CategoriesModal({ open, onClose, onSaved }: CategoriesModalProps) {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && add()}
-                  placeholder="새 카테고리 이름"
+                  placeholder={t('habit.newCategoryPlaceholder')}
                   className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-foreground"
                 />
                 <button
@@ -259,13 +274,13 @@ function CategoriesModal({ open, onClose, onSaved }: CategoriesModalProps) {
                   onClick={add}
                   className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
                 >
-                  추가
+                  {t('habit.add')}
                 </button>
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <ul className="space-y-2">
                 {list.length === 0 ? (
-                  <li className="text-sm text-muted-foreground">등록된 카테고리가 없습니다.</li>
+                  <li className="text-sm text-muted-foreground">{t('habit.noCategories')}</li>
                 ) : (
                   list.map((name, index) => {
                     const locked = inUse.has(name.trim())
@@ -274,11 +289,11 @@ function CategoriesModal({ open, onClose, onSaved }: CategoriesModalProps) {
                         key={`${name}-${index}`}
                         className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2"
                       >
-                        <span className="text-foreground">{name}</span>
+                        <span className="text-foreground">{displayCategory(name, lang)}</span>
                         <div className="flex items-center gap-2 shrink-0">
                           {locked && (
                             <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              사용 중
+                              {t('habit.inUse')}
                             </span>
                           )}
                           <button
@@ -291,7 +306,7 @@ function CategoriesModal({ open, onClose, onSaved }: CategoriesModalProps) {
                                 : 'text-destructive hover:underline'
                             }`}
                           >
-                            삭제
+                            {t('habit.delete')}
                           </button>
                         </div>
                       </li>
@@ -305,7 +320,7 @@ function CategoriesModal({ open, onClose, onSaved }: CategoriesModalProps) {
                   onClick={onClose}
                   className="rounded-md border border-border px-4 py-2 text-sm"
                 >
-                  취소
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="button"
@@ -313,7 +328,7 @@ function CategoriesModal({ open, onClose, onSaved }: CategoriesModalProps) {
                   disabled={saving}
                   className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
                 >
-                  {saving ? '저장 중…' : '저장'}
+                  {saving ? t('habit.saving') : t('habit.save')}
                 </button>
               </div>
             </>
@@ -324,18 +339,41 @@ function CategoriesModal({ open, onClose, onSaved }: CategoriesModalProps) {
   )
 }
 
-function goalValueLabel(goalType: string): string {
-  if (goalType === 'count') return '목표 횟수'
-  if (goalType === 'duration') return '목표 시간(분)'
-  return '목표 수치'
-}
-
 export default function HabitTemplates() {
+  const { t, lang } = useI18n()
+  const goalLabels = useMemo(
+    () => ({
+      completion: t('habit.goalCompletion'),
+      count: t('habit.goalCount'),
+      duration: t('habit.goalDuration'),
+      number: t('habit.goalNumber'),
+    }),
+    [t],
+  )
+  const goalTypeOptions = useMemo(
+    () =>
+      [
+        { value: 'completion' as const, label: t('habit.goalCompletion') },
+        { value: 'count' as const, label: t('habit.goalCount') },
+        { value: 'duration' as const, label: t('habit.goalDuration') },
+        { value: 'number' as const, label: t('habit.goalNumber') },
+      ],
+    [t],
+  )
+
+  const goalValueLabel = (goalType: string) => {
+    if (goalType === 'count') return t('habit.goalTargetCount')
+    if (goalType === 'duration') return t('habit.goalTargetDuration')
+    return t('habit.goalTargetNumber')
+  }
+
   const [list, setList] = useState<Template[]>([])
   const [categories, setCategories] = useState<string[]>([])
   const [error, setError] = useState('')
   const [name, setName] = useState('')
+  const [nameEn, setNameEn] = useState('')
   const [category, setCategory] = useState('')
+  const [categoryEn, setCategoryEn] = useState('')
   const [goalType, setGoalType] = useState<string>('completion')
   const [goalValueInput, setGoalValueInput] = useState('')
   const [colorHex, setColorHex] = useState('')
@@ -343,7 +381,9 @@ export default function HabitTemplates() {
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState<Template | null>(null)
   const [editName, setEditName] = useState('')
+  const [editNameEn, setEditNameEn] = useState('')
   const [editCategory, setEditCategory] = useState('')
+  const [editCategoryEn, setEditCategoryEn] = useState('')
   const [editGoalType, setEditGoalType] = useState<string>('completion')
   const [editGoalValueInput, setEditGoalValueInput] = useState('')
   const [editColorHex, setEditColorHex] = useState('')
@@ -376,28 +416,32 @@ export default function HabitTemplates() {
     e.preventDefault()
     if (!name.trim()) return
     if (!colorHex.trim() || !iconName.trim()) {
-      setError('색상과 아이콘은 필수입니다.')
+      setError(t('habit.colorIconRequired'))
       return
     }
     setLoading(true)
     try {
       await api.createTemplate({
         name: name.trim(),
+        nameEn: nameEn.trim() || undefined,
         category: category.trim() || undefined,
+        categoryEn: categoryEn.trim() || undefined,
         goalType,
         goalValue: parseGoalValue(goalType, goalValueInput),
         colorHex: colorHex.trim() || undefined,
         iconName: iconName.trim() || undefined,
       })
       setName('')
+      setNameEn('')
       setCategory('')
+      setCategoryEn('')
       setGoalType('completion')
       setGoalValueInput('')
       setColorHex('')
       setIconName('')
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : '생성 실패')
+      setError(e instanceof Error ? e.message : t('habit.createFail'))
     } finally {
       setLoading(false)
     }
@@ -406,7 +450,9 @@ export default function HabitTemplates() {
   const startEdit = (t: Template) => {
     setEditing(t)
     setEditName(t.name)
+    setEditNameEn(t.nameEn ?? '')
     setEditCategory(t.category ?? '')
+    setEditCategoryEn(t.categoryEn ?? '')
     setEditGoalType(t.goalType || 'completion')
     setEditGoalValueInput(
       t.goalValue != null && Number.isFinite(Number(t.goalValue)) ? String(t.goalValue) : '',
@@ -419,14 +465,16 @@ export default function HabitTemplates() {
     e.preventDefault()
     if (!editing) return
     if (!editColorHex.trim() || !editIconName.trim()) {
-      setError('색상과 아이콘은 필수입니다.')
+      setError(t('habit.colorIconRequired'))
       return
     }
     setEditSaving(true)
     try {
       await api.updateTemplate(editing.id, {
         name: editName.trim(),
+        nameEn: editNameEn.trim(),
         category: editCategory.trim() || undefined,
+        categoryEn: editCategoryEn.trim(),
         goalType: editGoalType,
         goalValue: parseGoalValue(editGoalType, editGoalValueInput),
         colorHex: editColorHex.trim() || undefined,
@@ -435,28 +483,24 @@ export default function HabitTemplates() {
       setEditing(null)
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : '수정 실패')
+      setError(e instanceof Error ? e.message : t('habit.editFail'))
     } finally {
       setEditSaving(false)
     }
   }
 
   const remove = async (id: string) => {
-    if (!confirm('이 템플릿을 삭제할까요?')) return
+    if (!confirm(t('habit.confirmDelete'))) return
     try {
       await api.deleteTemplate(id)
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : '삭제 실패')
+      setError(e instanceof Error ? e.message : t('habit.deleteFail'))
     }
   }
 
   const reseedDefaults = async () => {
-    if (
-      !confirm(
-        '등록된 습관 템플릿을 모두 삭제하고, 기본 예시 템플릿으로 다시 채웁니다.\n이 작업은 되돌릴 수 없습니다. 계속할까요?',
-      )
-    ) {
+    if (!confirm(t('habit.reseedConfirm'))) {
       return
     }
     setReseeding(true)
@@ -464,9 +508,9 @@ export default function HabitTemplates() {
     try {
       const r = await api.reseedHabitTemplates()
       await load()
-      alert(`기본 예시 ${r.inserted}개로 초기화했습니다.`)
+      alert(t('habit.reseedDone', { n: r.inserted }))
     } catch (e) {
-      setError(e instanceof Error ? e.message : '초기화 실패')
+      setError(e instanceof Error ? e.message : t('habit.reseedFail'))
     } finally {
       setReseeding(false)
     }
@@ -481,7 +525,7 @@ export default function HabitTemplates() {
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-foreground">습관 템플릿 관리</h2>
+        <h2 className="text-lg font-semibold text-foreground">{t('habit.title')}</h2>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -489,14 +533,14 @@ export default function HabitTemplates() {
             disabled={reseeding}
             className="rounded-md border border-destructive/50 bg-background px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
           >
-            {reseeding ? '초기화 중…' : '예시 템플릿으로 초기화'}
+            {reseeding ? t('habit.reseeding') : t('habit.reseed')}
           </button>
           <button
             type="button"
             onClick={() => setCategoryModalOpen(true)}
             className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
           >
-            카테고리 관리
+            {t('habit.categories')}
           </button>
         </div>
       </div>
@@ -509,31 +553,47 @@ export default function HabitTemplates() {
 
       <form onSubmit={create} className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4">
         <div>
-          <label className="block text-sm font-medium text-foreground">이름</label>
+          <label className="block text-sm font-medium text-foreground">{t('habit.name')}</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-foreground"
-            placeholder="예: 아침 물 마시기"
+            placeholder={t('habit.namePlaceholder')}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-foreground">카테고리</label>
+          <label className="block text-sm font-medium text-foreground">{t('habit.nameEn')}</label>
+          <input
+            value={nameEn}
+            onChange={(e) => setNameEn(e.target.value)}
+            className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-foreground min-w-[180px]"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-foreground">{t('habit.category')}</label>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-foreground min-w-[120px]"
           >
-            <option value="">선택 안 함</option>
+            <option value="">{t('habit.selectNone')}</option>
             {categories.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {displayCategory(c, lang)}
               </option>
             ))}
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-foreground">목표 유형</label>
+          <label className="block text-sm font-medium text-foreground">{t('habit.categoryEn')}</label>
+          <input
+            value={categoryEn}
+            onChange={(e) => setCategoryEn(e.target.value)}
+            className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-foreground min-w-[160px]"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-foreground">{t('habit.goalType')}</label>
           <select
             value={goalType}
             onChange={(e) => {
@@ -543,7 +603,7 @@ export default function HabitTemplates() {
             }}
             className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-foreground min-w-[140px]"
           >
-            {GOAL_TYPE_OPTIONS.map((o) => (
+            {goalTypeOptions.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
               </option>
@@ -560,22 +620,22 @@ export default function HabitTemplates() {
               value={goalValueInput}
               onChange={(e) => setGoalValueInput(e.target.value)}
               className="mt-1 w-28 rounded-md border border-input bg-background px-3 py-2 text-foreground"
-              placeholder="숫자"
+              placeholder={t('habit.numberPlaceholder')}
             />
           </div>
         )}
         <div>
-          <label className="block text-sm font-medium text-foreground">색상</label>
+          <label className="block text-sm font-medium text-foreground">{t('habit.color')}</label>
           <ColorPicker value={colorHex} onChange={setColorHex} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-foreground">아이콘</label>
+          <label className="block text-sm font-medium text-foreground">{t('habit.icon')}</label>
           <select
             value={iconName}
             onChange={(e) => setIconName(e.target.value)}
             className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-foreground min-w-[170px]"
           >
-            <option value="">선택 안 함</option>
+            <option value="">{t('habit.selectNone')}</option>
             {ICON_OPTIONS.map((icon) => (
               <option key={icon} value={icon}>
                 {iconOptionLabel(icon)}
@@ -588,7 +648,7 @@ export default function HabitTemplates() {
           disabled={loading || !name.trim() || !colorHex.trim() || !iconName.trim()}
           className="rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
         >
-          추가
+          {t('habit.add')}
         </button>
       </form>
 
@@ -597,10 +657,10 @@ export default function HabitTemplates() {
           onSubmit={saveEdit}
           className="rounded-lg border border-border bg-card p-4 space-y-3"
         >
-          <h3 className="text-sm font-medium text-foreground">템플릿 수정</h3>
+          <h3 className="text-sm font-medium text-foreground">{t('habit.editTitle')}</h3>
           <div className="flex flex-wrap gap-3 items-end">
             <div>
-              <label className="block text-xs text-muted-foreground">이름</label>
+              <label className="block text-xs text-muted-foreground">{t('habit.name')}</label>
               <input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
@@ -608,22 +668,38 @@ export default function HabitTemplates() {
               />
             </div>
             <div>
-              <label className="block text-xs text-muted-foreground">카테고리</label>
+              <label className="block text-xs text-muted-foreground">{t('habit.nameEn')}</label>
+              <input
+                value={editNameEn}
+                onChange={(e) => setEditNameEn(e.target.value)}
+                className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-foreground text-sm min-w-[180px]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-muted-foreground">{t('habit.category')}</label>
               <select
                 value={editCategory}
                 onChange={(e) => setEditCategory(e.target.value)}
                 className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-foreground text-sm min-w-[120px]"
               >
-                <option value="">선택 안 함</option>
+                <option value="">{t('habit.selectNone')}</option>
                 {categories.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {displayCategory(c, lang)}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-muted-foreground">목표 유형</label>
+              <label className="block text-xs text-muted-foreground">{t('habit.categoryEn')}</label>
+              <input
+                value={editCategoryEn}
+                onChange={(e) => setEditCategoryEn(e.target.value)}
+                className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-foreground text-sm min-w-[160px]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-muted-foreground">{t('habit.goalType')}</label>
               <select
                 value={editGoalType}
                 onChange={(e) => {
@@ -633,7 +709,7 @@ export default function HabitTemplates() {
                 }}
                 className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-foreground text-sm min-w-[140px]"
               >
-                {GOAL_TYPE_OPTIONS.map((o) => (
+                {goalTypeOptions.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
                   </option>
@@ -654,17 +730,17 @@ export default function HabitTemplates() {
               </div>
             )}
             <div>
-              <label className="block text-xs text-muted-foreground">색상</label>
+              <label className="block text-xs text-muted-foreground">{t('habit.color')}</label>
               <ColorPicker value={editColorHex} onChange={setEditColorHex} />
             </div>
             <div>
-              <label className="block text-xs text-muted-foreground">아이콘</label>
+              <label className="block text-xs text-muted-foreground">{t('habit.icon')}</label>
               <select
                 value={editIconName}
                 onChange={(e) => setEditIconName(e.target.value)}
                 className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-foreground text-sm min-w-[170px]"
               >
-                <option value="">선택 안 함</option>
+                <option value="">{t('habit.selectNone')}</option>
                 {ICON_OPTIONS.map((icon) => (
                   <option key={icon} value={icon}>
                     {iconOptionLabel(icon)}
@@ -677,14 +753,14 @@ export default function HabitTemplates() {
               disabled={editSaving || !editName.trim() || !editColorHex.trim() || !editIconName.trim()}
               className="rounded-md bg-primary px-3 py-2 text-primary-foreground text-sm disabled:opacity-50"
             >
-              저장
+              {t('common.save')}
             </button>
             <button
               type="button"
               onClick={() => setEditing(null)}
               className="rounded-md border border-border px-3 py-2 text-sm"
             >
-              취소
+              {t('common.cancel')}
             </button>
           </div>
         </form>
@@ -694,44 +770,48 @@ export default function HabitTemplates() {
         <table className="w-full text-sm text-card-foreground">
           <thead className="border-b border-border bg-muted/50">
             <tr>
-              <th className="text-left p-3 font-medium">이름</th>
-              <th className="text-left p-3 font-medium">카테고리</th>
-              <th className="text-left p-3 font-medium">목표 유형</th>
-              <th className="text-left p-3 font-medium">색상</th>
-              <th className="text-left p-3 font-medium">아이콘</th>
-              <th className="text-right p-3 font-medium">수정 / 삭제</th>
+              <th className="text-left p-3 font-medium">{t('habit.colName')}</th>
+              <th className="text-left p-3 font-medium">{t('habit.colCategory')}</th>
+              <th className="text-left p-3 font-medium">{t('habit.colGoal')}</th>
+              <th className="text-left p-3 font-medium">{t('habit.colColor')}</th>
+              <th className="text-left p-3 font-medium">{t('habit.colIcon')}</th>
+              <th className="text-right p-3 font-medium">{t('habit.colActions')}</th>
             </tr>
           </thead>
           <tbody>
-            {list.map((t) => (
-              <tr key={t.id} className="border-b border-border last:border-0">
-                <td className="p-3">{t.name}</td>
-                <td className="p-3">{t.category ?? '-'}</td>
-                <td className="p-3">{formatGoalCell(t)}</td>
+            {list.map((row) => (
+              <tr key={row.id} className="border-b border-border last:border-0">
+                <td className="p-3">{displayTemplateNameStored(row, lang)}</td>
                 <td className="p-3">
-                  {t.colorHex ? (
+                  {row.category || row.categoryEn
+                    ? displayTemplateCategoryStored(row, lang) || '-'
+                    : '-'}
+                </td>
+                <td className="p-3">{formatGoalCell(row, goalLabels, t)}</td>
+                <td className="p-3">
+                  {row.colorHex ? (
                     <div className="flex items-center gap-2">
                       <span
                         className="inline-block h-4 w-4 rounded-full border border-border"
-                        style={{ backgroundColor: `#${t.colorHex}` }}
+                        style={{ backgroundColor: `#${row.colorHex}` }}
                       />
-                      <span>#{t.colorHex}</span>
+                      <span>#{row.colorHex}</span>
                     </div>
                   ) : (
                     '-'
                   )}
                 </td>
                 <td className="p-3">
-                  {t.iconName ? (
+                  {row.iconName ? (
                     <div className="flex items-center gap-2">
                       <span
                         className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border bg-muted/40"
-                        aria-label={t.iconName}
-                        title={t.iconName}
+                        aria-label={row.iconName}
+                        title={row.iconName}
                       >
-                        {iconPreview(t.iconName)}
+                        {iconPreview(row.iconName)}
                       </span>
-                      <span>{t.iconName}</span>
+                      <span>{row.iconName}</span>
                     </div>
                   ) : (
                     '-'
@@ -740,17 +820,17 @@ export default function HabitTemplates() {
                 <td className="p-3 text-right space-x-2">
                   <button
                     type="button"
-                    onClick={() => startEdit(t)}
+                    onClick={() => startEdit(row)}
                     className="text-muted-foreground hover:text-foreground"
                   >
-                    수정
+                    {t('common.edit')}
                   </button>
                   <button
                     type="button"
-                    onClick={() => remove(t.id)}
+                    onClick={() => remove(row.id)}
                     className="text-destructive hover:underline"
                   >
-                    삭제
+                    {t('common.delete')}
                   </button>
                 </td>
               </tr>
@@ -758,7 +838,7 @@ export default function HabitTemplates() {
           </tbody>
         </table>
         {list.length === 0 && (
-          <p className="p-4 text-muted-foreground">템플릿이 없습니다.</p>
+          <p className="p-4 text-muted-foreground">{t('habit.empty')}</p>
         )}
       </div>
     </div>

@@ -8,6 +8,54 @@ export type DefaultTemplateRow = {
   iconName?: string;
 };
 
+/** reseed 시 영문 컬럼 채우기 (admin dataDisplay와 동일 매핑) */
+const CATEGORY_KO_TO_EN: Record<string, string> = {
+  건강: 'Health',
+  운동: 'Exercise',
+  독서: 'Reading',
+  학습: 'Study',
+  명상: 'Mindfulness',
+  취미: 'Hobby',
+  업무: 'Work',
+  생활: 'Daily life',
+};
+
+const TEMPLATE_NAME_KO_TO_EN: Record<string, string> = {
+  '아침 물 한 잔': 'A glass of water in the morning',
+  '일찍 자기': 'Go to bed early',
+  '비타민 챙기기': 'Take vitamins',
+  '가볍게 걷기 10분': 'Walk lightly for 10 min',
+  '계단 이용하기': 'Take the stairs',
+  '스트레칭 5분': 'Stretch for 5 min',
+  '책 읽기 15분': 'Read for 15 min',
+  '온라인 강의 1강': 'One online lesson',
+  '영단어 10개': '10 English words',
+  '명상 5분': 'Meditate for 5 min',
+  '감사 일기 한 줄': 'One-line gratitude journal',
+  '악기 연습 15분': 'Practice instrument 15 min',
+  '그림·스케치': 'Drawing / sketch',
+  '오늘 할 일 정리': 'Plan today’s tasks',
+  '이메일 정리': 'Tidy up email',
+  '침대 정리': 'Make the bed',
+  '설거지하기': 'Do the dishes',
+  '물 8잔 마시기': 'Drink 8 glasses of water',
+  팔굽혀펴기: 'Push-ups',
+  '영단어 복습 카드': 'Vocabulary review cards',
+  '집중 독서': 'Focused reading',
+  '영어 팟캐스트 듣기': 'Listen to English podcast',
+  '유산소 운동': 'Cardio exercise',
+  '하루 걸음 수': 'Daily step count',
+  '공부·업무 집중 기록': 'Study/work focus log',
+};
+
+export function reseedCategoryEn(ko: string): string | null {
+  return CATEGORY_KO_TO_EN[ko] ?? null;
+}
+
+export function reseedTemplateNameEn(ko: string): string | null {
+  return TEMPLATE_NAME_KO_TO_EN[ko] ?? null;
+}
+
 /** DB에 템플릿이 없을 때 시드 (카테고리는 habit_categories 기본값과 맞춤) */
 export const DEFAULT_HABIT_TEMPLATES: ReadonlyArray<DefaultTemplateRow> = [
   // 완료 여부

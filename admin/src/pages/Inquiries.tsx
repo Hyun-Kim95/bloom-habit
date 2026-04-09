@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import { useI18n } from '../i18n/I18nContext'
 
 type Inquiry = {
   id: string
@@ -16,6 +17,7 @@ type Inquiry = {
 }
 
 export default function Inquiries() {
+  const { t, locale } = useI18n()
   const [list, setList] = useState<Inquiry[]>([])
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<Inquiry | null>(null)
@@ -47,7 +49,7 @@ export default function Inquiries() {
       setSelected(updated)
       setList((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
     } catch (e) {
-      setError(e instanceof Error ? e.message : '저장 실패')
+      setError(e instanceof Error ? e.message : t('inquiries.saveFail'))
     } finally {
       setSaving(false)
     }
@@ -56,29 +58,34 @@ export default function Inquiries() {
   const formatDate = (s: string) => {
     try {
       const d = new Date(s)
-      const yyyy = d.getFullYear()
-      const mm = String(d.getMonth() + 1).padStart(2, '0')
-      const dd = String(d.getDate()).padStart(2, '0')
-      const hh = String(d.getHours()).padStart(2, '0')
-      const mi = String(d.getMinutes()).padStart(2, '0')
-      return `${yyyy}.${mm}.${dd} ${hh}:${mi}`
+      return d.toLocaleString(locale, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
     } catch {
       return s
     }
   }
 
-  if (error) return <p className="text-destructive">{error}</p>
+  if (error && list.length === 0) return <p className="text-destructive">{error}</p>
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-foreground">문의</h2>
+      <h2 className="text-lg font-semibold text-foreground">{t('inquiries.title')}</h2>
+
+      {error && list.length > 0 && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="flex gap-4 flex-1 min-h-0">
         <div className="w-96 flex-shrink-0 rounded-lg border border-border bg-card overflow-hidden flex flex-col">
-          <div className="p-3 border-b border-border font-medium text-card-foreground">목록</div>
+          <div className="p-3 border-b border-border font-medium text-card-foreground">
+            {t('inquiries.list')}
+          </div>
           <ul className="overflow-auto flex-1 divide-y divide-border">
             {list.length === 0 && (
-              <li className="p-4 text-sm text-muted-foreground">문의가 없습니다.</li>
+              <li className="p-4 text-sm text-muted-foreground">{t('inquiries.empty')}</li>
             )}
             {list.map((item) => (
               <li key={item.id}>
@@ -101,11 +108,11 @@ export default function Inquiries() {
                           : 'text-amber-600 dark:text-amber-400'
                       }
                     >
-                      {item.status === 'answered' ? '답변 완료' : '대기 중'}
+                      {item.status === 'answered' ? t('inquiries.answered') : t('inquiries.pending')}
                     </span>
                     {item.status === 'answered' && item.repliedAt && (
                       <span className="text-xs text-muted-foreground ml-2">
-                        · 답변 {formatDate(item.repliedAt)}
+                        {t('inquiries.replyAt', { date: formatDate(item.repliedAt) })}
                       </span>
                     )}
                   </div>
@@ -117,7 +124,7 @@ export default function Inquiries() {
 
         <div className="flex-1 min-w-0 rounded-lg border border-border bg-card p-4 flex flex-col">
           {!selected ? (
-            <p className="text-muted-foreground">목록에서 문의를 선택하세요.</p>
+            <p className="text-muted-foreground">{t('inquiries.selectPrompt')}</p>
           ) : (
             <>
               <div className="space-y-2 mb-4">
@@ -133,18 +140,20 @@ export default function Inquiries() {
 
               <form onSubmit={saveReply} className="space-y-3 flex-1 flex flex-col min-h-0">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">관리자 답변</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    {t('inquiries.adminReply')}
+                  </label>
                   <textarea
                     value={adminReply}
                     onChange={(e) => setAdminReply(e.target.value)}
                     rows={5}
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    placeholder="답변 내용을 입력하세요."
+                    placeholder={t('inquiries.replyPlaceholder')}
                   />
                 </div>
                 {selected.repliedAt && (
                   <p className="text-xs text-muted-foreground">
-                    마지막 답변: {formatDate(selected.repliedAt)}
+                    {t('inquiries.lastReply', { date: formatDate(selected.repliedAt) })}
                   </p>
                 )}
                 <button
@@ -152,7 +161,7 @@ export default function Inquiries() {
                   disabled={saving}
                   className="self-start px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {saving ? '저장 중…' : '저장'}
+                  {saving ? t('inquiries.saving') : t('inquiries.save')}
                 </button>
               </form>
             </>

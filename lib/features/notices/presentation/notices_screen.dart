@@ -22,17 +22,20 @@ class _NoticesScreenState extends ConsumerState<NoticesScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _load();
+    });
   }
 
   Future<void> _load() async {
     final repo = ref.read(noticeRepositoryProvider);
+    final lang = Localizations.localeOf(context).languageCode;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final list = await repo.listPublished();
+      final list = await repo.listPublished(languageCode: lang);
       if (mounted) {
         setState(() {
           _items = list;
@@ -57,6 +60,17 @@ class _NoticesScreenState extends ConsumerState<NoticesScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    ref.listen(appSettingsProvider, (prev, next) {
+      next.whenData((settings) {
+        final prevLocale = prev?.valueOrNull?.localeCode;
+        if (prevLocale != null && prevLocale != settings.localeCode) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _load();
+          });
+        }
+      });
+    });
+    final lang = Localizations.localeOf(context).languageCode;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? AppColors.foregroundDark : AppColors.foreground;
     final muted = AppColors.mutedFg(isDark);
@@ -115,12 +129,14 @@ class _NoticesScreenState extends ConsumerState<NoticesScreen> {
                           separatorBuilder: (context, index) => const SizedBox(height: 12),
                           itemBuilder: (context, i) {
                             final n = _items[i];
+                            final titleText = n.resolvedTitle(lang);
+                            final bodyText = n.resolvedBody(lang);
                             return Card(
                               child: ExpansionTile(
                                 tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                                 childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                                 title: Text(
-                                  n.title.isEmpty ? l10n.untitled : n.title,
+                                  titleText.isEmpty ? l10n.untitled : titleText,
                                   style: GoogleFonts.dmSans(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -138,7 +154,7 @@ class _NoticesScreenState extends ConsumerState<NoticesScreen> {
                                   Align(
                                     alignment: Alignment.centerLeft,
                                     child: SelectableText(
-                                      n.body.isEmpty ? l10n.noContent : n.body,
+                                      bodyText.isEmpty ? l10n.noContent : bodyText,
                                       style: GoogleFonts.dmSans(
                                         fontSize: 15,
                                         height: 1.45,

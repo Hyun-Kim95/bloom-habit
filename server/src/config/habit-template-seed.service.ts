@@ -3,7 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { HabitTemplate } from '../entities';
-import { DEFAULT_HABIT_TEMPLATES } from './default-habit-templates';
+import {
+  DEFAULT_HABIT_TEMPLATES,
+  reseedCategoryEn,
+  reseedTemplateNameEn,
+} from './default-habit-templates';
 
 @Injectable()
 export class HabitTemplateSeedService implements OnModuleInit {
@@ -29,9 +33,13 @@ export class HabitTemplateSeedService implements OnModuleInit {
         this.repo.create({
           id: `t-${uuidv4()}`,
           name: row.name,
+          nameEn: reseedTemplateNameEn(row.name),
           category: row.category,
+          categoryEn: row.category ? reseedCategoryEn(row.category) : null,
           goalType,
           goalValue,
+          colorHex: row.colorHex ?? null,
+          iconName: row.iconName ?? null,
           isActive: true,
         }),
       );

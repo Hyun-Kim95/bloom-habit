@@ -19,8 +19,9 @@ class LegalRepository {
 
   final Dio _dio;
 
-  Future<LegalDocumentItem> getTerms() async {
-    final res = await _dio.get<Map<String, dynamic>>(ApiEndpoints.legalTerms);
+  Future<LegalDocumentItem> getTerms({String languageCode = 'ko'}) async {
+    final q = languageCode == 'en' ? '?locale=en' : '';
+    final res = await _dio.get<Map<String, dynamic>>('${ApiEndpoints.legalTerms}$q');
     final data = res.data;
     if (data == null) return const LegalDocumentItem(title: '', content: '');
     return LegalDocumentItem(
@@ -29,8 +30,9 @@ class LegalRepository {
     );
   }
 
-  Future<LegalDocumentItem> getPrivacy() async {
-    final res = await _dio.get<Map<String, dynamic>>(ApiEndpoints.legalPrivacy);
+  Future<LegalDocumentItem> getPrivacy({String languageCode = 'ko'}) async {
+    final q = languageCode == 'en' ? '?locale=en' : '';
+    final res = await _dio.get<Map<String, dynamic>>('${ApiEndpoints.legalPrivacy}$q');
     final data = res.data;
     if (data == null) return const LegalDocumentItem(title: '', content: '');
     return LegalDocumentItem(

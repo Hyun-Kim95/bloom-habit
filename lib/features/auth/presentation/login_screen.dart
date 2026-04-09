@@ -36,6 +36,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       if (result.cancelled) return;
       if (result.isSuccess) {
+        // Stop button spinner as soon as auth succeeds; FCM registration can be
+        // slow or stall on emulators (Firebase Play Services).
+        if (mounted) setState(() => _loadingFor = null);
         await repo.registerFcmToken();
         ref.invalidate(sessionRestoredProvider);
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -68,6 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       if (result.cancelled) return;
       if (result.isSuccess) {
+        if (mounted) setState(() => _loadingFor = null);
         await repo.registerFcmToken();
         ref.invalidate(sessionRestoredProvider);
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -100,6 +104,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       if (result.cancelled) return;
       if (result.isSuccess) {
+        if (mounted) setState(() => _loadingFor = null);
         await repo.registerFcmToken();
         ref.invalidate(sessionRestoredProvider);
         WidgetsBinding.instance.addPostFrameCallback((_) {

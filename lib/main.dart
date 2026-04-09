@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bloom_habit/l10n/app_localizations.dart';
 
 import 'core/notifications/notification_service.dart';
@@ -9,10 +10,14 @@ import 'core/router/app_providers.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/social/android_social_sdk_init.dart';
+import 'core/settings/app_settings.dart';
 import 'l10n/app_strings.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final initialLocaleCode = prefs.getString(kSettingsLocaleKey) ?? 'ko';
+  AppStrings.localeCode = initialLocaleCode;
   await initAndroidSocialSdks();
   scheduleAndroidSocialSdkWarmup();
   try {
@@ -23,11 +28,14 @@ void main() async {
   final notif = NotificationService();
   await notif.init();
   await FcmNotificationListener.init(notif);
-  runApp(const ProviderScope(child: BloomHabitApp()));
+  runApp(ProviderScope(child: BloomHabitApp(initialLocaleCode: initialLocaleCode)));
 }
 
 class BloomHabitApp extends ConsumerWidget {
-  const BloomHabitApp({super.key});
+  const BloomHabitApp({super.key, required this.initialLocaleCode});
+
+  /// Locale from SharedPreferences before [appSettingsProvider] resolves (avoids a `ko` first frame).
+  final String initialLocaleCode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,7 +46,7 @@ class BloomHabitApp extends ConsumerWidget {
       'dark' => ThemeMode.dark,
       _ => ThemeMode.system,
     };
-    final localeCode = settings?.localeCode ?? 'ko';
+    final localeCode = settings?.localeCode ?? initialLocaleCode;
     AppStrings.localeCode = localeCode;
     return MaterialApp.router(
       title: 'Bloom Habit',

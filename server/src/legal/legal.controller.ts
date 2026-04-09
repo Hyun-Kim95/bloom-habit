@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { LegalService, LegalDocumentPublicDto } from './legal.service';
 
 @Controller('legal')
@@ -6,15 +6,21 @@ export class LegalController {
   constructor(private readonly legal: LegalService) {}
 
   @Get('terms')
-  async getTerms(): Promise<LegalDocumentPublicDto | { content: ''; title: string }> {
-    const doc = await this.legal.getLatest('terms');
+  async getTerms(
+    @Query('locale') locale?: string,
+  ): Promise<LegalDocumentPublicDto | { content: ''; title: string }> {
+    const loc = locale === 'en' ? 'en' : 'ko';
+    const doc = await this.legal.getLatest('terms', loc);
     if (!doc) return { title: '', content: '' };
     return doc;
   }
 
   @Get('privacy')
-  async getPrivacy(): Promise<LegalDocumentPublicDto | { content: ''; title: string }> {
-    const doc = await this.legal.getLatest('privacy');
+  async getPrivacy(
+    @Query('locale') locale?: string,
+  ): Promise<LegalDocumentPublicDto | { content: ''; title: string }> {
+    const loc = locale === 'en' ? 'en' : 'ko';
+    const doc = await this.legal.getLatest('privacy', loc);
     if (!doc) return { title: '', content: '' };
     return doc;
   }

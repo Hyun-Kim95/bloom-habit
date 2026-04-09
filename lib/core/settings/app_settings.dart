@@ -7,7 +7,8 @@ const _keyHapticEnabled = 'settings_haptic_enabled';
 const _keyOnboardingSeen = 'settings_onboarding_seen';
 const _keyOnboardingOnlyFirstLaunch = 'settings_onboarding_only_first_launch';
 const _keyThemeMode = 'settings_theme_mode';
-const _keyLocale = 'settings_locale';
+/// SharedPreferences key for [AppSettings.localeCode] (also read in `main` before runApp).
+const kSettingsLocaleKey = 'settings_locale';
 
 /// App-wide settings (notification/sound/haptic/onboarding) in SharedPreferences.
 class AppSettings {
@@ -21,7 +22,7 @@ class AppSettings {
   bool get hasSeenOnboarding => _prefs.getBool(_keyOnboardingSeen) ?? false;
   bool get showOnboardingOnlyFirstLaunch => _prefs.getBool(_keyOnboardingOnlyFirstLaunch) ?? true;
   String get themeMode => _prefs.getString(_keyThemeMode) ?? 'system';
-  String get localeCode => _prefs.getString(_keyLocale) ?? 'ko';
+  String get localeCode => _prefs.getString(kSettingsLocaleKey) ?? 'ko';
 
   Future<void> setNotificationsEnabled(bool value) async {
     await _prefs.setBool(keyNotificationsEnabled, value);
@@ -48,7 +49,7 @@ class AppSettings {
   }
 
   Future<void> setLocaleCode(String value) async {
-    await _prefs.setString(_keyLocale, value);
+    await _prefs.setString(kSettingsLocaleKey, value);
   }
 }
 

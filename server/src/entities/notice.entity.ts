@@ -17,6 +17,13 @@ export class Notice {
   @Column({ type: 'text' })
   body: string;
 
+  /** Optional English (admin + app when locale is en). */
+  @Column({ type: 'text', nullable: true })
+  titleEn: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  bodyEn: string | null;
+
   @Column({ type: 'timestamptz', nullable: true })
   publishedAt: Date | null;
 

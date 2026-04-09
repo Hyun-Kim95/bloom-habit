@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
+import { useI18n } from '../i18n/I18nContext'
 
 type User = {
   id: string
@@ -21,7 +22,9 @@ type SortKey = 'createdAt' | 'habitCount' | 'completionRatePercent'
 type SortDir = 'asc' | 'desc'
 
 export default function Users() {
+  const { t, locale } = useI18n()
   const [users, setUsers] = useState<User[]>([])
+  const [initialError, setInitialError] = useState('')
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('createdAt')
@@ -31,7 +34,10 @@ export default function Users() {
   const [savingDeactivate, setSavingDeactivate] = useState(false)
 
   useEffect(() => {
-    api.getUsers().then(setUsers).catch((e) => setError(e.message))
+    api
+      .getUsers()
+      .then(setUsers)
+      .catch((e) => setInitialError(e.message))
   }, [])
 
   const filtered = useMemo(() => {
@@ -42,7 +48,7 @@ export default function Users() {
         (u) =>
           u.id.toLowerCase().includes(q) ||
           (u.email ?? '').toLowerCase().includes(q) ||
-          (u.displayName ?? '').toLowerCase().includes(q)
+          (u.displayName ?? '').toLowerCase().includes(q),
       )
     }
     const sorted = [...list].sort((a, b) => {
@@ -90,13 +96,15 @@ export default function Users() {
 
   const toggleUserActive = async (u: User) => {
     const next = !u.isActive
-    const action = next ? '활성화' : '비활성화'
+    const msg = next
+      ? t('users.confirmActivate', { id: u.id })
+      : t('users.confirmDeactivate', { id: u.id })
     if (!next) {
       setDeactivateTarget(u)
       setDeactivateReason('')
       return
     } else {
-      if (!confirm(`${u.id} 계정을 ${action}할까요?`)) return
+      if (!confirm(msg)) return
     }
     try {
       await api.setUserActive(u.id, next)
@@ -114,7 +122,7 @@ export default function Users() {
         ),
       )
     } catch (e) {
-      setError(e instanceof Error ? e.message : '상태 변경 실패')
+      setError(e instanceof Error ? e.message : t('users.errorState'))
     }
   }
 
@@ -122,7 +130,7 @@ export default function Users() {
     if (!deactivateTarget) return
     const reason = deactivateReason.trim()
     if (!reason) {
-      setError('비활성화 사유를 입력해야 합니다.')
+      setError(t('users.reasonRequired'))
       return
     }
     setSavingDeactivate(true)
@@ -144,29 +152,33 @@ export default function Users() {
       setDeactivateTarget(null)
       setDeactivateReason('')
     } catch (e) {
-      setError(e instanceof Error ? e.message : '상태 변경 실패')
+      setError(e instanceof Error ? e.message : t('users.errorState'))
     } finally {
       setSavingDeactivate(false)
     }
   }
 
-  if (error) return <p className="text-destructive">{error}</p>
+  if (initialError) {
+    return <p className="text-destructive">{initialError}</p>
+  }
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-foreground">회원 관리</h2>
+      <h2 className="text-lg font-semibold text-foreground">{t('users.title')}</h2>
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-border bg-card p-3">
-          <p className="text-xs text-muted-foreground">조회 대상 회원</p>
+          <p className="text-xs text-muted-foreground">{t('users.filtered')}</p>
           <p className="text-xl font-semibold text-card-foreground">{filtered.length}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-3">
-          <p className="text-xs text-muted-foreground">활성 회원</p>
+          <p className="text-xs text-muted-foreground">{t('users.active')}</p>
           <p className="text-xl font-semibold text-card-foreground">{activeCount}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-3">
-          <p className="text-xs text-muted-foreground">비활성 회원</p>
+          <p className="text-xs text-muted-foreground">{t('users.inactive')}</p>
           <p className="text-xl font-semibold text-card-foreground">{inactiveCount}</p>
         </div>
       </div>
@@ -175,38 +187,38 @@ export default function Users() {
         <div className="flex flex-wrap items-center gap-3">
           <input
             type="search"
-            placeholder="ID·이메일·표시명 검색"
+            placeholder={t('users.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground w-48"
           />
-          <span className="text-sm text-muted-foreground">정렬</span>
+          <span className="text-sm text-muted-foreground">{t('users.sort')}</span>
           <select
             value={sortKey}
             onChange={(e) => setSortKey(e.target.value as SortKey)}
             className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           >
-            <option value="createdAt">가입일</option>
-            <option value="habitCount">습관 수</option>
-            <option value="completionRatePercent">완료율</option>
+            <option value="createdAt">{t('users.sortCreated')}</option>
+            <option value="habitCount">{t('users.sortHabitCount')}</option>
+            <option value="completionRatePercent">{t('users.sortCompletion')}</option>
           </select>
           <select
             value={sortDir}
             onChange={(e) => setSortDir(e.target.value as SortDir)}
             className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           >
-            <option value="desc">내림차순</option>
-            <option value="asc">오름차순</option>
+            <option value="desc">{t('users.sortDesc')}</option>
+            <option value="asc">{t('users.sortAsc')}</option>
           </select>
           <button
             type="button"
             onClick={downloadCsv}
             className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground hover:bg-accent"
           >
-            CSV 다운로드
+            {t('users.csv')}
           </button>
           <span className="text-sm text-muted-foreground">
-            {filtered.length}명 / 전체 {users.length}명
+            {t('users.countSummary', { filtered: filtered.length, total: users.length })}
           </span>
         </div>
       </div>
@@ -215,17 +227,17 @@ export default function Users() {
         <table className="w-full text-sm text-card-foreground">
           <thead className="border-b border-border bg-muted/50">
             <tr>
-              <th className="text-left p-3 font-medium">ID</th>
-              <th className="text-left p-3 font-medium">이메일</th>
-              <th className="text-left p-3 font-medium">플랫폼</th>
-              <th className="text-left p-3 font-medium">표시명</th>
-              <th className="text-left p-3 font-medium">가입일</th>
-              <th className="text-left p-3 font-medium">계정 상태</th>
-              <th className="text-left p-3 font-medium">비활성화 사유</th>
-              <th className="text-right p-3 font-medium">습관 수</th>
-              <th className="text-right p-3 font-medium">총 기록</th>
-              <th className="text-right p-3 font-medium">완료율</th>
-              <th className="text-right p-3 font-medium">기능</th>
+              <th className="text-left p-3 font-medium">{t('users.colId')}</th>
+              <th className="text-left p-3 font-medium">{t('users.colEmail')}</th>
+              <th className="text-left p-3 font-medium">{t('users.colProvider')}</th>
+              <th className="text-left p-3 font-medium">{t('users.colName')}</th>
+              <th className="text-left p-3 font-medium">{t('users.colCreated')}</th>
+              <th className="text-left p-3 font-medium">{t('users.colStatus')}</th>
+              <th className="text-left p-3 font-medium">{t('users.colReason')}</th>
+              <th className="text-right p-3 font-medium">{t('users.colHabits')}</th>
+              <th className="text-right p-3 font-medium">{t('users.colRecords')}</th>
+              <th className="text-right p-3 font-medium">{t('users.colRate')}</th>
+              <th className="text-right p-3 font-medium">{t('users.colActions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -236,11 +248,11 @@ export default function Users() {
                 <td className="p-3">{u.authProvider}</td>
                 <td className="p-3">{u.displayName ?? '-'}</td>
                 <td className="p-3 text-muted-foreground">
-                  {new Date(u.createdAt).toLocaleDateString('ko-KR')}
+                  {new Date(u.createdAt).toLocaleDateString(locale)}
                 </td>
                 <td className="p-3">
                   <span className={u.isActive ? 'text-primary font-medium' : 'text-destructive font-medium'}>
-                    {u.isActive ? '활성' : '비활성'}
+                    {u.isActive ? t('users.statusActive') : t('users.statusInactive')}
                   </span>
                 </td>
                 <td className="p-3 text-muted-foreground">
@@ -263,7 +275,7 @@ export default function Users() {
                         : 'border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20'
                     }`}
                   >
-                    {u.isActive ? '비활성화' : '활성화'}
+                    {u.isActive ? t('users.deactivate') : t('users.activate')}
                   </button>
                 </td>
               </tr>
@@ -272,7 +284,7 @@ export default function Users() {
         </table>
         {filtered.length === 0 && (
           <p className="p-4 text-muted-foreground">
-            {users.length === 0 ? '등록된 회원이 없습니다.' : '조건에 맞는 회원이 없습니다.'}
+            {users.length === 0 ? t('users.emptyAll') : t('users.emptyFilter')}
           </p>
         )}
       </div>
@@ -286,10 +298,9 @@ export default function Users() {
             className="w-full max-w-md rounded-lg border border-border bg-card p-5 text-card-foreground"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-base font-semibold">회원 비활성화</h3>
+            <h3 className="text-base font-semibold">{t('users.modalTitle')}</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{deactivateTarget.id}</span> 계정을 비활성화합니다.
-              사유를 입력해 주세요.
+              {t('users.modalBody', { id: deactivateTarget.id })}
             </p>
             <textarea
               value={deactivateReason}
@@ -297,7 +308,7 @@ export default function Users() {
               maxLength={500}
               rows={4}
               className="mt-3 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
-              placeholder="비활성화 사유"
+              placeholder={t('users.reasonPlaceholder')}
             />
             <div className="mt-1 text-right text-xs text-muted-foreground">
               {deactivateReason.length}/500
@@ -309,7 +320,7 @@ export default function Users() {
                 disabled={savingDeactivate}
                 className="rounded-md border border-border px-3 py-2 text-sm"
               >
-                취소
+                {t('users.cancel')}
               </button>
               <button
                 type="button"
@@ -317,7 +328,7 @@ export default function Users() {
                 disabled={savingDeactivate || !deactivateReason.trim()}
                 className="rounded-md bg-destructive px-3 py-2 text-sm text-destructive-foreground disabled:opacity-50"
               >
-                {savingDeactivate ? '처리 중…' : '비활성화'}
+                {savingDeactivate ? t('users.processing') : t('users.deactivate')}
               </button>
             </div>
           </div>

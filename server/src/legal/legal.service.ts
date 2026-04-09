@@ -21,11 +21,15 @@ export class LegalService {
     private readonly repo: Repository<LegalDocument>,
   ) {}
 
-  async getLatest(type: LegalDocumentType): Promise<LegalDocumentPublicDto | null> {
+  async getLatest(type: LegalDocumentType, locale: 'ko' | 'en' = 'ko'): Promise<LegalDocumentPublicDto | null> {
+    const loc = locale === 'en' ? 'en' : 'ko';
     const doc = await this.repo.findOne({
-      where: { type },
+      where: { type, locale: loc },
       order: { version: 'DESC' },
     });
+    if (!doc && loc === 'en') {
+      return this.getLatest(type, 'ko');
+    }
     if (!doc) return null;
     return {
       id: doc.id,

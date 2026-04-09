@@ -14,8 +14,16 @@ export class HabitTemplate {
   @Column()
   name: string;
 
+  /** Optional English display name (app + admin). */
+  @Column({ type: 'varchar', nullable: true })
+  nameEn: string | null;
+
   @Column({ type: 'varchar', nullable: true })
   category: string | null;
+
+  /** Optional English category label (canonical [category] remains KO for habits). */
+  @Column({ type: 'varchar', nullable: true })
+  categoryEn: string | null;
 
   @Column({ default: 'completion' })
   goalType: string;

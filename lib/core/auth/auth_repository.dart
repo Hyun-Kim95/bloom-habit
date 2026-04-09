@@ -312,8 +312,11 @@ class AuthRepository {
   Future<void> registerFcmToken() async {
     try {
       final messaging = FirebaseMessaging.instance;
-      await messaging.requestPermission(alert: true, badge: true, sound: true);
-      final token = await messaging.getToken();
+      const stepTimeout = Duration(seconds: 20);
+      await messaging
+          .requestPermission(alert: true, badge: true, sound: true)
+          .timeout(stepTimeout);
+      final token = await messaging.getToken().timeout(stepTimeout);
       if (token == null || token.isEmpty) return;
       await _api.dio.patch<Map<String, dynamic>>(
         ApiEndpoints.me,
@@ -323,7 +326,7 @@ class AuthRepository {
         'FCM token registered: ${token.length >= 6 ? token.substring(0, 6) : token}',
       );
     } catch (_) {
-      // Ignore when Firebase is not configured or permission is denied.
+      // Ignore when Firebase is not configured, permission denied, or timeout.
     }
   }
 }

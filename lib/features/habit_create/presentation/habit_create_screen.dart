@@ -130,7 +130,8 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
         }
       }
       if (t == null) return;
-      _nameController.text = t.name;
+      final lang = Localizations.localeOf(context).languageCode;
+      _nameController.text = t.resolvedName(lang);
       _selectedCategory = t.category;
       _goalType = _goalTypes.contains(t.goalType) ? t.goalType : 'completion';
       _goalValue = _goalType == 'completion' ? null : t.goalValue;
@@ -231,6 +232,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final muted = AppColors.mutedFg(isDark);
+    final lang = Localizations.localeOf(context).languageCode;
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       appBar: AppBar(
@@ -281,7 +283,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                 ..._templates.map(
                   (t) => DropdownMenuItem<String?>(
                     value: t.id,
-                    child: Text(t.name, style: GoogleFonts.dmSans()),
+                    child: Text(t.resolvedName(lang), style: GoogleFonts.dmSans()),
                   ),
                 ),
               ],
