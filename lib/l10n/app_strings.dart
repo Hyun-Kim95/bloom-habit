@@ -6,8 +6,8 @@ class AppStrings {
 
   static String get authIdTokenMissing => isKo ? 'ID token 없음' : 'ID token missing';
   static String get authGoogleSetupNeeded => isKo
-      ? 'Google 로그인 설정이 필요합니다. 개발 PC에서 docs/google-signin-setup.md를 참고해 Google Cloud에 SHA-1을 등록해 주세요.'
-      : 'Google sign-in setup is required. Please register SHA-1 in Google Cloud (see docs/google-signin-setup.md).';
+      ? 'Google 로그인 설정이 필요합니다. 개발 PC에서 docs/guides/google-signin-setup.md를 참고해 Google Cloud에 SHA-1을 등록해 주세요.'
+      : 'Google sign-in setup is required. Please register SHA-1 in Google Cloud (see docs/guides/google-signin-setup.md).';
   static String get authServerTimeout => isKo
       ? '서버 연결 시간이 초과되었습니다. 실제 폰은 PC와 같은 Wi-Fi에서 android/local.properties에 API_BASE_URL=http://PC_IP:3000 을 넣고 앱을 다시 빌드하세요. PC에서 서버(포트 3000) 실행·방화벽도 확인하세요.'
       : 'Connection timed out. On a real phone, set API_BASE_URL in android/local.properties to your PC IP (same Wi-Fi), rebuild, and ensure the server on port 3000 is reachable.';
@@ -22,8 +22,8 @@ class AppStrings {
       ? '카카오 SDK가 초기화되지 않았습니다. android/local.properties에 KAKAO_NATIVE_APP_KEY를 넣고 앱을 다시 빌드해 주세요.'
       : 'Kakao SDK is not initialized. Add KAKAO_NATIVE_APP_KEY to android/local.properties and rebuild.';
   static String get authKakaoKeyHashFailed => isKo
-      ? '카카오 Android 키 해시가 콘솔에 등록되지 않았습니다. 카카오 개발자 콘솔 → 앱 → 플랫폼(Android) → 키 해시에 등록하세요. 방법: docs/kakao-android-keyhash.md'
-      : 'Kakao Android key hash is not registered. Add it in Kakao Developers → App → Android platform. See docs/kakao-android-keyhash.md';
+      ? '카카오 Android 키 해시가 콘솔에 등록되지 않았습니다. 카카오 개발자 콘솔 → 앱 → 플랫폼(Android) → 키 해시에 등록하세요. 방법: docs/guides/kakao-android-keyhash.md'
+      : 'Kakao Android key hash is not registered. Add it in Kakao Developers → App → Android platform. See docs/guides/kakao-android-keyhash.md';
   static String get authNaverNotConfigured => isKo
       ? '네이버 SDK가 초기화되지 않았습니다. android/local.properties에 NAVER_* 값을 넣고 앱을 다시 빌드해 주세요.'
       : 'Naver SDK is not initialized. Add NAVER_* keys to android/local.properties and rebuild.';

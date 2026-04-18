@@ -42,6 +42,12 @@ flutter run
 - **대상 선택**: 터미널에서 `flutter run` 시 기기/에뮬레이터 번호 선택 (예: Chrome, Windows, Android 에뮬레이터).
 - **Android 에뮬레이터**: 앱에서 API는 자동으로 `http://10.0.2.2:3000` 사용 (호스트 PC 서버 연결).
 
+### 수익화(AdMob / Play 인앱 결제)
+
+- **문서**: `docs/spec/11-monetization-admob-iap.md` — 상품 ID(`remove_ads`, `donation_small`, `donation_medium`), 스토어 설정, 출시 전 AdMob 앱 ID 교체.
+- **Android**: `android/local.properties`에 실제 AdMob **앱** ID를 넣으려면 `ADMOB_APP_ID=ca-app-pub-xxxxxxxx~yyyyyyyyyy` (비우면 Gradle이 Google **테스트** 앱 ID를 사용).
+- **릴리스 배너 단위**: 빌드 시 `--dart-define=BANNER_AD_UNIT_ID=ca-app-pub-xxx/yyy` 로 실제 배너 단위 ID 지정(미지정 시 디버그와 동일하게 테스트 단위 사용).
+
 ---
 
 ## 3. 관리자 웹 실행

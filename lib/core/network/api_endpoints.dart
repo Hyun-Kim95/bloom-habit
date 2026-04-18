@@ -1,4 +1,4 @@
-/// API path constants (based on docs/05-erd-api-spec).
+/// API path constants (based on docs/spec/05-erd-api-spec.md).
 abstract class ApiEndpoints {
   static const String authGoogle = '/auth/google';
   static const String authKakao = '/auth/kakao';

@@ -37,6 +37,9 @@
 - [x] **앱**: Android 홈 화면 위젯 1종 (Glance, 오늘 n/m 완료) + 데이터 갱신·탭 시 앱 진입
 - [ ] **앱**: iOS 홈 화면 위젯 1종 (동일 컨셉) — Xcode에서 Widget Extension 추가 후 `iOSName: 'BloomHabitWidget'` 연동 필요
 
+### 수익화
+- [x] **앱**: AdMob **적응형 배너** + Google Play 인앱 결제(`remove_ads` 비소모, `donation_small` / `donation_medium` 소모) — 설정 → 후원 및 광고 제거 (`docs/spec/11-monetization-admob-iap.md`)
+
 ### 감성 UX
 - [x] **앱**: 기록 완료 시 **Lottie** 애니메이션 (완료 다이얼로그에 표시)
 - [x] **앱**: 기록 완료 등 주요 액션 시 **햅틱** 피드백
