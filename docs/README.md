@@ -18,7 +18,9 @@
 | [10-prd-todo-list.md](spec/10-prd-todo-list.md) | 갭 기준 우선순위 작업 TODO (체크리스트) |
 | [11-monetization-admob-iap.md](spec/11-monetization-admob-iap.md) | AdMob 배너 + 인앱 결제(광고 제거·후원) 설정·상품 ID |
 
-**클라이언트 연동 참고:** [Google 로그인 SHA-1](guides/google-signin-setup.md) · [카카오 Android 키 해시](guides/kakao-android-keyhash.md)
+**클라이언트 연동 참고:** [Google 로그인 SHA-1](guides/google-signin-setup.md) · [카카오 Android 키 해시](guides/kakao-android-keyhash.md) · [Flutter 실기기 테스트](guides/flutter-device-testing.md)
+
+**DB 운영 참고:** [DB Migration Runbook](guides/db-migration-runbook.md) · [DB Change Workflow](guides/db-change-workflow.md) · [DB Migration Troubleshooting](guides/db-migration-troubleshooting.md)
 
 ---
 
