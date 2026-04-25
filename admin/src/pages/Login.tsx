@@ -88,7 +88,6 @@ export default function Login() {
             {loading ? t('login.loading') : t('login.submit')}
           </button>
         </form>
-        <p className="mt-4 text-xs text-muted-foreground">{t('login.hint')}</p>
       </div>
     </div>
   )

@@ -20,6 +20,8 @@
 
 **클라이언트 연동 참고:** [Google 로그인 SHA-1](guides/google-signin-setup.md) · [카카오 Android 키 해시](guides/kakao-android-keyhash.md) · [Flutter 실기기 테스트](guides/flutter-device-testing.md)
 
+**가이드 인덱스:** [Guides README](guides/README.md)
+
 **DB 운영 참고:** [DB Migration Runbook](guides/db-migration-runbook.md) · [DB Change Workflow](guides/db-change-workflow.md) · [DB Migration Troubleshooting](guides/db-migration-troubleshooting.md)
 
 ---

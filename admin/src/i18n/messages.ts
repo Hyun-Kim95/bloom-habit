@@ -33,7 +33,6 @@ export const messages: Record<AdminLang, Record<string, string>> = {
     'login.submit': '로그인',
     'login.loading': '로그인 중...',
     'login.error': '로그인 실패',
-    'login.hint': '기본: admin@bloom.local / admin123',
 
     'dashboard.title': '대시보드',
     'dashboard.totalUsers': '가입 회원',
@@ -241,7 +240,6 @@ export const messages: Record<AdminLang, Record<string, string>> = {
     'login.submit': 'Sign in',
     'login.loading': 'Signing in...',
     'login.error': 'Sign-in failed',
-    'login.hint': 'Default: admin@bloom.local / admin123',
 
     'dashboard.title': 'Dashboard',
     'dashboard.totalUsers': 'Registered users',
