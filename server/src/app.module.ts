@@ -15,17 +15,10 @@ import { StaticAssetsModule } from './static/static-assets.module';
 import { PublicNoticesModule } from './notices/public-notices.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import {
-  User,
-  Habit,
-  HabitRecord,
-  AdminUser,
-  HabitTemplate,
-  Notice,
-  SystemConfig,
-  Inquiry,
-  LegalDocument,
-  MissedHabitPushLog,
-} from './entities';
+  typeOrmConnectionExtras,
+  typeOrmEntities,
+  typeOrmSynchronize,
+} from './database/typeorm-base.config';
 
 @Module({
   imports: [
@@ -33,24 +26,9 @@ import {
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
-      entities: [
-        User,
-        Habit,
-        HabitRecord,
-        AdminUser,
-        HabitTemplate,
-        Notice,
-        SystemConfig,
-        Inquiry,
-        LegalDocument,
-        MissedHabitPushLog,
-      ],
-      synchronize: process.env.NODE_ENV !== 'production',
-      extra: {
-        connectionTimeoutMillis: 15000,
-        idleTimeoutMillis: 30000,
-        keepAlive: true,
-      },
+      entities: typeOrmEntities,
+      synchronize: typeOrmSynchronize(),
+      extra: typeOrmConnectionExtras,
     }),
     AuthModule,
     HabitsModule,

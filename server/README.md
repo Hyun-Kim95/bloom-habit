@@ -9,6 +9,40 @@ npm run start:dev
 
 기본 포트: **3000**
 
+## DB 마이그레이션 (TypeORM)
+
+스키마는 **`src/migrations/`** 아래 마이그레이션 파일로 관리한다. 엔티티 목록·연결 옵션은 `src/database/typeorm-base.config.ts`와 Nest의 `app.module.ts`가 공유한다.
+
+### `synchronize` 동작
+
+- 기본: `NODE_ENV === 'production'`이면 자동 동기화 **끔**, 그 외에는 **켬**.
+- 강제로 끄려면: `TYPEORM_SYNC=false`
+- 강제로 켜려면: `TYPEORM_SYNC=true` (로컬/일회성만 권장)
+
+### 스크립트 (`server` 디렉터리에서 실행)
+
+| 명령 | 설명 |
+|------|------|
+| `npm run migration:show` | 적용된/대기 마이그레이션 목록 (`dist` 기준, **먼저 `npm run build`**) |
+| `npm run migration:run` | 미적용 마이그레이션 실행 (`dist` 기준, 배포 전 **`npm run build` 필요**) |
+| `npm run migration:revert` | 마지막 마이그레이션 1개 롤백 |
+| `npm run migration:run:dev` | 소스 `data-source.ts`로 실행 (로컬에서 빌드 없이 시험할 때) |
+| `npm run migration:generate -- src/migrations/이름` | DB와 엔티티 **차이**를 반영한 파일 생성 (`build` 포함). **빈 DB**에 붙이면 초기 스키마 생성에 적합 |
+| `npm run migration:create -- src/migrations/이름` | 빈 마이그레이션 파일만 생성 (SQL 직접 작성) |
+| `npm run start:prod:migrate` | `build` → `migration:run` → `start:prod` (Railway 등에서 한 번에 쓸 때) |
+
+### Railway 예시
+
+- **Build**: `npm run build`
+- **Start**: `npm run migration:run && npm run start:prod`  
+  또는 `npm run start:prod:migrate` (빌드가 이미 되었다면 `migration:run && start:prod`만으로 충분)
+
+`DATABASE_URL`은 Railway Postgres 변수를 그대로 사용한다.
+
+### CLI 주의
+
+- `src/database/data-source.ts`에는 **DataSource 인스턴스 default export 하나만** 있어야 한다 (TypeORM CLI 제약).
+
 ## 엔드포인트 (1차)
 
 - `POST /auth/google` — Body: `{ "idToken": "..." }` → accessToken, user 반환
