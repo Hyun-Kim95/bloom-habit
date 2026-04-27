@@ -113,6 +113,19 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
               soundEnabled: settings?.soundEnabled ?? true,
             );
           }
+        } else if (mounted) {
+          final isEn = Localizations.localeOf(context).languageCode == 'en';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                isEn
+                    ? 'Less than one minute is not saved, so completion feedback is skipped.'
+                    : '1분 미만은 저장되지 않아 완료 피드백이 재생되지 않습니다.',
+              ),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 3),
+            ),
+          );
         }
         if (!mounted) return;
         ref.read(homeRefreshTriggerProvider.notifier).state++;
@@ -190,6 +203,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         ),
       );
     } catch (_) {
+      debugPrint('HabitDetailScreen: record today failed goalType=$goalType');
       if (mounted) setState(() => _recording = false);
     }
   }

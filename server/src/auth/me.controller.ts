@@ -63,6 +63,9 @@ export class MeController {
     @UploadedFile()
     file: any,
   ) {
+    console.log(
+      `[avatar-upload] user=${req.userId} mime=${file?.mimetype ?? 'none'} size=${file?.size ?? 0} name=${file?.originalname ?? 'none'}`,
+    );
     const storedFileName = await this.auth.uploadAvatarFromPresignedToken(
       req.userId,
       decodeURIComponent(token),

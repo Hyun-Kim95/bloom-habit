@@ -24,22 +24,41 @@ class HabitCompletionFeedback {
         anyFeedbackPlayed = true;
       } catch (e) {
         debugPrint('HabitCompletionFeedback: haptic failed: $e');
+        try {
+          await HapticFeedback.selectionClick();
+          anyFeedbackPlayed = true;
+        } catch (fallbackError) {
+          debugPrint(
+            'HabitCompletionFeedback: haptic fallback failed: $fallbackError',
+          );
+        }
       }
     }
     if (!soundEnabled) return anyFeedbackPlayed;
     try {
       await _player.stop();
       await _player.setAsset('assets/sounds/complete.wav');
+      await _player.setVolume(1.0);
       await _player.seek(Duration.zero);
       unawaited(_player.play());
       anyFeedbackPlayed = true;
     } catch (e) {
-      debugPrint('HabitCompletionFeedback: asset sound failed, fallback to system click: $e');
+      debugPrint(
+        'HabitCompletionFeedback: asset sound failed, fallback to system alert/click: $e',
+      );
+      try {
+        await SystemSound.play(SystemSoundType.alert);
+        anyFeedbackPlayed = true;
+      } catch (alertError) {
+        debugPrint('HabitCompletionFeedback: system alert failed: $alertError');
+      }
       try {
         await SystemSound.play(SystemSoundType.click);
         anyFeedbackPlayed = true;
       } catch (fallbackError) {
-        debugPrint('HabitCompletionFeedback: system click fallback failed: $fallbackError');
+        debugPrint(
+          'HabitCompletionFeedback: system click fallback failed: $fallbackError',
+        );
       }
     }
     return anyFeedbackPlayed;

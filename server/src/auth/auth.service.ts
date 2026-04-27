@@ -273,7 +273,7 @@ export class AuthService {
     if (file.size > payload.maxBytes) {
       throw new BadRequestException('파일 크기 제한을 초과했습니다.');
     }
-    if (!this.isAllowedImageMime(file.mimetype)) {
+    if (!this.isAllowedImageUploadMime(file.mimetype, payload.fileName)) {
       throw new BadRequestException('이미지 파일만 업로드할 수 있습니다.');
     }
     const uploadDir = join(process.cwd(), 'uploads', 'avatars');
@@ -427,9 +427,13 @@ export class AuthService {
     return 'jpg';
   }
 
-  private isAllowedImageMime(mime?: string): boolean {
+  private isAllowedImageUploadMime(mime: string | undefined, fileName: string): boolean {
     const normalized = (mime ?? '').toLowerCase().trim();
-    return ['image/jpeg', 'image/png', 'image/webp'].includes(normalized);
+    if (normalized.startsWith('image/')) return true;
+    // Some clients can send octet-stream for image multipart parts.
+    if (normalized != 'application/octet-stream') return false;
+    const ext = extname(fileName).toLowerCase().trim();
+    return ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
   }
 
   private signUploadToken(payload: {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -178,12 +179,21 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     try {
       final auth = ref.read(authRepositoryProvider);
       final bytes = await picked.readAsBytes();
+      final mimeType = _guessImageMimeType(picked.name, picked.mimeType);
+      debugPrint(
+        'AccountScreen: upload avatar name=${picked.name}, mime=$mimeType, bytes=${bytes.length}',
+      );
       final presign = await auth.createAvatarUploadPresign(
         fileName: picked.name,
         fileSize: bytes.length,
-        contentType: picked.mimeType,
+        contentType: mimeType,
       );
-      await auth.uploadAvatarFile(uploadUrl: presign.uploadUrl, bytes: bytes);
+      await auth.uploadAvatarFile(
+        uploadUrl: presign.uploadUrl,
+        bytes: bytes,
+        fileName: picked.name,
+        mimeType: mimeType,
+      );
       await auth.updateMeProfile(avatarUrl: presign.publicUrl);
       await _loadProfile();
       if (mounted) {
@@ -192,6 +202,13 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         ).showSnackBar(SnackBar(content: Text(l10n.profilePhotoUpdated)));
       }
     } catch (e) {
+      if (e is DioException) {
+        debugPrint(
+          'AccountScreen: avatar upload failed status=${e.response?.statusCode}, data=${e.response?.data}',
+        );
+      } else {
+        debugPrint('AccountScreen: avatar upload failed error=$e');
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -202,6 +219,15 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     } finally {
       if (mounted) setState(() => _avatarUploading = false);
     }
+  }
+
+  String _guessImageMimeType(String fileName, String? pickedMime) {
+    final normalized = (pickedMime ?? '').toLowerCase().trim();
+    if (normalized.startsWith('image/')) return normalized;
+    final lower = fileName.toLowerCase();
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    return 'image/jpeg';
   }
 
   Future<void> _manageProfilePhoto() async {

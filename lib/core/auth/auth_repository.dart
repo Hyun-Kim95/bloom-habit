@@ -304,11 +304,33 @@ class AuthRepository {
   Future<void> uploadAvatarFile({
     required String uploadUrl,
     required Uint8List bytes,
+    required String fileName,
+    String? mimeType,
   }) async {
+    final normalizedMime = _normalizeImageMimeType(mimeType, fileName);
     final formData = FormData.fromMap({
-      'file': MultipartFile.fromBytes(bytes, filename: 'avatar'),
+      'file': MultipartFile.fromBytes(
+        bytes,
+        filename: fileName,
+        contentType: DioMediaType.parse(normalizedMime),
+      ),
     });
-    await _api.dio.put(uploadUrl, data: formData);
+    await _api.dio.put(
+      uploadUrl,
+      data: formData,
+      options: Options(
+        headers: <String, String>{'Content-Type': 'multipart/form-data'},
+      ),
+    );
+  }
+
+  String _normalizeImageMimeType(String? mimeType, String fileName) {
+    final normalized = (mimeType ?? '').toLowerCase().trim();
+    if (normalized.startsWith('image/')) return normalized;
+    final lowerName = fileName.toLowerCase();
+    if (lowerName.endsWith('.png')) return 'image/png';
+    if (lowerName.endsWith('.webp')) return 'image/webp';
+    return 'image/jpeg';
   }
 
   /// Deactivate account on server with reason and clear local tokens.

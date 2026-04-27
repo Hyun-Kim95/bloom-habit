@@ -463,7 +463,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       // Refresh list and heatmap after server/local persistence.
       await _load();
     } catch (_) {
-      // no-op
+      debugPrint(
+        'HomeScreen: record habit failed for sid=$sid, goalType=$goalType',
+      );
     }
   }
 
