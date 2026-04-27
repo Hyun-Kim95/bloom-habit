@@ -39,12 +39,14 @@ class HabitEditResult {
   const HabitEditResult({
     required this.name,
     required this.goalType,
+    required this.numberDirection,
     this.goalValue,
     this.colorHex,
     this.iconName,
   });
   final String name;
   final String goalType;
+  final String numberDirection;
   final double? goalValue;
   final String? colorHex;
   final String? iconName;
@@ -57,6 +59,7 @@ Future<HabitEditResult?> showHabitEditSheet(
 }) async {
   final nameController = TextEditingController(text: habit.name ?? '');
   String goalType = habit.goalType ?? 'completion';
+  String numberDirection = (habit.numberDirection == 'lte') ? 'lte' : 'gte';
   double? goalValue = habit.goalValue;
   String? colorHex = habit.colorHex;
   String? iconName = habit.iconName;
@@ -114,6 +117,21 @@ Future<HabitEditResult?> showHabitEditSheet(
                         .toList(),
                     onChanged: (v) => setModalState(() => goalType = v ?? 'completion'),
                   ),
+                  if (goalType == 'number') ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: numberDirection,
+                      decoration: InputDecoration(
+                        labelText: l10n.goalNumberHint,
+                        border: const OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'gte', child: Text('이상(>=)')),
+                        DropdownMenuItem(value: 'lte', child: Text('이하(<=)')),
+                      ],
+                      onChanged: (v) => setModalState(() => numberDirection = v ?? 'gte'),
+                    ),
+                  ],
                   if (goalType != 'completion') ...[
                     const SizedBox(height: 12),
                     TextFormField(
@@ -187,6 +205,7 @@ Future<HabitEditResult?> showHabitEditSheet(
                       Navigator.pop(ctx, HabitEditResult(
                         name: name,
                         goalType: goalType,
+                        numberDirection: numberDirection,
                         goalValue: goalValue,
                         colorHex: colorHex,
                         iconName: iconName,

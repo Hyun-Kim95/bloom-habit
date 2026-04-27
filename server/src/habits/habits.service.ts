@@ -14,6 +14,7 @@ export interface HabitDto {
   name: string;
   category?: string;
   goalType: string;
+  numberDirection: 'gte' | 'lte';
   goalValue?: number;
   startDate: string;
   colorHex?: string;
@@ -40,6 +41,7 @@ export interface HabitTemplateDto {
   category?: string;
   categoryEn?: string;
   goalType: string;
+  numberDirection: 'gte' | 'lte';
   goalValue?: number;
   colorHex?: string;
   iconName?: string;
@@ -52,6 +54,7 @@ function toHabitDto(e: HabitEntity): HabitDto {
     name: e.name,
     category: e.category ?? undefined,
     goalType: e.goalType,
+    numberDirection: e.numberDirection === 'lte' ? 'lte' : 'gte',
     goalValue: e.goalValue ?? undefined,
     startDate: e.startDate,
     colorHex: e.colorHex ?? undefined,
@@ -97,6 +100,7 @@ export class HabitsService {
       category: t.category ?? undefined,
       categoryEn: t.categoryEn ?? undefined,
       goalType: t.goalType,
+      numberDirection: t.numberDirection === 'lte' ? 'lte' : 'gte',
       goalValue: t.goalValue ?? undefined,
       colorHex: t.colorHex ?? undefined,
       iconName: t.iconName ?? undefined,
@@ -128,6 +132,7 @@ export class HabitsService {
       name: string;
       category?: string;
       goalType: string;
+      numberDirection?: 'gte' | 'lte';
       goalValue?: number;
       startDate: string;
       colorHex?: string;
@@ -140,6 +145,7 @@ export class HabitsService {
       name: body.name,
       category: body.category,
       goalType: body.goalType ?? 'completion',
+      numberDirection: this.normalizeNumberDirection(body.numberDirection),
       goalValue: body.goalValue,
       startDate: body.startDate,
       colorHex: body.colorHex,
@@ -153,11 +159,14 @@ export class HabitsService {
   async update(
     id: string,
     userId: string,
-    body: Partial<Pick<HabitDto, 'name' | 'category' | 'goalType' | 'goalValue' | 'colorHex' | 'iconName'>>,
+    body: Partial<Pick<HabitDto, 'name' | 'category' | 'goalType' | 'numberDirection' | 'goalValue' | 'colorHex' | 'iconName'>>,
   ): Promise<HabitDto | undefined> {
     const h = await this.habitRepo.findOne({ where: { id, userId } });
     if (!h) return undefined;
     Object.assign(h, body);
+    if (body.numberDirection !== undefined) {
+      h.numberDirection = this.normalizeNumberDirection(body.numberDirection);
+    }
     await this.habitRepo.save(h);
     return toHabitDto(h);
   }
@@ -201,7 +210,7 @@ export class HabitsService {
   async addRecord(
     habitId: string,
     userId: string,
-    body: { recordDate: string; value?: number; completed: boolean },
+    body: { recordDate: string; value?: number; completed?: boolean },
   ): Promise<RecordDto | undefined> {
     const h = await this.habitRepo.findOne({ where: { id: habitId, userId } });
     if (!h) return undefined;
@@ -209,17 +218,19 @@ export class HabitsService {
       where: { habitId, recordDate: body.recordDate },
     });
     if (existing) {
-      existing.value = body.value ?? existing.value;
-      existing.completed = body.completed;
+      const merged = this.mergeRecordByGoalType(h, existing.value, body.value, body.completed);
+      existing.value = merged.value;
+      existing.completed = merged.completed;
       await this.recordRepo.save(existing);
       return toRecordDto(existing);
     }
+    const merged = this.mergeRecordByGoalType(h, null, body.value, body.completed);
     const record = this.recordRepo.create({
       id: `r-${uuidv4()}`,
       habitId,
       recordDate: body.recordDate,
-      value: body.value,
-      completed: body.completed,
+      value: merged.value,
+      completed: merged.completed,
     });
     await this.recordRepo.save(record);
     return toRecordDto(record);
@@ -235,8 +246,15 @@ export class HabitsService {
     if (!r) return undefined;
     const h = await this.habitRepo.findOne({ where: { id: habitId, userId } });
     if (!h) return undefined;
-    if (body.completed !== undefined) r.completed = body.completed;
-    if (body.value !== undefined) r.value = body.value;
+    const next = this.updateRecordByGoalType(
+      h,
+      r.value,
+      r.completed,
+      body.value,
+      body.completed,
+    );
+    r.value = next.value;
+    r.completed = next.completed;
     await this.recordRepo.save(r);
     return toRecordDto(r);
   }
@@ -337,5 +355,99 @@ export class HabitsService {
       result[uid] = { habitCount: count, totalRecords, completedRecords };
     }
     return result;
+  }
+
+  private normalizeNumberDirection(raw?: string): 'gte' | 'lte' {
+    return raw === 'lte' ? 'lte' : 'gte';
+  }
+
+  private normalizeGoalType(raw?: string): 'completion' | 'count' | 'duration' | 'number' {
+    switch ((raw ?? '').trim().toLowerCase()) {
+      case 'count':
+        return 'count';
+      case 'duration':
+        return 'duration';
+      case 'number':
+        return 'number';
+      default:
+        return 'completion';
+    }
+  }
+
+  private mergeRecordByGoalType(
+    habit: HabitEntity,
+    existingValue: number | null,
+    incomingValue?: number,
+    incomingCompleted?: boolean,
+  ): { value: number | null; completed: boolean } {
+    const goalType = this.normalizeGoalType(habit.goalType);
+    if (goalType === 'completion') {
+      return {
+        value: incomingValue ?? existingValue ?? null,
+        completed: incomingCompleted ?? true,
+      };
+    }
+
+    const step = Number.isFinite(Number(incomingValue)) ? Number(incomingValue) : 1;
+    const prev = Number.isFinite(Number(existingValue)) ? Number(existingValue) : 0;
+    const nextValue = prev + step;
+    return {
+      value: nextValue,
+      completed: this.computeCompleted(
+        goalType,
+        nextValue,
+        habit.goalValue,
+        this.normalizeNumberDirection(habit.numberDirection),
+      ),
+    };
+  }
+
+  private updateRecordByGoalType(
+    habit: HabitEntity,
+    existingValue: number | null,
+    existingCompleted: boolean,
+    nextValueInput?: number,
+    completedInput?: boolean,
+  ): { value: number | null; completed: boolean } {
+    const goalType = this.normalizeGoalType(habit.goalType);
+    if (goalType === 'completion') {
+      return {
+        value: nextValueInput ?? existingValue ?? null,
+        completed: completedInput ?? existingCompleted,
+      };
+    }
+
+    const nextValue =
+      nextValueInput !== undefined
+        ? Number(nextValueInput)
+        : Number.isFinite(Number(existingValue))
+          ? Number(existingValue)
+          : 0;
+    return {
+      value: nextValue,
+      completed: this.computeCompleted(
+        goalType,
+        nextValue,
+        habit.goalValue,
+        this.normalizeNumberDirection(habit.numberDirection),
+      ),
+    };
+  }
+
+  private computeCompleted(
+    goalType: 'completion' | 'count' | 'duration' | 'number',
+    value: number,
+    goalValue?: number | null,
+    numberDirection: 'gte' | 'lte' = 'gte',
+  ): boolean {
+    if (goalType === 'completion') return true;
+    if (goalValue == null || !Number.isFinite(Number(goalValue))) {
+      return value > 0;
+    }
+    const goal = Number(goalValue);
+    if (goalType === 'number' && numberDirection === 'lte') {
+      return value <= goal;
+    }
+    return value >= goal;
   }
 }

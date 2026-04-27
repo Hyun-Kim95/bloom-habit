@@ -57,38 +57,43 @@ const LocalHabitSchema = CollectionSchema(
       name: r'name',
       type: IsarType.string,
     ),
-    r'reminderEnabled': PropertySchema(
+    r'numberDirection': PropertySchema(
       id: 8,
+      name: r'numberDirection',
+      type: IsarType.string,
+    ),
+    r'reminderEnabled': PropertySchema(
+      id: 9,
       name: r'reminderEnabled',
       type: IsarType.bool,
     ),
     r'reminderHour': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'reminderHour',
       type: IsarType.long,
     ),
     r'reminderMinute': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'reminderMinute',
       type: IsarType.long,
     ),
     r'serverId': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'serverId',
       type: IsarType.string,
     ),
     r'startDate': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'startDate',
       type: IsarType.dateTime,
     ),
     r'updatedAt': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'userId': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'userId',
       type: IsarType.string,
     )
@@ -158,6 +163,12 @@ int _localHabitEstimateSize(
     }
   }
   {
+    final value = object.numberDirection;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.serverId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -186,13 +197,14 @@ void _localHabitSerialize(
   writer.writeDouble(offsets[5], object.goalValue);
   writer.writeString(offsets[6], object.iconName);
   writer.writeString(offsets[7], object.name);
-  writer.writeBool(offsets[8], object.reminderEnabled);
-  writer.writeLong(offsets[9], object.reminderHour);
-  writer.writeLong(offsets[10], object.reminderMinute);
-  writer.writeString(offsets[11], object.serverId);
-  writer.writeDateTime(offsets[12], object.startDate);
-  writer.writeDateTime(offsets[13], object.updatedAt);
-  writer.writeString(offsets[14], object.userId);
+  writer.writeString(offsets[8], object.numberDirection);
+  writer.writeBool(offsets[9], object.reminderEnabled);
+  writer.writeLong(offsets[10], object.reminderHour);
+  writer.writeLong(offsets[11], object.reminderMinute);
+  writer.writeString(offsets[12], object.serverId);
+  writer.writeDateTime(offsets[13], object.startDate);
+  writer.writeDateTime(offsets[14], object.updatedAt);
+  writer.writeString(offsets[15], object.userId);
 }
 
 LocalHabit _localHabitDeserialize(
@@ -211,13 +223,14 @@ LocalHabit _localHabitDeserialize(
   object.iconName = reader.readStringOrNull(offsets[6]);
   object.id = id;
   object.name = reader.readStringOrNull(offsets[7]);
-  object.reminderEnabled = reader.readBoolOrNull(offsets[8]);
-  object.reminderHour = reader.readLongOrNull(offsets[9]);
-  object.reminderMinute = reader.readLongOrNull(offsets[10]);
-  object.serverId = reader.readStringOrNull(offsets[11]);
-  object.startDate = reader.readDateTimeOrNull(offsets[12]);
-  object.updatedAt = reader.readDateTimeOrNull(offsets[13]);
-  object.userId = reader.readStringOrNull(offsets[14]);
+  object.numberDirection = reader.readStringOrNull(offsets[8]);
+  object.reminderEnabled = reader.readBoolOrNull(offsets[9]);
+  object.reminderHour = reader.readLongOrNull(offsets[10]);
+  object.reminderMinute = reader.readLongOrNull(offsets[11]);
+  object.serverId = reader.readStringOrNull(offsets[12]);
+  object.startDate = reader.readDateTimeOrNull(offsets[13]);
+  object.updatedAt = reader.readDateTimeOrNull(offsets[14]);
+  object.userId = reader.readStringOrNull(offsets[15]);
   return object;
 }
 
@@ -245,18 +258,20 @@ P _localHabitDeserializeProp<P>(
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 10:
       return (reader.readLongOrNull(offset)) as P;
     case 11:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 12:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 13:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 14:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 15:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1504,6 +1519,160 @@ extension LocalHabitQueryFilter
   }
 
   QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      numberDirectionIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'numberDirection',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      numberDirectionIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'numberDirection',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      numberDirectionEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'numberDirection',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      numberDirectionGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'numberDirection',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      numberDirectionLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'numberDirection',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      numberDirectionBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'numberDirection',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      numberDirectionStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'numberDirection',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      numberDirectionEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'numberDirection',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      numberDirectionContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'numberDirection',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      numberDirectionMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'numberDirection',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      numberDirectionIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'numberDirection',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
+      numberDirectionIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'numberDirection',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterFilterCondition>
       reminderEnabledIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -2227,6 +2396,19 @@ extension LocalHabitQuerySortBy
     });
   }
 
+  QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy> sortByNumberDirection() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'numberDirection', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy>
+      sortByNumberDirectionDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'numberDirection', Sort.desc);
+    });
+  }
+
   QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy> sortByReminderEnabled() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'reminderEnabled', Sort.asc);
@@ -2424,6 +2606,19 @@ extension LocalHabitQuerySortThenBy
     });
   }
 
+  QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy> thenByNumberDirection() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'numberDirection', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy>
+      thenByNumberDirectionDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'numberDirection', Sort.desc);
+    });
+  }
+
   QueryBuilder<LocalHabit, LocalHabit, QAfterSortBy> thenByReminderEnabled() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'reminderEnabled', Sort.asc);
@@ -2566,6 +2761,14 @@ extension LocalHabitQueryWhereDistinct
     });
   }
 
+  QueryBuilder<LocalHabit, LocalHabit, QDistinct> distinctByNumberDirection(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'numberDirection',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<LocalHabit, LocalHabit, QDistinct> distinctByReminderEnabled() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'reminderEnabled');
@@ -2664,6 +2867,13 @@ extension LocalHabitQueryProperty
   QueryBuilder<LocalHabit, String?, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
+    });
+  }
+
+  QueryBuilder<LocalHabit, String?, QQueryOperations>
+      numberDirectionProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'numberDirection');
     });
   }
 

@@ -2,6 +2,7 @@ export type DefaultTemplateRow = {
   name: string;
   category: string;
   goalType: 'completion' | 'count' | 'duration' | 'number';
+  numberDirection?: 'gte' | 'lte';
   /** completion 이면 무시(null). 그 외 목표 수치(횟수·분·수치) */
   goalValue?: number | null;
   colorHex?: string;

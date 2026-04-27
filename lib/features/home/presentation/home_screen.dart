@@ -50,6 +50,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   List<LocalHabit> _habits = [];
   Map<String, bool> _todayCompleted = {};
+  Map<String, double> _todayValues = {};
   /// 히트맵 월별 완료 수 (선형 월 인덱스 → 날짜키 → 횟수).
   final Map<int, Map<String, int>> _heatmapCache = {};
   late final PageController _heatmapPageController;
@@ -119,6 +120,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (!mounted) return;
       final habits = await repo.getActiveHabits();
       final completed = await repo.getTodayCompletedByHabit();
+      final todayValues = await repo.getTodayValueByHabit();
       final nowMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
       final curIdx = _linearHeatmapMonthIndex(nowMonth);
       final heatmapCounts = await _loadHeatmapCountsFor(nowMonth);
@@ -126,6 +128,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         setState(() {
           _habits = habits;
           _todayCompleted = completed;
+          _todayValues = todayValues;
           _heatmapCache
             ..clear()
             ..[curIdx] = heatmapCounts;
@@ -273,6 +276,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   extra: h,
                                 ),
                                 onRecord: (h) => _recordHabit(h),
+                                todayValues: _todayValues,
                                 cardColor: cardColor,
                                 border: border,
                                 primary: primary,
@@ -310,11 +314,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _recordHabit(LocalHabit h) async {
     if (h.serverId == null) return;
     final sid = h.serverId!;
+    final goalType = (h.goalType ?? 'completion').toLowerCase().trim();
+    if (goalType == 'completion' && (_todayCompleted[sid] ?? false)) return;
     try {
-      // Reflect completion immediately (optimistic update).
-      setState(() {
-        _todayCompleted = Map<String, bool>.from(_todayCompleted)..[sid] = true;
-      });
       final settings = ref.read(appSettingsProvider).value;
       final feedbackPlayed = await HabitCompletionFeedback.trigger(
         hapticEnabled: settings?.hapticEnabled ?? true,
@@ -324,7 +326,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         debugPrint('HomeScreen: completion feedback did not play.');
       }
       final repo = ref.read(habitRepositoryProvider);
-      await repo.recordToday(sid);
+      if (goalType == 'completion') {
+        await repo.recordToday(sid, completed: true);
+      } else {
+        final input = await _askRecordValue(goalType);
+        if (input == null) return;
+        await repo.recordToday(sid, value: input);
+      }
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -337,13 +345,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       // Refresh list and heatmap after server/local persistence.
       await _load();
     } catch (_) {
-      // Roll back optimistic completion on failure.
-      if (mounted) {
-        setState(() {
-          _todayCompleted = Map<String, bool>.from(_todayCompleted)..remove(sid);
-        });
-      }
+      // no-op
     }
+  }
+
+  Future<double?> _askRecordValue(String goalType) async {
+    final l10n = AppLocalizations.of(context)!;
+    final controller = TextEditingController();
+    return showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(goalType == 'duration' ? l10n.goalDurationHint : l10n.goalValue),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            hintText: goalType == 'count'
+                ? l10n.goalCountHint
+                : goalType == 'duration'
+                    ? l10n.goalDurationHint
+                    : l10n.goalNumberHint,
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
+          FilledButton(
+            onPressed: () {
+              final n = double.tryParse(controller.text.trim());
+              if (n == null || n <= 0) return;
+              Navigator.pop(ctx, n);
+            },
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
   }
 
 }
@@ -478,6 +514,7 @@ class _TodaySection extends StatelessWidget {
   const _TodaySection({
     required this.habits,
     required this.todayCompleted,
+    required this.todayValues,
     required this.l10n,
     required this.onAddNew,
     required this.onTapHabit,
@@ -492,6 +529,7 @@ class _TodaySection extends StatelessWidget {
 
   final List<LocalHabit> habits;
   final Map<String, bool> todayCompleted;
+  final Map<String, double> todayValues;
   final AppLocalizations l10n;
   final VoidCallback onAddNew;
   final void Function(LocalHabit) onTapHabit;
@@ -556,6 +594,7 @@ class _TodaySection extends StatelessWidget {
               completed: todayCompleted[h.serverId] ?? false,
               onTap: () => onTapHabit(h),
               onRecord: () => onRecord(h),
+              todayValue: todayValues[h.serverId],
               cardColor: cardColor,
               border: border,
               primary: primary,
@@ -575,6 +614,7 @@ class _DashboardHabitCard extends StatelessWidget {
     required this.completed,
     required this.onTap,
     required this.onRecord,
+    this.todayValue,
     required this.cardColor,
     required this.border,
     required this.primary,
@@ -587,6 +627,7 @@ class _DashboardHabitCard extends StatelessWidget {
   final bool completed;
   final VoidCallback onTap;
   final VoidCallback onRecord;
+  final double? todayValue;
   final Color cardColor;
   final Color border;
   final Color primary;
@@ -646,6 +687,17 @@ class _DashboardHabitCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           habit.category!,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            color: textMuted,
+                          ),
+                        ),
+                      ],
+                      if ((habit.goalType ?? 'completion') != 'completion' &&
+                          habit.goalValue != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '${(todayValue ?? 0).toStringAsFixed(0)} / ${habit.goalValue!.toStringAsFixed(0)}',
                           style: GoogleFonts.dmSans(
                             fontSize: 12,
                             color: textMuted,

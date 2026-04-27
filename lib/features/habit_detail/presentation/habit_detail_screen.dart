@@ -28,6 +28,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   late LocalHabit _habit;
   int _streak = 0;
   bool _todayCompleted = false;
+  double? _todayValue;
   bool _recording = false;
   bool _reminderEnabled = false;
   int _reminderHour = 9;
@@ -47,11 +48,13 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   Future<void> _loadStats() async {
     final repo = ref.read(habitRepositoryProvider);
     final completed = await repo.getTodayCompletedByHabit();
+    final values = await repo.getTodayValueByHabit();
     final streak = await repo.getStreakDays(_habit.serverId ?? '');
     final habit = await repo.getHabitByServerId(_habit.serverId ?? '');
     if (mounted) {
       setState(() {
         _todayCompleted = completed[_habit.serverId] ?? false;
+        _todayValue = values[_habit.serverId];
         _streak = streak;
         if (habit != null) {
           _habit = habit;
@@ -79,7 +82,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   }
 
   Future<void> _recordToday() async {
-    if (_todayCompleted || _recording) return;
+    if (_recording) return;
+    final goalType = (_habit.goalType ?? 'completion').toLowerCase().trim();
+    if (goalType == 'completion' && _todayCompleted) return;
     setState(() => _recording = true);
     final settings = ref.read(appSettingsProvider).value;
     final feedbackPlayed = await HabitCompletionFeedback.trigger(
@@ -91,16 +96,22 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     }
     try {
       final repo = ref.read(habitRepositoryProvider);
-      await repo.recordToday(
-        _habit.serverId!,
-        completed: true,
-      );
+      if (goalType == 'completion') {
+        await repo.recordToday(_habit.serverId!, completed: true);
+      } else {
+        final inputValue = await _askRecordValue(goalType);
+        if (inputValue == null) {
+          if (mounted) setState(() => _recording = false);
+          return;
+        }
+        await repo.recordToday(_habit.serverId!, value: inputValue);
+      }
       if (!mounted) return;
       setState(() {
-        _todayCompleted = true;
         _recording = false;
       });
       ref.read(homeRefreshTriggerProvider.notifier).state++;
+      _loadStats();
       _loadRecordHistory();
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
@@ -116,6 +127,42 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     }
   }
 
+  Future<double?> _askRecordValue(String goalType) async {
+    final l10n = AppLocalizations.of(context)!;
+    final controller = TextEditingController();
+    return showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(goalType == 'duration' ? l10n.goalDurationHint : l10n.goalValue),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            hintText: goalType == 'count'
+                ? l10n.goalCountHint
+                : goalType == 'duration'
+                    ? l10n.goalDurationHint
+                    : l10n.goalNumberHint,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              final n = double.tryParse(controller.text.trim());
+              if (n == null || n <= 0) return;
+              Navigator.pop(ctx, n);
+            },
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _openEdit() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final result = await showHabitEditSheet(context, habit: _habit, isDark: isDark);
@@ -126,6 +173,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         _habit.serverId!,
         name: result.name,
         goalType: result.goalType,
+        numberDirection: result.numberDirection,
         goalValue: result.goalValue,
         colorHex: result.colorHex,
         iconName: result.iconName,
@@ -245,6 +293,17 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final muted = AppColors.mutedFg(isDark);
     final isHidden = h.archivedAt != null;
+    final goalType = (h.goalType ?? 'completion').toLowerCase().trim();
+    final goalValue = h.goalValue;
+    String? progressText;
+    if (goalType != 'completion' && goalValue != null) {
+      final current = _todayValue ?? 0;
+      if (goalType == 'number' && h.numberDirection == 'lte') {
+        progressText = '${current.toStringAsFixed(0)} / <= ${goalValue.toStringAsFixed(0)}';
+      } else {
+        progressText = '${current.toStringAsFixed(0)} / ${goalValue.toStringAsFixed(0)}';
+      }
+    }
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
@@ -335,6 +394,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                       color: isDark ? AppColors.foregroundDark : AppColors.foreground,
                     ),
                   ),
+                  subtitle: progressText != null ? Text(progressText) : null,
                 ),
               )
             else
@@ -352,7 +412,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : Text(
-                          l10n.completeToday,
+                          goalType == 'completion' ? l10n.completeToday : l10n.save,
                           style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                 ),

@@ -15,6 +15,7 @@ type Template = {
   category?: string
   categoryEn?: string
   goalType: string
+  numberDirection?: 'gte' | 'lte'
   goalValue?: number | null
   colorHex?: string
   iconName?: string
@@ -67,9 +68,20 @@ function formatGoalCell(
       return `${label} (${interpolate(t('habit.goalValueMin'), { n })})`
     if (tpl.goalType === 'count')
       return `${label} (${interpolate(t('habit.goalValueCount'), { n })})`
+    if (tpl.goalType === 'number') {
+      const dir = tpl.numberDirection === 'lte' ? t('habit.numberDirectionLte') : t('habit.numberDirectionGte')
+      return `${label} (${dir} ${n})`
+    }
     return `${label} (${n})`
   }
   return `${label} (${t('habit.goalValueMissing')})`
+}
+
+function directionLabel(
+  dir: 'gte' | 'lte' | undefined,
+  t: (k: string, v?: Record<string, string | number>) => string,
+): string {
+  return dir === 'lte' ? t('habit.numberDirectionLte') : t('habit.numberDirectionGte')
 }
 
 function iconPreview(name?: string): string {
@@ -375,6 +387,7 @@ export default function HabitTemplates() {
   const [category, setCategory] = useState('')
   const [categoryEn, setCategoryEn] = useState('')
   const [goalType, setGoalType] = useState<string>('completion')
+  const [numberDirection, setNumberDirection] = useState<'gte' | 'lte'>('gte')
   const [goalValueInput, setGoalValueInput] = useState('')
   const [colorHex, setColorHex] = useState('')
   const [iconName, setIconName] = useState('')
@@ -385,6 +398,7 @@ export default function HabitTemplates() {
   const [editCategory, setEditCategory] = useState('')
   const [editCategoryEn, setEditCategoryEn] = useState('')
   const [editGoalType, setEditGoalType] = useState<string>('completion')
+  const [editNumberDirection, setEditNumberDirection] = useState<'gte' | 'lte'>('gte')
   const [editGoalValueInput, setEditGoalValueInput] = useState('')
   const [editColorHex, setEditColorHex] = useState('')
   const [editIconName, setEditIconName] = useState('')
@@ -427,6 +441,7 @@ export default function HabitTemplates() {
         category: category.trim() || undefined,
         categoryEn: categoryEn.trim() || undefined,
         goalType,
+        numberDirection: goalType === 'number' ? numberDirection : 'gte',
         goalValue: parseGoalValue(goalType, goalValueInput),
         colorHex: colorHex.trim() || undefined,
         iconName: iconName.trim() || undefined,
@@ -436,6 +451,7 @@ export default function HabitTemplates() {
       setCategory('')
       setCategoryEn('')
       setGoalType('completion')
+      setNumberDirection('gte')
       setGoalValueInput('')
       setColorHex('')
       setIconName('')
@@ -454,6 +470,7 @@ export default function HabitTemplates() {
     setEditCategory(t.category ?? '')
     setEditCategoryEn(t.categoryEn ?? '')
     setEditGoalType(t.goalType || 'completion')
+    setEditNumberDirection(t.numberDirection === 'lte' ? 'lte' : 'gte')
     setEditGoalValueInput(
       t.goalValue != null && Number.isFinite(Number(t.goalValue)) ? String(t.goalValue) : '',
     )
@@ -476,6 +493,7 @@ export default function HabitTemplates() {
         category: editCategory.trim() || undefined,
         categoryEn: editCategoryEn.trim(),
         goalType: editGoalType,
+        numberDirection: editGoalType === 'number' ? editNumberDirection : 'gte',
         goalValue: parseGoalValue(editGoalType, editGoalValueInput),
         colorHex: editColorHex.trim() || undefined,
         iconName: editIconName.trim() || undefined,
@@ -610,6 +628,19 @@ export default function HabitTemplates() {
             ))}
           </select>
         </div>
+        {goalType === 'number' && (
+          <div>
+            <label className="block text-sm font-medium text-foreground">{t('habit.numberDirection')}</label>
+            <select
+              value={numberDirection}
+              onChange={(e) => setNumberDirection((e.target.value as 'gte' | 'lte') ?? 'gte')}
+              className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-foreground min-w-[140px]"
+            >
+              <option value="gte">{t('habit.numberDirectionGte')}</option>
+              <option value="lte">{t('habit.numberDirectionLte')}</option>
+            </select>
+          </div>
+        )}
         {goalType !== 'completion' && (
           <div>
             <label className="block text-sm font-medium text-foreground">{goalValueLabel(goalType)}</label>
@@ -716,6 +747,21 @@ export default function HabitTemplates() {
                 ))}
               </select>
             </div>
+            {editGoalType === 'number' && (
+              <div>
+                <label className="block text-xs text-muted-foreground">{t('habit.numberDirection')}</label>
+                <select
+                  value={editNumberDirection}
+                  onChange={(e) =>
+                    setEditNumberDirection((e.target.value as 'gte' | 'lte') ?? 'gte')
+                  }
+                  className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-foreground text-sm min-w-[140px]"
+                >
+                  <option value="gte">{t('habit.numberDirectionGte')}</option>
+                  <option value="lte">{t('habit.numberDirectionLte')}</option>
+                </select>
+              </div>
+            )}
             {editGoalType !== 'completion' && (
               <div>
                 <label className="block text-xs text-muted-foreground">{goalValueLabel(editGoalType)}</label>
@@ -773,6 +819,7 @@ export default function HabitTemplates() {
               <th className="text-left p-3 font-medium">{t('habit.colName')}</th>
               <th className="text-left p-3 font-medium">{t('habit.colCategory')}</th>
               <th className="text-left p-3 font-medium">{t('habit.colGoal')}</th>
+              <th className="text-left p-3 font-medium">{t('habit.colDirection')}</th>
               <th className="text-left p-3 font-medium">{t('habit.colColor')}</th>
               <th className="text-left p-3 font-medium">{t('habit.colIcon')}</th>
               <th className="text-right p-3 font-medium">{t('habit.colActions')}</th>
@@ -788,6 +835,11 @@ export default function HabitTemplates() {
                     : '-'}
                 </td>
                 <td className="p-3">{formatGoalCell(row, goalLabels, t)}</td>
+                <td className="p-3">
+                  {row.goalType === 'number'
+                    ? directionLabel(row.numberDirection, t)
+                    : '-'}
+                </td>
                 <td className="p-3">
                   {row.colorHex ? (
                     <div className="flex items-center gap-2">

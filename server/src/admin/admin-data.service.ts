@@ -40,6 +40,7 @@ export interface HabitTemplateDto {
   category?: string;
   categoryEn?: string;
   goalType: string;
+  numberDirection: 'gte' | 'lte';
   goalValue?: number | null;
   colorHex?: string;
   iconName?: string;
@@ -115,6 +116,7 @@ export class AdminDataService {
       category: t.category ?? undefined,
       categoryEn: t.categoryEn ?? undefined,
       goalType: t.goalType,
+      numberDirection: t.numberDirection === 'lte' ? 'lte' : 'gte',
       goalValue: t.goalValue ?? undefined,
       colorHex: t.colorHex ?? undefined,
       iconName: t.iconName ?? undefined,
@@ -151,6 +153,7 @@ export class AdminDataService {
 
   async createTemplate(body: Partial<HabitTemplateDto>): Promise<HabitTemplateDto> {
     const goalType = body.goalType ?? 'completion';
+    const numberDirection = body.numberDirection === 'lte' ? 'lte' : 'gte';
     const goalValue =
       goalType === 'completion'
         ? null
@@ -165,6 +168,7 @@ export class AdminDataService {
       category: body.category,
       categoryEn: typeof body.categoryEn === 'string' ? body.categoryEn.trim() || null : null,
       goalType,
+      numberDirection,
       goalValue,
       colorHex: visuals.colorHex,
       iconName: visuals.iconName,
@@ -178,6 +182,7 @@ export class AdminDataService {
       category: t.category ?? undefined,
       categoryEn: t.categoryEn ?? undefined,
       goalType: t.goalType,
+      numberDirection: t.numberDirection === 'lte' ? 'lte' : 'gte',
       goalValue: t.goalValue ?? undefined,
       colorHex: t.colorHex ?? undefined,
       iconName: t.iconName ?? undefined,
@@ -198,6 +203,9 @@ export class AdminDataService {
     if (body.category !== undefined) t.category = body.category ?? null;
     if (body.categoryEn !== undefined) t.categoryEn = body.categoryEn?.trim() ? body.categoryEn.trim() : null;
     if (body.goalType !== undefined) t.goalType = body.goalType;
+    if (body.numberDirection !== undefined) {
+      t.numberDirection = body.numberDirection === 'lte' ? 'lte' : 'gte';
+    }
     if (body.isActive !== undefined) t.isActive = body.isActive;
     if (body.colorHex !== undefined) t.colorHex = body.colorHex ?? null;
     if (body.iconName !== undefined) t.iconName = body.iconName ?? null;
@@ -220,6 +228,7 @@ export class AdminDataService {
       category: t.category ?? undefined,
       categoryEn: t.categoryEn ?? undefined,
       goalType: t.goalType,
+      numberDirection: t.numberDirection === 'lte' ? 'lte' : 'gte',
       goalValue: t.goalValue ?? undefined,
       colorHex: t.colorHex ?? undefined,
       iconName: t.iconName ?? undefined,
@@ -239,6 +248,7 @@ export class AdminDataService {
     await this.templateRepo.clear();
     for (const row of DEFAULT_HABIT_TEMPLATES) {
       const goalType = row.goalType;
+      const numberDirection = row.numberDirection ?? 'gte';
       const goalValue =
         goalType === 'completion'
           ? null
@@ -253,6 +263,7 @@ export class AdminDataService {
           category: row.category,
           categoryEn: row.category ? reseedCategoryEn(row.category) : null,
           goalType,
+          numberDirection,
           goalValue,
           colorHex: row.colorHex ?? null,
           iconName: row.iconName ?? null,

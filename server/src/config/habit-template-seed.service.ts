@@ -23,6 +23,7 @@ export class HabitTemplateSeedService implements OnModuleInit {
     if (n > 0) return;
     for (const row of DEFAULT_HABIT_TEMPLATES) {
       const goalType = row.goalType;
+      const numberDirection = row.numberDirection ?? 'gte';
       const goalValue =
         goalType === 'completion'
           ? null
@@ -37,6 +38,7 @@ export class HabitTemplateSeedService implements OnModuleInit {
           category: row.category,
           categoryEn: row.category ? reseedCategoryEn(row.category) : null,
           goalType,
+          numberDirection,
           goalValue,
           colorHex: row.colorHex ?? null,
           iconName: row.iconName ?? null,

@@ -23,6 +23,9 @@ export class Habit {
   @Column({ default: 'completion' })
   goalType: string;
 
+  @Column({ default: 'gte' })
+  numberDirection: string;
+
   @Column({ type: 'int', nullable: true })
   goalValue: number | null;
 

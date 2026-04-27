@@ -91,6 +91,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
   String? _selectedTemplateId;
   String? _selectedCategory;
   String _goalType = 'completion';
+  String _numberDirection = 'gte';
   double? _goalValue;
   DateTime _startDate = DateTime.now();
   String? _colorHex;
@@ -134,6 +135,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
       _nameController.text = t.resolvedName(lang);
       _selectedCategory = t.category;
       _goalType = _goalTypes.contains(t.goalType) ? t.goalType : 'completion';
+      _numberDirection = (t.numberDirection == 'lte') ? 'lte' : 'gte';
       _goalValue = _goalType == 'completion' ? null : t.goalValue;
       _colorHex = t.colorHex;
       _iconName = t.iconName;
@@ -176,6 +178,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                 ? null
                 : _selectedCategory,
             goalType: _goalType,
+            numberDirection: _numberDirection,
             goalValue: _goalValue,
             startDate: _startDate,
             colorHex: _colorHex,
@@ -386,6 +389,27 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                   .toList(),
               onChanged: (v) => setState(() => _goalType = v ?? 'completion'),
             ),
+            if (_goalType == 'number') ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _numberDirection,
+                decoration: InputDecoration(
+                  labelText: l10n.goalNumberHint,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radius),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'gte', child: Text('이상(>=)')),
+                  DropdownMenuItem(value: 'lte', child: Text('이하(<=)')),
+                ],
+                onChanged: (v) => setState(() => _numberDirection = v ?? 'gte'),
+              ),
+            ],
             if (_goalType != 'completion') ...[
               const SizedBox(height: 12),
               TextFormField(

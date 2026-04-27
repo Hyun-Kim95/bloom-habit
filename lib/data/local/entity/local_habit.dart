@@ -13,6 +13,7 @@ class LocalHabit {
   String? name;
   String? category;
   String? goalType;
+  String? numberDirection;
   double? goalValue;
   DateTime? startDate;
   String? colorHex;

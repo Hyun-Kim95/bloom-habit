@@ -69,6 +69,7 @@ export class HabitsController {
         name: body.name!,
         category: body.category,
         goalType: body.goalType ?? 'completion',
+        numberDirection: body.numberDirection,
         goalValue: body.goalValue,
         startDate: body.startDate!,
         colorHex: body.colorHex,
@@ -119,7 +120,7 @@ export class HabitsController {
   async addRecord(
     @Req() req: ReqWithUser,
     @Param('habitId') habitId: string,
-    @Body() body: { recordDate: string; value?: number; completed: boolean },
+    @Body() body: { recordDate: string; value?: number; completed?: boolean },
   ) {
     const r = await this.habits.addRecord(habitId, req.userId, body);
     if (!r) return { statusCode: 404, message: 'Habit not found' };

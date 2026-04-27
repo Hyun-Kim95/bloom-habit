@@ -54,6 +54,7 @@ class SyncRepository {
             ..name = map['name'] as String?
             ..category = map['category'] as String?
             ..goalType = map['goalType'] as String?
+            ..numberDirection = map['numberDirection'] as String?
             ..goalValue = (map['goalValue'] as num?)?.toDouble()
             ..startDate = _parseDate(map['startDate'])
             ..colorHex = map['colorHex'] as String?

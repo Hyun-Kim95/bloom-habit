@@ -84,6 +84,7 @@ export const api = {
         category?: string
         categoryEn?: string
         goalType: string
+        numberDirection?: 'gte' | 'lte'
         goalValue?: number | null
         colorHex?: string
         iconName?: string
@@ -97,6 +98,7 @@ export const api = {
     category?: string
     categoryEn?: string
     goalType?: string
+    numberDirection?: 'gte' | 'lte'
     goalValue?: number | null
     colorHex?: string
     iconName?: string

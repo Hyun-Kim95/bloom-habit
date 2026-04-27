@@ -25,6 +25,7 @@ class HabitTemplateItem {
     this.nameEn,
     this.categoryEn,
     required this.goalType,
+    this.numberDirection,
     this.goalValue,
     this.colorHex,
     this.iconName,
@@ -36,6 +37,7 @@ class HabitTemplateItem {
   final String? nameEn;
   final String? categoryEn;
   final String goalType;
+  final String? numberDirection;
   final double? goalValue;
   final String? colorHex;
   final String? iconName;
@@ -83,6 +85,7 @@ class HabitRepository {
             ..name = map['name'] as String?
             ..category = map['category'] as String?
             ..goalType = map['goalType'] as String?
+            ..numberDirection = map['numberDirection'] as String?
             ..goalValue = (map['goalValue'] as num?)?.toDouble()
             ..startDate = _parseDate(map['startDate'])
             ..colorHex = map['colorHex'] as String?
@@ -153,6 +156,7 @@ class HabitRepository {
             nameEn: m['nameEn'] as String?,
             categoryEn: m['categoryEn'] as String?,
             goalType: m['goalType'] as String? ?? 'completion',
+            numberDirection: m['numberDirection'] as String?,
             goalValue: (m['goalValue'] as num?)?.toDouble(),
             colorHex: m['colorHex'] as String?,
             iconName: m['iconName'] as String?,
@@ -382,6 +386,7 @@ class HabitRepository {
     required String name,
     String? category,
     String goalType = 'completion',
+    String numberDirection = 'gte',
     double? goalValue,
     required DateTime startDate,
     String? colorHex,
@@ -390,6 +395,7 @@ class HabitRepository {
     final body = <String, dynamic>{
       'name': name,
       'goalType': goalType,
+      'numberDirection': numberDirection,
       'startDate': _dateString(startDate),
     };
     if (category != null) body['category'] = category;
@@ -414,6 +420,7 @@ class HabitRepository {
     String? name,
     String? category,
     String? goalType,
+    String? numberDirection,
     double? goalValue,
     String? colorHex,
     String? iconName,
@@ -422,6 +429,7 @@ class HabitRepository {
     if (name != null) body['name'] = name;
     if (category != null) body['category'] = category;
     if (goalType != null) body['goalType'] = goalType;
+    if (numberDirection != null) body['numberDirection'] = numberDirection;
     if (goalValue != null) body['goalValue'] = goalValue;
     if (colorHex != null) body['colorHex'] = colorHex;
     if (iconName != null) body['iconName'] = iconName;
@@ -474,12 +482,16 @@ class HabitRepository {
   /// Add today's record (API + local upsert).
   Future<LocalHabitRecord> recordToday(
     String habitServerId, {
-    bool completed = true,
+    bool? completed,
+    double? value,
   }) async {
     final today = todayString();
+    final body = <String, dynamic>{'recordDate': today};
+    if (completed != null) body['completed'] = completed;
+    if (value != null) body['value'] = value;
     final res = await _dio.post<Map<String, dynamic>>(
       ApiEndpoints.habitRecords(habitServerId),
-      data: {'recordDate': today, 'completed': completed},
+      data: body,
     );
     if (res.data == null) throw Exception('Record failed');
     final isar = await _isarFuture;
@@ -620,12 +632,31 @@ class HabitRepository {
   String _dateString(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
+  /// Today's numeric record value by habit id.
+  Future<Map<String, double>> getTodayValueByHabit() async {
+    final isar = await _isarFuture;
+    final today = DateTime.parse(todayString());
+    final records = await isar.localHabitRecords
+        .filter()
+        .recordDateEqualTo(today)
+        .findAll();
+    final map = <String, double>{};
+    for (final r in records) {
+      final hid = r.habitId;
+      final value = r.value;
+      if (hid == null || value == null) continue;
+      map[hid] = value;
+    }
+    return map;
+  }
+
   LocalHabit _habitDtoToLocal(Map<String, dynamic> map) => LocalHabit()
     ..serverId = map['id'] as String?
     ..userId = map['userId'] as String?
     ..name = map['name'] as String?
     ..category = map['category'] as String?
     ..goalType = map['goalType'] as String?
+    ..numberDirection = map['numberDirection'] as String?
     ..goalValue = (map['goalValue'] as num?)?.toDouble()
     ..startDate = _parseDate(map['startDate'])
     ..colorHex = map['colorHex'] as String?

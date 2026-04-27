@@ -28,6 +28,9 @@ export class HabitTemplate {
   @Column({ default: 'completion' })
   goalType: string;
 
+  @Column({ default: 'gte' })
+  numberDirection: string;
+
   @Column({ type: 'double precision', nullable: true })
   goalValue: number | null;
 
