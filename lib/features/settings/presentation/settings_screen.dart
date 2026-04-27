@@ -99,6 +99,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onTap: () => context.push(AppRoutes.inquiries),
           ),
           _SettingsTile(
+            icon: Icons.volunteer_activism_outlined,
+            title: l10n.supportMonetizationTitle,
+            subtitle: l10n.supportMonetizationSubtitle,
+            onTap: () => context.push(AppRoutes.supportMonetization),
+          ),
+          _SettingsTile(
             icon: Icons.notifications_outlined,
             title: l10n.notificationSettings,
             subtitle: l10n.notificationSettingsSubtitle,

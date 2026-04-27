@@ -1,11 +1,13 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bloom_habit/l10n/app_localizations.dart';
 
 import 'core/notifications/notification_service.dart';
 import 'core/notifications/fcm_notification_listener.dart';
+import 'core/monetization/monetization_notifier.dart';
 import 'core/router/app_providers.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
@@ -31,14 +33,30 @@ void main() async {
   runApp(ProviderScope(child: BloomHabitApp(initialLocaleCode: initialLocaleCode)));
 }
 
-class BloomHabitApp extends ConsumerWidget {
+class BloomHabitApp extends ConsumerStatefulWidget {
   const BloomHabitApp({super.key, required this.initialLocaleCode});
 
   /// Locale from SharedPreferences before [appSettingsProvider] resolves (avoids a `ko` first frame).
   final String initialLocaleCode;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BloomHabitApp> createState() => _BloomHabitAppState();
+}
+
+class _BloomHabitAppState extends ConsumerState<BloomHabitApp> {
+  late final GoRouter _router;
+
+  @override
+  void initState() {
+    super.initState();
+    _router = createAppRouter(ref);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(monetizationProvider.notifier).bootstrap();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final settingsAsync = ref.watch(appSettingsProvider);
     final settings = settingsAsync.valueOrNull;
     final themeMode = switch (settings?.themeMode) {
@@ -46,7 +64,7 @@ class BloomHabitApp extends ConsumerWidget {
       'dark' => ThemeMode.dark,
       _ => ThemeMode.system,
     };
-    final localeCode = settings?.localeCode ?? initialLocaleCode;
+    final localeCode = settings?.localeCode ?? widget.initialLocaleCode;
     AppStrings.localeCode = localeCode;
     return MaterialApp.router(
       title: 'Bloom Habit',
@@ -56,7 +74,7 @@ class BloomHabitApp extends ConsumerWidget {
       locale: Locale(localeCode),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
-      routerConfig: createAppRouter(ref),
+      routerConfig: _router,
     );
   }
 }

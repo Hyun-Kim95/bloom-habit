@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:bloom_habit/l10n/app_localizations.dart';
 
+import '../monetization/adaptive_banner_ad_slot.dart';
 import '../theme/app_theme.dart';
 import 'app_router.dart';
 
@@ -86,7 +87,12 @@ class _MainShellState extends State<MainShell> {
         if (atRoot && !didPop) _onPopInvoked(false);
       },
       child: Scaffold(
-      body: widget.navigationShell,
+      body: Column(
+        children: [
+          Expanded(child: widget.navigationShell),
+          const AdaptiveBannerAdSlot(),
+        ],
+      ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
@@ -94,12 +100,39 @@ class _MainShellState extends State<MainShell> {
           border: Border(top: BorderSide(color: border)),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _NavItem(label: l10n.navHome, icon: Icons.home_rounded, selected: currentIndex == 0, onTap: () => _onTap(context, 0)),
-            _NavItem(label: l10n.navHabits, icon: Icons.list_rounded, selected: currentIndex == 1, onTap: () => _onTap(context, 1)),
-            _NavItem(label: l10n.navStats, icon: Icons.bar_chart_rounded, selected: currentIndex == 2, onTap: () => _onTap(context, 2)),
-            _NavItem(label: l10n.navSettings, icon: Icons.settings_rounded, selected: currentIndex == 3, onTap: () => _onTap(context, 3)),
+            Expanded(
+              child: _NavItem(
+                label: l10n.navHome,
+                icon: Icons.home_rounded,
+                selected: currentIndex == 0,
+                onTap: () => _onTap(context, 0),
+              ),
+            ),
+            Expanded(
+              child: _NavItem(
+                label: l10n.navHabits,
+                icon: Icons.list_rounded,
+                selected: currentIndex == 1,
+                onTap: () => _onTap(context, 1),
+              ),
+            ),
+            Expanded(
+              child: _NavItem(
+                label: l10n.navStats,
+                icon: Icons.bar_chart_rounded,
+                selected: currentIndex == 2,
+                onTap: () => _onTap(context, 2),
+              ),
+            ),
+            Expanded(
+              child: _NavItem(
+                label: l10n.navSettings,
+                icon: Icons.settings_rounded,
+                selected: currentIndex == 3,
+                onTap: () => _onTap(context, 3),
+              ),
+            ),
           ],
         ),
       ),
@@ -130,22 +163,36 @@ class _NavItem extends StatelessWidget {
     final color = selected
         ? (isDark ? AppColors.primaryDark : AppColors.primary)
         : AppColors.mutedFg(isDark);
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 22, color: color),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: GoogleFonts.dmSans(
-              fontSize: 10,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-              color: color,
+    const double tapHeight = 56;
+    const double rippleRadius = 30;
+    return SizedBox(
+      height: tapHeight,
+      width: double.infinity,
+      child: Material(
+        color: Colors.transparent,
+        child: InkResponse(
+          onTap: onTap,
+          containedInkWell: true,
+          highlightShape: BoxShape.circle,
+          radius: rippleRadius,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 22, color: color),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 10,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

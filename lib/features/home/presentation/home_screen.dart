@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 
+import '../../../core/feedback/habit_completion_feedback.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
@@ -315,11 +315,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       setState(() {
         _todayCompleted = Map<String, bool>.from(_todayCompleted)..[sid] = true;
       });
+      final settings = ref.read(appSettingsProvider).value;
+      final feedbackPlayed = await HabitCompletionFeedback.trigger(
+        hapticEnabled: settings?.hapticEnabled ?? true,
+        soundEnabled: settings?.soundEnabled ?? true,
+      );
+      if (!feedbackPlayed) {
+        debugPrint('HomeScreen: completion feedback did not play.');
+      }
       final repo = ref.read(habitRepositoryProvider);
       await repo.recordToday(sid);
-      final settings = ref.read(appSettingsProvider).value;
-      if (settings?.hapticEnabled ?? true) HapticFeedback.mediumImpact();
-      if (settings?.soundEnabled ?? true) SystemSound.play(SystemSoundType.click);
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(

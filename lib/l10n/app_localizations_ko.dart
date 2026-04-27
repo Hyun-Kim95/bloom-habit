@@ -721,6 +721,67 @@ class AppLocalizationsKo extends AppLocalizations {
   String get icon => '아이콘';
 
   @override
+  String get supportMonetizationTitle => '후원 및 광고 제거';
+
+  @override
+  String get supportMonetizationSubtitle => '개발 지원과 광고 없이 사용하기';
+
+  @override
+  String get monetizationIntro =>
+      '광고와 후원은 서버·앱 운영에 사용됩니다. 광고가 거슬리면 아래에서 광고 제거를 구매할 수 있어요.';
+
+  @override
+  String get removeAdsTitle => '광고 제거';
+
+  @override
+  String get removeAdsDescription =>
+      '배너 광고를 숨깁니다. 기기 간 복구는 같은 스토어 계정에서 「구매 복원」을 눌러 주세요.';
+
+  @override
+  String get removeAdsPurchased => '광고 제거가 적용되었어요.';
+
+  @override
+  String get donationSectionTitle => '후원';
+
+  @override
+  String get donationSmallTitle => '작은 후원';
+
+  @override
+  String get donationSmallSubtitle => '운영에 작은 힘이 됩니다';
+
+  @override
+  String get donationMediumTitle => '든든한 후원';
+
+  @override
+  String get donationMediumSubtitle => '서비스 개선에 큰 도움이 됩니다';
+
+  @override
+  String get restorePurchases => '구매 복원';
+
+  @override
+  String get restorePurchasesRequested => '구매 복원을 요청했어요. 잠시 후 반영될 수 있어요.';
+
+  @override
+  String get removeAdsThanks => '광고가 비활성화되었어요. 감사합니다!';
+
+  @override
+  String get donationThanks => '후원해 주셔서 감사합니다!';
+
+  @override
+  String get productsNotConfigured =>
+      '스토어에서 상품을 불러오지 못했어요. 인앱 상품 ID가 등록됐는지 확인해 주세요.';
+
+  @override
+  String get purchaseFailed => '결제를 완료하지 못했어요.';
+
+  @override
+  String get storeBillingUnavailable =>
+      '스토어 결제를 사용할 수 없어요. 스토어에 로그인했는지, 기기 날짜·시간이 맞는지 확인해 주세요.';
+
+  @override
+  String get monetizationUnsupported => '이 환경에서는 스토어 결제와 광고가 지원되지 않아요.';
+
+  @override
   String pageNotFound(String uri) {
     return '페이지를 찾을 수 없습니다: $uri';
   }

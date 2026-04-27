@@ -746,6 +746,69 @@ class AppLocalizationsEn extends AppLocalizations {
   String get icon => 'Icon';
 
   @override
+  String get supportMonetizationTitle => 'Support & remove ads';
+
+  @override
+  String get supportMonetizationSubtitle => 'Tip the app and hide banner ads';
+
+  @override
+  String get monetizationIntro =>
+      'Ads and tips help cover hosting and development. You can remove banner ads with the option below.';
+
+  @override
+  String get removeAdsTitle => 'Remove ads';
+
+  @override
+  String get removeAdsDescription =>
+      'Hides banner ads. Use “Restore purchases” on each device with the same store account if needed.';
+
+  @override
+  String get removeAdsPurchased => 'Ads are turned off for this install.';
+
+  @override
+  String get donationSectionTitle => 'Tips';
+
+  @override
+  String get donationSmallTitle => 'Small tip';
+
+  @override
+  String get donationSmallSubtitle => 'Helps keep the lights on';
+
+  @override
+  String get donationMediumTitle => 'Generous tip';
+
+  @override
+  String get donationMediumSubtitle => 'Makes a big difference';
+
+  @override
+  String get restorePurchases => 'Restore purchases';
+
+  @override
+  String get restorePurchasesRequested =>
+      'Restore requested. It may take a moment to apply.';
+
+  @override
+  String get removeAdsThanks => 'Ads are off. Thank you!';
+
+  @override
+  String get donationThanks => 'Thanks for your support!';
+
+  @override
+  String get productsNotConfigured =>
+      'Could not load store products. Check that in-app products are configured.';
+
+  @override
+  String get purchaseFailed => 'The purchase could not be completed.';
+
+  @override
+  String get storeBillingUnavailable =>
+      'In-app purchases are unavailable. Check that you are signed in to the store and that the device date and time are correct.';
+
+  @override
+  String get monetizationUnsupported =>
+      'Store purchases and ads are not available on this platform.';
+
+  @override
   String pageNotFound(String uri) {
     return 'Page not found: $uri';
   }

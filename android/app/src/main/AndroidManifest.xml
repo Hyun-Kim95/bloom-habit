@@ -17,6 +17,9 @@
         <meta-data
             android:name="com.naver.sdk.clientName"
             android:value="${NAVER_CLIENT_NAME}" />
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${ADMOB_APPLICATION_ID}" />
         <!-- 카카오 로그인 리다이렉트는 MainActivity가 아니라 SDK 액티비티로 와야 함
              (https://developers.kakao.com/docs/latest/ko/flutter/getting-started#project-scheme) -->
         <activity

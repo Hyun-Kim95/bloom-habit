@@ -69,6 +69,12 @@ android {
         manifestPlaceholders["NAVER_CLIENT_ID"] = naverClientId
         manifestPlaceholders["NAVER_CLIENT_SECRET"] = naverClientSecret
         manifestPlaceholders["NAVER_CLIENT_NAME"] = naverClientName
+        // AdMob 앱 ID: local.properties 의 ADMOB_APP_ID 없으면 Google 공식 테스트 앱 ID (출시 전 본인 ID로 교체)
+        val admobAppId =
+            localProp("ADMOB_APP_ID").ifBlank {
+                (project.findProperty("ADMOB_APP_ID") as String?)?.trim().orEmpty()
+            }.ifBlank { "ca-app-pub-3940256099942544~3347511713" }
+        manifestPlaceholders["ADMOB_APPLICATION_ID"] = admobAppId
 
         fun q(s: String): String =
             "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""

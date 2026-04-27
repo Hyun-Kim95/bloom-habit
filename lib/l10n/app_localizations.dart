@@ -1442,6 +1442,120 @@ abstract class AppLocalizations {
   /// **'아이콘'**
   String get icon;
 
+  /// No description provided for @supportMonetizationTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'후원 및 광고 제거'**
+  String get supportMonetizationTitle;
+
+  /// No description provided for @supportMonetizationSubtitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'개발 지원과 광고 없이 사용하기'**
+  String get supportMonetizationSubtitle;
+
+  /// No description provided for @monetizationIntro.
+  ///
+  /// In ko, this message translates to:
+  /// **'광고와 후원은 서버·앱 운영에 사용됩니다. 광고가 거슬리면 아래에서 광고 제거를 구매할 수 있어요.'**
+  String get monetizationIntro;
+
+  /// No description provided for @removeAdsTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'광고 제거'**
+  String get removeAdsTitle;
+
+  /// No description provided for @removeAdsDescription.
+  ///
+  /// In ko, this message translates to:
+  /// **'배너 광고를 숨깁니다. 기기 간 복구는 같은 스토어 계정에서 「구매 복원」을 눌러 주세요.'**
+  String get removeAdsDescription;
+
+  /// No description provided for @removeAdsPurchased.
+  ///
+  /// In ko, this message translates to:
+  /// **'광고 제거가 적용되었어요.'**
+  String get removeAdsPurchased;
+
+  /// No description provided for @donationSectionTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'후원'**
+  String get donationSectionTitle;
+
+  /// No description provided for @donationSmallTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'작은 후원'**
+  String get donationSmallTitle;
+
+  /// No description provided for @donationSmallSubtitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'운영에 작은 힘이 됩니다'**
+  String get donationSmallSubtitle;
+
+  /// No description provided for @donationMediumTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'든든한 후원'**
+  String get donationMediumTitle;
+
+  /// No description provided for @donationMediumSubtitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'서비스 개선에 큰 도움이 됩니다'**
+  String get donationMediumSubtitle;
+
+  /// No description provided for @restorePurchases.
+  ///
+  /// In ko, this message translates to:
+  /// **'구매 복원'**
+  String get restorePurchases;
+
+  /// No description provided for @restorePurchasesRequested.
+  ///
+  /// In ko, this message translates to:
+  /// **'구매 복원을 요청했어요. 잠시 후 반영될 수 있어요.'**
+  String get restorePurchasesRequested;
+
+  /// No description provided for @removeAdsThanks.
+  ///
+  /// In ko, this message translates to:
+  /// **'광고가 비활성화되었어요. 감사합니다!'**
+  String get removeAdsThanks;
+
+  /// No description provided for @donationThanks.
+  ///
+  /// In ko, this message translates to:
+  /// **'후원해 주셔서 감사합니다!'**
+  String get donationThanks;
+
+  /// No description provided for @productsNotConfigured.
+  ///
+  /// In ko, this message translates to:
+  /// **'스토어에서 상품을 불러오지 못했어요. 인앱 상품 ID가 등록됐는지 확인해 주세요.'**
+  String get productsNotConfigured;
+
+  /// No description provided for @purchaseFailed.
+  ///
+  /// In ko, this message translates to:
+  /// **'결제를 완료하지 못했어요.'**
+  String get purchaseFailed;
+
+  /// No description provided for @storeBillingUnavailable.
+  ///
+  /// In ko, this message translates to:
+  /// **'스토어 결제를 사용할 수 없어요. 스토어에 로그인했는지, 기기 날짜·시간이 맞는지 확인해 주세요.'**
+  String get storeBillingUnavailable;
+
+  /// No description provided for @monetizationUnsupported.
+  ///
+  /// In ko, this message translates to:
+  /// **'이 환경에서는 스토어 결제와 광고가 지원되지 않아요.'**
+  String get monetizationUnsupported;
+
   /// No description provided for @pageNotFound.
   ///
   /// In ko, this message translates to:
