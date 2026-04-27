@@ -16,6 +16,7 @@ class NoticesScreen extends ConsumerStatefulWidget {
 
 class _NoticesScreenState extends ConsumerState<NoticesScreen> {
   List<NoticeItem> _items = [];
+  final Set<String> _readNoticeIds = <String>{};
   bool _loading = true;
   String? _error;
 
@@ -70,6 +71,7 @@ class _NoticesScreenState extends ConsumerState<NoticesScreen> {
         }
       });
     });
+    final repo = ref.read(noticeRepositoryProvider);
     final lang = Localizations.localeOf(context).languageCode;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? AppColors.foregroundDark : AppColors.foreground;
@@ -133,6 +135,14 @@ class _NoticesScreenState extends ConsumerState<NoticesScreen> {
                             final bodyText = n.resolvedBody(lang);
                             return Card(
                               child: ExpansionTile(
+                                onExpansionChanged: (expanded) {
+                                  if (!expanded) return;
+                                  if (_readNoticeIds.contains(n.id)) return;
+                                  _readNoticeIds.add(n.id);
+                                  repo
+                                      .markNoticeRead(n.id)
+                                      .whenComplete(() => ref.invalidate(unreadSummaryProvider));
+                                },
                                 tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                                 childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                                 title: Text(

@@ -73,4 +73,8 @@ class NoticeRepository {
       );
     }).toList();
   }
+
+  Future<void> markNoticeRead(String noticeId) async {
+    await _dio.post<void>(ApiEndpoints.noticeRead(noticeId));
+  }
 }

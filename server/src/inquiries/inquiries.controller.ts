@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtGuard } from '../auth/jwt.guard';
 import { InquiriesService } from './inquiries.service';
@@ -25,5 +25,18 @@ export class InquiriesController {
   @Get()
   async list(@Req() req: ReqWithUser) {
     return this.inquiries.listByUser(req.userId);
+  }
+
+  @Patch(':id/read')
+  async markAsRead(@Req() req: ReqWithUser, @Param('id') id: string) {
+    const ok = await this.inquiries.markAsRead(req.userId, id);
+    if (!ok) return { statusCode: 404, message: 'Not found' };
+    return { ok: true };
+  }
+
+  @Get('unread-count')
+  async unreadCount(@Req() req: ReqWithUser) {
+    const unreadCount = await this.inquiries.countUnreadAnsweredByUser(req.userId);
+    return { unreadCount };
   }
 }

@@ -1,5 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 
 import 'notification_service.dart';
 
@@ -7,11 +8,20 @@ import 'notification_service.dart';
 class FcmNotificationListener {
   FcmNotificationListener._();
 
+  static final StreamController<String> _messageTypeController =
+      StreamController<String>.broadcast();
+
+  static Stream<String> get messageTypes => _messageTypeController.stream;
+
   static Future<void> init(NotificationService notificationService) async {
     // Register background handler for data/notification delivery.
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+      final type = message.data['type']?.toString();
+      if (type != null && type.isNotEmpty) {
+        _messageTypeController.add(type);
+      }
       final notification = message.notification;
       if (notification == null) return;
 

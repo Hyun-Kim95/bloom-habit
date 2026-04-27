@@ -329,13 +329,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationSettingsSubtitle => 'Enable habit reminders here.';
 
   @override
-  String get soundAndFeedback => 'Sound & Feedback';
+  String get soundAndFeedback => 'Completion feedback';
 
   @override
-  String get sound => 'Sound';
+  String get sound => 'Completion sound';
 
   @override
-  String get soundSubtitle => 'Play sound on completion';
+  String get soundSubtitle =>
+      'When on: sound in normal mode, vibration in silent/vibrate mode';
 
   @override
   String get haptic => 'Haptic';

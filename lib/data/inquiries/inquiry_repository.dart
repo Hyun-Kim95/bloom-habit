@@ -12,6 +12,7 @@ class InquiryItem {
     required this.status,
     this.adminReply,
     this.repliedAt,
+    this.userReadAt,
     required this.createdAt,
   });
 
@@ -21,6 +22,7 @@ class InquiryItem {
   final String status;
   final String? adminReply;
   final String? repliedAt;
+  final String? userReadAt;
   final String createdAt;
 }
 
@@ -45,6 +47,7 @@ class InquiryRepository {
             status: m['status'] as String? ?? 'pending',
             adminReply: m['adminReply'] as String?,
             repliedAt: m['repliedAt'] as String?,
+            userReadAt: m['userReadAt'] as String?,
             createdAt: m['createdAt'] as String? ?? '',
           );
         })
@@ -67,7 +70,12 @@ class InquiryRepository {
       status: m['status'] as String? ?? 'pending',
       adminReply: m['adminReply'] as String?,
       repliedAt: m['repliedAt'] as String?,
+      userReadAt: m['userReadAt'] as String?,
       createdAt: m['createdAt'] as String? ?? '',
     );
+  }
+
+  Future<void> markInquiryRead(String inquiryId) async {
+    await _dio.patch<void>(ApiEndpoints.inquiryRead(inquiryId));
   }
 }

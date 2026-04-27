@@ -30,6 +30,7 @@ export interface InquiryAdminDto {
   status: string;
   adminReply: string | null;
   repliedAt: string | null;
+  userReadAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -584,6 +585,7 @@ export class AdminDataService {
         status: i.status,
         adminReply: i.adminReply ?? null,
         repliedAt: i.repliedAt?.toISOString() ?? null,
+        userReadAt: i.userReadAt?.toISOString() ?? null,
         createdAt: i.createdAt.toISOString(),
         updatedAt: i.updatedAt.toISOString(),
       };
@@ -596,16 +598,21 @@ export class AdminDataService {
   ): Promise<InquiryAdminDto | undefined> {
     const i = await this.inquiryRepo.findOne({ where: { id } });
     if (!i) return undefined;
-    const hadNewReply =
-      body.adminReply != null && (body.adminReply as string).trim() !== '';
+    const prevReply = i.adminReply?.trim() ?? '';
+    const nextReply = body.adminReply != null ? body.adminReply.trim() : prevReply;
+    const hasReplyChanged = body.adminReply != null && nextReply != prevReply;
+    const shouldNotify = nextReply !== '' && hasReplyChanged;
     if (body.adminReply != null) {
       i.adminReply = body.adminReply;
       i.repliedAt = new Date();
-      if ((body.adminReply as string).trim() !== '') i.status = 'answered';
+      if ((body.adminReply as string).trim() !== '') {
+        i.status = 'answered';
+        i.userReadAt = null;
+      }
     }
     if (body.status != null) i.status = body.status;
     await this.inquiryRepo.save(i);
-    if (hadNewReply) {
+    if (shouldNotify) {
       this.pushService.sendInquiryReplyNotification(i.userId, i.subject).catch(() => {});
     }
     const u = await this.userRepo.findOne({ where: { id: i.userId } });
@@ -619,6 +626,7 @@ export class AdminDataService {
       status: i.status,
       adminReply: i.adminReply ?? null,
       repliedAt: i.repliedAt?.toISOString() ?? null,
+      userReadAt: i.userReadAt?.toISOString() ?? null,
       createdAt: i.createdAt.toISOString(),
       updatedAt: i.updatedAt.toISOString(),
     };

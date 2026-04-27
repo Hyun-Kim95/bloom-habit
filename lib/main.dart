@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bloom_habit/l10n/app_localizations.dart';
+import 'dart:async';
 
 import 'core/notifications/notification_service.dart';
 import 'core/notifications/fcm_notification_listener.dart';
@@ -47,14 +48,26 @@ class BloomHabitApp extends ConsumerStatefulWidget {
 
 class _BloomHabitAppState extends ConsumerState<BloomHabitApp> {
   late final GoRouter _router;
+  StreamSubscription<String>? _fcmTypeSub;
 
   @override
   void initState() {
     super.initState();
     _router = createAppRouter(ref);
+    _fcmTypeSub = FcmNotificationListener.messageTypes.listen((type) {
+      if (type == 'inquiry_reply' || type == 'notice' || type == 'announcement') {
+        ref.invalidate(unreadSummaryProvider);
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(monetizationProvider.notifier).bootstrap();
     });
+  }
+
+  @override
+  void dispose() {
+    _fcmTypeSub?.cancel();
+    super.dispose();
   }
 
   @override

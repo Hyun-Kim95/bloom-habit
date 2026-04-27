@@ -3,24 +3,25 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Also used by NotificationService.
 const String keyNotificationsEnabled = 'settings_notifications_enabled';
 const _keySoundEnabled = 'settings_sound_enabled';
-const _keyHapticEnabled = 'settings_haptic_enabled';
 const _keyOnboardingSeen = 'settings_onboarding_seen';
 const _keyOnboardingOnlyFirstLaunch = 'settings_onboarding_only_first_launch';
 const _keyThemeMode = 'settings_theme_mode';
+
 /// SharedPreferences key for [AppSettings.localeCode] (also read in `main` before runApp).
 const kSettingsLocaleKey = 'settings_locale';
 
-/// App-wide settings (notification/sound/haptic/onboarding) in SharedPreferences.
+/// App-wide settings (notification/completion sound/onboarding) in SharedPreferences.
 class AppSettings {
   AppSettings(this._prefs);
 
   final SharedPreferences _prefs;
 
-  bool get notificationsEnabled => _prefs.getBool(keyNotificationsEnabled) ?? true;
+  bool get notificationsEnabled =>
+      _prefs.getBool(keyNotificationsEnabled) ?? true;
   bool get soundEnabled => _prefs.getBool(_keySoundEnabled) ?? true;
-  bool get hapticEnabled => _prefs.getBool(_keyHapticEnabled) ?? true;
   bool get hasSeenOnboarding => _prefs.getBool(_keyOnboardingSeen) ?? false;
-  bool get showOnboardingOnlyFirstLaunch => _prefs.getBool(_keyOnboardingOnlyFirstLaunch) ?? true;
+  bool get showOnboardingOnlyFirstLaunch =>
+      _prefs.getBool(_keyOnboardingOnlyFirstLaunch) ?? true;
   String get themeMode {
     final raw = (_prefs.getString(_keyThemeMode) ?? '').trim().toLowerCase();
     if (raw == 'dark') return 'dark';
@@ -31,6 +32,7 @@ class AppSettings {
     }
     return 'light';
   }
+
   String get localeCode => _prefs.getString(kSettingsLocaleKey) ?? 'ko';
 
   Future<void> setNotificationsEnabled(bool value) async {
@@ -39,10 +41,6 @@ class AppSettings {
 
   Future<void> setSoundEnabled(bool value) async {
     await _prefs.setBool(_keySoundEnabled, value);
-  }
-
-  Future<void> setHapticEnabled(bool value) async {
-    await _prefs.setBool(_keyHapticEnabled, value);
   }
 
   Future<void> setOnboardingSeen(bool value) async {
@@ -75,4 +73,3 @@ abstract class StoreUrls {
   static const String android = '';
   static const String ios = '';
 }
-

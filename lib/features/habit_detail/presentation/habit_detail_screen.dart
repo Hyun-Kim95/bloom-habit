@@ -110,10 +110,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
           if (mounted) {
             final settings = ref.read(appSettingsProvider).value;
             debugPrint(
-              'HabitDetailScreen: feedback request(duration-stop) {hapticEnabled: ${settings?.hapticEnabled ?? true}, soundEnabled: ${settings?.soundEnabled ?? true}, goalType: duration, habitId: ${_habit.serverId}}',
+              'CompletionFeedbackProbe: detail request(duration-stop) {completionSoundEnabled: ${settings?.soundEnabled ?? true}, goalType: duration, habitId: ${_habit.serverId}}',
             );
             final feedbackPlayed = await HabitCompletionFeedback.trigger(
-              hapticEnabled: settings?.hapticEnabled ?? true,
               soundEnabled: settings?.soundEnabled ?? true,
             );
             if (!feedbackPlayed && kDebugMode && mounted) {
@@ -191,15 +190,14 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       if (shouldPlayFeedback) {
         final settings = ref.read(appSettingsProvider).value;
         debugPrint(
-          'HabitDetailScreen: feedback request {hapticEnabled: ${settings?.hapticEnabled ?? true}, soundEnabled: ${settings?.soundEnabled ?? true}, goalType: $goalType, habitId: ${_habit.serverId}}',
+          'CompletionFeedbackProbe: detail request {completionSoundEnabled: ${settings?.soundEnabled ?? true}, goalType: $goalType, habitId: ${_habit.serverId}}',
         );
         final feedbackPlayed = await HabitCompletionFeedback.trigger(
-          hapticEnabled: settings?.hapticEnabled ?? true,
           soundEnabled: settings?.soundEnabled ?? true,
         );
         if (!feedbackPlayed) {
           debugPrint(
-            'HabitDetailScreen: completion feedback did not play after save success.',
+            'CompletionFeedbackProbe: detail no-feedback-after-save {goalType: $goalType, habitId: ${_habit.serverId}}',
           );
           if (kDebugMode && mounted) {
             ScaffoldMessenger.of(context).showSnackBar(

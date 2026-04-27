@@ -6,6 +6,7 @@ import '../auth/auth_repository.dart';
 import '../settings/app_settings.dart';
 import '../auth/token_storage.dart';
 import '../network/api_client.dart';
+import '../network/api_endpoints.dart';
 import '../network/api_config_stub.dart'
     if (dart.library.io) '../network/api_config_io.dart'
     as api_config;
@@ -15,6 +16,18 @@ import '../../data/habit/habit_repository.dart';
 import '../../data/inquiries/inquiry_repository.dart';
 import '../../data/legal/legal_repository.dart';
 import '../../data/notices/notice_repository.dart';
+
+class UnreadSummary {
+  const UnreadSummary({
+    required this.noticeUnreadCount,
+    required this.inquiryUnreadCount,
+  });
+
+  final int noticeUnreadCount;
+  final int inquiryUnreadCount;
+
+  bool get hasUnread => noticeUnreadCount > 0 || inquiryUnreadCount > 0;
+}
 
 final _tokenStorageProvider = Provider<TokenStorage>((ref) => TokenStorage());
 
@@ -81,4 +94,14 @@ final noticeRepositoryProvider = Provider<NoticeRepository>((ref) {
 final appSettingsProvider = FutureProvider<AppSettings>((ref) async {
   final prefs = await SharedPreferences.getInstance();
   return AppSettings(prefs);
+});
+
+final unreadSummaryProvider = FutureProvider<UnreadSummary>((ref) async {
+  final dio = ref.watch(apiClientProvider).dio;
+  final res = await dio.get<Map<String, dynamic>>(ApiEndpoints.meUnreadSummary);
+  final data = res.data ?? const <String, dynamic>{};
+  return UnreadSummary(
+    noticeUnreadCount: (data['noticeUnreadCount'] as num?)?.toInt() ?? 0,
+    inquiryUnreadCount: (data['inquiryUnreadCount'] as num?)?.toInt() ?? 0,
+  );
 });

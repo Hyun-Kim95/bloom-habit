@@ -85,6 +85,8 @@ dependencies:
   # 기록 완료 효과음 (Android 등에서 SystemSound 대체)
   just_audio: ^0.9.46
   image_picker: ^1.2.0
+  vibration: ^3.1.8
+  sound_mode: ^3.1.1
 
 dev_dependencies:
   flutter_test:
@@ -107,7 +109,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/
+    - assets/sounds/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

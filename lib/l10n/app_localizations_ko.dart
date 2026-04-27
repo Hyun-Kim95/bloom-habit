@@ -323,13 +323,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notificationSettingsSubtitle => '습관 리마인더는 여기서 켜세요.';
 
   @override
-  String get soundAndFeedback => '사운드·피드백';
+  String get soundAndFeedback => '완료 피드백';
 
   @override
-  String get sound => '사운드';
+  String get sound => '완료음';
 
   @override
-  String get soundSubtitle => '기록 완료 시 효과음';
+  String get soundSubtitle => '켜면 소리모드에서는 완료음, 매너/진동모드에서는 진동으로 안내해요';
 
   @override
   String get haptic => '햅틱';

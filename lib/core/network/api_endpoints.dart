@@ -8,6 +8,7 @@ abstract class ApiEndpoints {
 
   static const String me = '/me';
   static const String meAvatarPresign = '/me/avatar/presign';
+  static const String meUnreadSummary = '/me/unread-summary';
   static const String habitCategories = '/habits/categories';
   static const String habitTemplates = '/habits/templates';
   static String habits([String? id]) => id == null ? '/habits' : '/habits/$id';
@@ -21,7 +22,9 @@ abstract class ApiEndpoints {
   static const String sync = '/sync';
   static const String syncPush = '/sync/push';
   static const String inquiries = '/inquiries';
+  static String inquiryRead(String inquiryId) => '/inquiries/$inquiryId/read';
   static const String legalTerms = '/legal/terms';
   static const String legalPrivacy = '/legal/privacy';
   static const String notices = '/notices';
+  static String noticeRead(String noticeId) => '/notices/$noticeId/read';
 }

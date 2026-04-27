@@ -12,17 +12,26 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
+import { Repository } from 'typeorm';
 import { AuthService } from './auth.service';
 import { JwtGuard } from './jwt.guard';
+import { Inquiry, Notice, NoticeRead } from '../entities';
+import { InquiriesService } from '../inquiries/inquiries.service';
 
 type ReqWithUser = Request & { userId: string };
 
 @Controller('me')
 @UseGuards(JwtGuard)
 export class MeController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly inquiriesService: InquiriesService,
+    @InjectRepository(Notice)
+    private readonly noticeRepo: Repository<Notice>,
+  ) {}
 
   @Get()
   async getMe(@Req() req: ReqWithUser) {
@@ -49,6 +58,31 @@ export class MeController {
       await this.auth.patchMe(req.userId, body);
     }
     return { ok: true };
+  }
+
+  @Get('unread-summary')
+  async unreadSummary(@Req() req: ReqWithUser) {
+    const inquiryUnreadCount = await this.inquiriesService.countUnreadAnsweredByUser(req.userId);
+    const now = new Date();
+    const row = await this.noticeRepo
+      .createQueryBuilder('n')
+      .leftJoin(
+        NoticeRead,
+        'nr',
+        'nr.noticeId = n.id AND nr.userId = :userId',
+        { userId: req.userId },
+      )
+      .select('COUNT(1)', 'count')
+      .where('n.publishedAt IS NOT NULL')
+      .andWhere('n.publishedAt <= :now', { now })
+      .andWhere('nr.id IS NULL')
+      .getRawOne<{ count: string }>();
+    const noticeUnreadCount = Number(row?.count ?? 0);
+    return {
+      noticeUnreadCount,
+      inquiryUnreadCount,
+      hasUnread: noticeUnreadCount > 0 || inquiryUnreadCount > 0,
+    };
   }
 
   @Put('avatar/upload/:token')

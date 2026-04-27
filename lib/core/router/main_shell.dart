@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:bloom_habit/l10n/app_localizations.dart';
 
 import '../monetization/adaptive_banner_ad_slot.dart';
 import '../theme/app_theme.dart';
+import 'app_providers.dart';
 import 'app_router.dart';
 
 /// Main tab root paths: double-back to exit here.
@@ -17,7 +19,7 @@ bool _isShellRootPath(String path) {
 }
 
 /// Main shell with shared bottom navigation.
-class MainShell extends StatefulWidget {
+class MainShell extends ConsumerStatefulWidget {
   const MainShell({
     super.key,
     required this.navigationShell,
@@ -26,10 +28,10 @@ class MainShell extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   @override
-  State<MainShell> createState() => _MainShellState();
+  ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends ConsumerState<MainShell> {
   DateTime? _lastBackPress;
 
   static int _selectedIndexFromPath(String path) {
@@ -80,6 +82,8 @@ class _MainShellState extends State<MainShell> {
     final bg = isDark ? AppColors.backgroundDark : _shellBackground;
     final border = isDark ? AppColors.borderDark : _shellBorder;
     final atRoot = _isShellRootPath(path);
+    final unreadSummary = ref.watch(unreadSummaryProvider).valueOrNull;
+    final hasSettingsUnread = unreadSummary?.hasUnread ?? false;
 
     return PopScope(
       canPop: !atRoot,
@@ -130,6 +134,7 @@ class _MainShellState extends State<MainShell> {
                 label: l10n.navSettings,
                 icon: Icons.settings_rounded,
                 selected: currentIndex == 3,
+                showBadge: hasSettingsUnread,
                 onTap: () => _onTap(context, 3),
               ),
             ),
@@ -149,12 +154,14 @@ class _NavItem extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.selected,
+    this.showBadge = false,
     required this.onTap,
   });
 
   final String label;
   final IconData icon;
   final bool selected;
+  final bool showBadge;
   final VoidCallback onTap;
 
   @override
@@ -179,7 +186,18 @@ class _NavItem extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 22, color: color),
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(icon, size: 22, color: color),
+                    if (showBadge)
+                      const Positioned(
+                        right: -4,
+                        top: -2,
+                        child: _NavDotBadge(),
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 4),
                 Text(
                   label,
@@ -193,6 +211,22 @@ class _NavItem extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _NavDotBadge extends StatelessWidget {
+  const _NavDotBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 8,
+      height: 8,
+      decoration: BoxDecoration(
+        color: AppColors.destructive,
+        borderRadius: BorderRadius.circular(999),
       ),
     );
   }

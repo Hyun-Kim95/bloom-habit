@@ -21,6 +21,7 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
   bool _loading = true;
   bool _submitting = false;
   String? _error;
+  final Set<String> _readInquiryIds = <String>{};
 
   @override
   void initState() {
@@ -89,6 +90,36 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
         _error = e.toString().split('\n').first;
       });
     }
+  }
+
+  DateTime? _tryParseIso(String? value) {
+    if (value == null || value.isEmpty) return null;
+    return DateTime.tryParse(value);
+  }
+
+  bool _isUnreadReply(InquiryItem item) {
+    if (item.status != 'answered') return false;
+    if ((item.adminReply ?? '').trim().isEmpty) return false;
+    final repliedAt = _tryParseIso(item.repliedAt);
+    final userReadAt = _tryParseIso(item.userReadAt);
+    if (repliedAt == null) return userReadAt == null;
+    if (userReadAt == null) return true;
+    return userReadAt.isBefore(repliedAt);
+  }
+
+  Future<void> _markInquiryReadIfNeeded(InquiryItem item) async {
+    if (!_isUnreadReply(item)) return;
+    if (_readInquiryIds.contains(item.id)) return;
+    _readInquiryIds.add(item.id);
+    final repo = ref.read(inquiryRepositoryProvider);
+    try {
+      await repo.markInquiryRead(item.id);
+    } catch (_) {
+      _readInquiryIds.remove(item.id);
+      return;
+    }
+    ref.invalidate(unreadSummaryProvider);
+    await _load();
   }
 
   @override
@@ -177,7 +208,15 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
                 ),
               )
             else
-              ..._list.map((item) => _InquiryCard(item: item, isDark: isDark, l10n: l10n)),
+              ..._list.map(
+                (item) => _InquiryCard(
+                  item: item,
+                  isDark: isDark,
+                  l10n: l10n,
+                  isUnreadReply: _isUnreadReply(item),
+                  onOpenReply: () => _markInquiryReadIfNeeded(item),
+                ),
+              ),
           ],
         ),
       ),
@@ -186,11 +225,19 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
 }
 
 class _InquiryCard extends StatelessWidget {
-  const _InquiryCard({required this.item, required this.isDark, required this.l10n});
+  const _InquiryCard({
+    required this.item,
+    required this.isDark,
+    required this.l10n,
+    required this.isUnreadReply,
+    required this.onOpenReply,
+  });
 
   final InquiryItem item;
   final bool isDark;
   final AppLocalizations l10n;
+  final bool isUnreadReply;
+  final VoidCallback onOpenReply;
 
   @override
   Widget build(BuildContext context) {
@@ -201,6 +248,9 @@ class _InquiryCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
+        onExpansionChanged: (expanded) {
+          if (expanded) onOpenReply();
+        },
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         title: Text(
           item.subject,
@@ -232,6 +282,15 @@ class _InquiryCard extends StatelessWidget {
                 ),
               ),
             ),
+            if (isUnreadReply)
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: AppColors.destructive,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
             if (item.status == 'answered' && item.repliedAt != null && item.repliedAt!.isNotEmpty)
               Text(
                 l10n.replyAt(_formatDate(item.repliedAt!)),

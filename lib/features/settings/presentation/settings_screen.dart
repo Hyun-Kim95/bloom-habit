@@ -55,6 +55,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final muted = AppColors.mutedFg(isDark);
     final settingsAsync = ref.watch(appSettingsProvider);
+    final unreadSummaryAsync = ref.watch(unreadSummaryProvider);
+    final unreadSummary = unreadSummaryAsync.valueOrNull;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -79,7 +81,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             icon: Icons.campaign_outlined,
             title: l10n.announcements,
             subtitle: l10n.serviceAnnouncementList,
-            onTap: () => context.push(AppRoutes.notices),
+            trailing: _CountBadge(count: unreadSummary?.noticeUnreadCount ?? 0),
+            onTap: () {
+              context.push(AppRoutes.notices).then((_) {
+                ref.invalidate(unreadSummaryProvider);
+              });
+            },
           ),
           _SettingsTile(
             icon: Icons.menu_book_outlined,
@@ -97,7 +104,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             icon: Icons.mail_outline,
             title: l10n.inquiry,
             subtitle: l10n.inquirySubtitle,
-            onTap: () => context.push(AppRoutes.inquiries),
+            trailing: _CountBadge(count: unreadSummary?.inquiryUnreadCount ?? 0),
+            onTap: () {
+              context.push(AppRoutes.inquiries).then((_) {
+                ref.invalidate(unreadSummaryProvider);
+              });
+            },
           ),
           _SettingsTile(
             icon: Icons.volunteer_activism_outlined,
@@ -253,27 +265,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ? AppColors.primaryDark
                         : AppColors.primary,
                   ),
-                  SwitchListTile(
-                    value: settings.hapticEnabled,
-                    onChanged: (v) async {
-                      await settings.setHapticEnabled(v);
-                      ref.invalidate(appSettingsProvider);
-                    },
-                    title: Text(
-                      l10n.haptic,
-                      style: GoogleFonts.dmSans(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    subtitle: Text(
-                      l10n.hapticSubtitle,
-                      style: GoogleFonts.dmSans(fontSize: 13, color: muted),
-                    ),
-                    activeThumbColor: isDark
-                        ? AppColors.primaryDark
-                        : AppColors.primary,
-                  ),
                 ],
               ),
             ),
@@ -376,6 +367,7 @@ class _SettingsTile extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.titleColor,
+    this.trailing,
     required this.onTap,
   });
 
@@ -383,6 +375,7 @@ class _SettingsTile extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Color? titleColor;
+  final Widget? trailing;
   final VoidCallback onTap;
 
   @override
@@ -412,8 +405,37 @@ class _SettingsTile extends StatelessWidget {
                 style: GoogleFonts.dmSans(fontSize: 13, color: muted),
               )
             : null,
-        trailing: Icon(Icons.chevron_right, color: muted),
+        trailing: trailing ?? Icon(Icons.chevron_right, color: muted),
         onTap: onTap,
+      ),
+    );
+  }
+}
+
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    if (count <= 0) return const SizedBox.shrink();
+    final text = count > 99 ? '99+' : '$count';
+    return Container(
+      constraints: const BoxConstraints(minWidth: 22),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.destructive,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: GoogleFonts.dmSans(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        ),
       ),
     );
   }

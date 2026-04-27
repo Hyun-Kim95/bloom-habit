@@ -444,15 +444,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (shouldPlayFeedback) {
         final settings = ref.read(appSettingsProvider).value;
         debugPrint(
-          'HomeScreen: feedback request {hapticEnabled: ${settings?.hapticEnabled ?? true}, soundEnabled: ${settings?.soundEnabled ?? true}, goalType: $goalType, habitId: $sid}',
+          'CompletionFeedbackProbe: home request {completionSoundEnabled: ${settings?.soundEnabled ?? true}, goalType: $goalType, habitId: $sid}',
         );
         final feedbackPlayed = await HabitCompletionFeedback.trigger(
-          hapticEnabled: settings?.hapticEnabled ?? true,
           soundEnabled: settings?.soundEnabled ?? true,
         );
         if (!feedbackPlayed) {
           debugPrint(
-            'HomeScreen: completion feedback did not play after save success.',
+            'CompletionFeedbackProbe: home no-feedback-after-save {goalType: $goalType, habitId: $sid}',
           );
           if (kDebugMode && mounted) {
             ScaffoldMessenger.of(context).showSnackBar(

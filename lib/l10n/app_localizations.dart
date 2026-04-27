@@ -707,19 +707,19 @@ abstract class AppLocalizations {
   /// No description provided for @soundAndFeedback.
   ///
   /// In ko, this message translates to:
-  /// **'사운드·피드백'**
+  /// **'완료 피드백'**
   String get soundAndFeedback;
 
   /// No description provided for @sound.
   ///
   /// In ko, this message translates to:
-  /// **'사운드'**
+  /// **'완료음'**
   String get sound;
 
   /// No description provided for @soundSubtitle.
   ///
   /// In ko, this message translates to:
-  /// **'기록 완료 시 효과음'**
+  /// **'켜면 소리모드에서는 완료음, 매너/진동모드에서는 진동으로 안내해요'**
   String get soundSubtitle;
 
   /// No description provided for @haptic.
