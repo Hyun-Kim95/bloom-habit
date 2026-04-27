@@ -376,12 +376,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _durationRunningHabits.remove(sid);
             });
           }
+          int? elapsedMs;
           try {
-            final elapsedMs = await DurationTimerService.stop();
-            final minutes = ((elapsedMs ?? 0) / 60000.0);
-            if (minutes >= 1) {
-              await repo.recordToday(sid, value: minutes);
-            }
+            elapsedMs = await DurationTimerService.stop();
           } catch (_) {
             if (mounted) {
               setState(() {
@@ -389,6 +386,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               });
             }
             rethrow;
+          }
+          if (!mounted) return;
+          final elapsed = (elapsedMs ?? 0).clamp(0, 2147483647);
+          if (elapsed < 60000) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('1분 미만은 저장되지 않아요.'),
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 2),
+              ),
+            );
+            await _load();
+            return;
+          }
+          final minutes = elapsed / 60000.0;
+          try {
+            await repo.recordToday(sid, value: minutes);
+          } catch (_) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('기록 저장에 실패했어요. 다시 시도해 주세요.'),
+                  behavior: SnackBarBehavior.floating,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+            }
+            await _load();
+            return;
           }
         } else {
           if (mounted) {
