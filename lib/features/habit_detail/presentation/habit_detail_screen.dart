@@ -12,6 +12,7 @@ import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../../core/utils/habit_icon_color.dart';
+import '../../../core/utils/habit_display_localization.dart';
 import '../../../data/habit/habit_repository.dart';
 import '../../../data/local/entity/local_habit.dart';
 import 'habit_edit_sheet.dart';
@@ -101,9 +102,17 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       try {
         final repo = ref.read(habitRepositoryProvider);
         final elapsedMs = await DurationTimerService.stop();
-        final minutes = ((elapsedMs ?? 0) / 60000.0);
+        final minutes = (((elapsedMs ?? 0).clamp(0, 2147483647)) ~/ 60000)
+            .toDouble();
         if (minutes >= 1) {
           await repo.recordToday(_habit.serverId!, value: minutes);
+          if (mounted) {
+            final settings = ref.read(appSettingsProvider).value;
+            await HabitCompletionFeedback.trigger(
+              hapticEnabled: settings?.hapticEnabled ?? true,
+              soundEnabled: settings?.soundEnabled ?? true,
+            );
+          }
         }
         if (!mounted) return;
         ref.read(homeRefreshTriggerProvider.notifier).state++;
@@ -117,18 +126,12 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       return;
     }
     setState(() => _recording = true);
-    final settings = ref.read(appSettingsProvider).value;
-    final feedbackPlayed = await HabitCompletionFeedback.trigger(
-      hapticEnabled: settings?.hapticEnabled ?? true,
-      soundEnabled: settings?.soundEnabled ?? true,
-    );
-    if (!feedbackPlayed) {
-      debugPrint('HabitDetailScreen: completion feedback did not play.');
-    }
     try {
       final repo = ref.read(habitRepositoryProvider);
+      var shouldPlayFeedback = false;
       if (goalType == 'completion') {
         await repo.recordToday(_habit.serverId!, completed: true);
+        shouldPlayFeedback = true;
       } else if (goalType == 'duration') {
         if (mounted) {
           setState(() {
@@ -156,8 +159,21 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
           return;
         }
         await repo.recordToday(_habit.serverId!, value: inputValue);
+        shouldPlayFeedback = true;
       }
       if (!mounted) return;
+      if (shouldPlayFeedback) {
+        final settings = ref.read(appSettingsProvider).value;
+        final feedbackPlayed = await HabitCompletionFeedback.trigger(
+          hapticEnabled: settings?.hapticEnabled ?? true,
+          soundEnabled: settings?.soundEnabled ?? true,
+        );
+        if (!feedbackPlayed) {
+          debugPrint(
+            'HabitDetailScreen: completion feedback did not play after save success.',
+          );
+        }
+      }
       setState(() {
         _recording = false;
       });
@@ -180,19 +196,26 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
 
   Future<double?> _askRecordValue(String goalType, String? unit) async {
     final l10n = AppLocalizations.of(context)!;
+    final languageCode = Localizations.localeOf(context).languageCode;
     final controller = TextEditingController(text: '1');
     final normalizedUnit = (unit ?? '').trim();
-    final unitHint = normalizedUnit.isEmpty ? null : normalizedUnit;
+    final unitHint = normalizedUnit.isEmpty
+        ? null
+        : localizeHabitUnit(normalizedUnit, languageCode);
     return showDialog<double>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(goalType == 'count' ? '완료 횟수' : '완료값'),
+        title: Text(
+          goalType == 'count'
+              ? (languageCode == 'en' ? 'Count value' : '완료 횟수')
+              : (languageCode == 'en' ? 'Completed value' : '완료값'),
+        ),
         content: TextField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
             hintText: goalType == 'count'
-                ? '기본 1'
+                ? (languageCode == 'en' ? 'Default 1' : '기본 1')
                 : goalType == 'duration'
                 ? l10n.goalDurationHint
                 : l10n.goalNumberHint,
@@ -373,13 +396,16 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     final muted = AppColors.mutedFg(isDark);
     final isHidden = h.archivedAt != null;
     final goalType = (h.goalType ?? 'completion').toLowerCase().trim();
+    final languageCode = Localizations.localeOf(context).languageCode;
     final goalValue = h.goalValue;
     String? progressText;
     if (goalType != 'completion' && goalValue != null) {
       final current = _todayValue ?? 0;
       final unitSuffix = goalType == 'count'
-          ? '회'
-          : (h.unit != null ? ' ${h.unit}' : '');
+          ? (languageCode == 'en' ? ' times' : '회')
+          : (h.unit != null
+                ? ' ${localizeHabitUnit(h.unit!, languageCode)}'
+                : '');
       if (goalType == 'number' && h.numberDirection == 'lte') {
         progressText =
             '${current.toStringAsFixed(0)}$unitSuffix / <= ${goalValue.toStringAsFixed(0)}$unitSuffix';
@@ -435,7 +461,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
           children: [
             if (h.category != null && h.category!.isNotEmpty) ...[
               Text(
-                h.category!,
+                localizeHabitCategory(h.category!, languageCode),
                 style: GoogleFonts.dmSans(fontSize: 14, color: muted),
               ),
               const SizedBox(height: 8),

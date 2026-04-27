@@ -3,11 +3,17 @@ import {
   Controller,
   Delete,
   Get,
+  Post,
+  Put,
+  Param,
   Patch,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Request } from 'express';
 import { AuthService } from './auth.service';
 import { JwtGuard } from './jwt.guard';
 
@@ -43,6 +49,42 @@ export class MeController {
       await this.auth.patchMe(req.userId, body);
     }
     return { ok: true };
+  }
+
+  @Put('avatar/upload/:token')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
+  async uploadAvatar(
+    @Req() req: ReqWithUser,
+    @Param('token') token: string,
+    @UploadedFile()
+    file: any,
+  ) {
+    const storedFileName = await this.auth.uploadAvatarFromPresignedToken(
+      req.userId,
+      decodeURIComponent(token),
+      file,
+    );
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    return {
+      avatarUrl: `${baseUrl}/static/avatars/${storedFileName}`,
+    };
+  }
+
+  @Post('avatar/presign')
+  async presignAvatarUpload(
+    @Req() req: ReqWithUser,
+    @Body() body: { fileName?: string; fileSize?: number; contentType?: string },
+  ) {
+    const presign = await this.auth.createAvatarUploadPresign(req.userId, body);
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    return {
+      uploadUrl: `${baseUrl}/me/avatar/upload/${encodeURIComponent(presign.uploadToken)}`,
+      publicUrl: `${baseUrl}/static/avatars/${presign.fileName}`,
+    };
   }
 
   @Delete()

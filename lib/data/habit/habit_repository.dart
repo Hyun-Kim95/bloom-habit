@@ -77,6 +77,9 @@ class HabitRepository {
     if (res.data == null) return;
     final isar = await _isarFuture;
     await isar.writeTxn(() async {
+      // Account switch safety: rebuild local snapshot from server payload.
+      await isar.localHabits.clear();
+      await isar.localHabitRecords.clear();
       final habits = res.data!['habits'] as List<dynamic>?;
       if (habits != null) {
         for (final h in habits) {
@@ -97,15 +100,6 @@ class HabitRepository {
             ..createdAt = _parseDateTime(map['createdAt'])
             ..updatedAt = _parseDateTime(map['updatedAt']);
           if (local.serverId != null) {
-            final existing = await isar.localHabits.getByServerId(
-              local.serverId,
-            );
-            if (existing != null) {
-              local.id = existing.id;
-              local.reminderEnabled = existing.reminderEnabled;
-              local.reminderHour = existing.reminderHour;
-              local.reminderMinute = existing.reminderMinute;
-            }
             await isar.localHabits.put(local);
           }
         }
@@ -123,10 +117,6 @@ class HabitRepository {
             ..createdAt = _parseDateTime(map['createdAt'])
             ..updatedAt = _parseDateTime(map['updatedAt']);
           if (local.serverId != null) {
-            final existing = await isar.localHabitRecords.getByServerId(
-              local.serverId,
-            );
-            if (existing != null) local.id = existing.id;
             await isar.localHabitRecords.put(local);
           }
         }

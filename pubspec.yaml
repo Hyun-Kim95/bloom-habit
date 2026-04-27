@@ -84,6 +84,7 @@ dependencies:
 
   # 기록 완료 효과음 (Android 등에서 SystemSound 대체)
   just_audio: ^0.9.46
+  image_picker: ^1.2.0
 
 dev_dependencies:
   flutter_test:

@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/utils/habit_display_localization.dart';
 import '../../../core/utils/habit_icon_color.dart';
 import '../../../data/local/entity/local_habit.dart';
 
@@ -78,7 +79,11 @@ class _HabitListScreenState extends ConsumerState<HabitListScreen> {
       appBar: AppBar(
         title: Text(
           l10n.habitTitle,
-          style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w600, color: text),
+          style: GoogleFonts.dmSans(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: text,
+          ),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -93,85 +98,109 @@ class _HabitListScreenState extends ConsumerState<HabitListScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _error!,
+                      style: GoogleFonts.dmSans(
+                        fontSize: 14,
+                        color: AppColors.destructive,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton(onPressed: _load, child: Text(l10n.retry)),
+                  ],
+                ),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: _habits.isEmpty && _hiddenHabits.isEmpty
+                  ? ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
                       children: [
-                        Text(_error!, style: GoogleFonts.dmSans(fontSize: 14, color: AppColors.destructive)),
+                        const SizedBox(height: 48),
+                        Icon(Icons.list_rounded, size: 64, color: textMuted),
                         const SizedBox(height: 16),
-                        FilledButton(onPressed: _load, child: Text(l10n.retry)),
+                        Text(
+                          l10n.noHabitsRegistered,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: text,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          l10n.addHabitGuide,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 14,
+                            color: textMuted,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      children: [
+                        if (_habits.isNotEmpty) ...[
+                          Text(
+                            l10n.activeHabits,
+                            style: GoogleFonts.dmSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: textMuted,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          ..._habits.map(
+                            (h) => _HabitListItem(
+                              habit: h,
+                              cardColor: cardColor,
+                              border: border,
+                              primary: primary,
+                              text: text,
+                              textMuted: textMuted,
+                              iconBg: iconBg,
+                            ),
+                          ),
+                        ],
+                        if (_hiddenHabits.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            l10n.hiddenHabits,
+                            style: GoogleFonts.dmSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: textMuted,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          ..._hiddenHabits.map(
+                            (h) => _HabitListItem(
+                              habit: h,
+                              cardColor: cardColor,
+                              border: border,
+                              primary: primary,
+                              text: text,
+                              textMuted: textMuted,
+                              iconBg: iconBg,
+                              hidden: true,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: _habits.isEmpty && _hiddenHabits.isEmpty
-                      ? ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: [
-                            const SizedBox(height: 48),
-                            Icon(Icons.list_rounded, size: 64, color: textMuted),
-                            const SizedBox(height: 16),
-                            Text(
-                              l10n.noHabitsRegistered,
-                              style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w600, color: text),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              l10n.addHabitGuide,
-                              style: GoogleFonts.dmSans(fontSize: 14, color: textMuted),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        )
-                      : ListView(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          children: [
-                            if (_habits.isNotEmpty) ...[
-                              Text(
-                                l10n.activeHabits,
-                                style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700, color: textMuted),
-                              ),
-                              const SizedBox(height: 10),
-                              ..._habits.map(
-                                (h) => _HabitListItem(
-                                  habit: h,
-                                  cardColor: cardColor,
-                                  border: border,
-                                  primary: primary,
-                                  text: text,
-                                  textMuted: textMuted,
-                                  iconBg: iconBg,
-                                ),
-                              ),
-                            ],
-                            if (_hiddenHabits.isNotEmpty) ...[
-                              const SizedBox(height: 12),
-                              Text(
-                                l10n.hiddenHabits,
-                                style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700, color: textMuted),
-                              ),
-                              const SizedBox(height: 10),
-                              ..._hiddenHabits.map(
-                                (h) => _HabitListItem(
-                                  habit: h,
-                                  cardColor: cardColor,
-                                  border: border,
-                                  primary: primary,
-                                  text: text,
-                                  textMuted: textMuted,
-                                  iconBg: iconBg,
-                                  hidden: true,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                ),
+            ),
     );
   }
 }
@@ -199,6 +228,7 @@ class _HabitListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final languageCode = Localizations.localeOf(context).languageCode;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Material(
@@ -207,7 +237,10 @@ class _HabitListItem extends StatelessWidget {
         child: InkWell(
           onTap: () {
             if (habit.serverId != null) {
-              context.push('${AppRoutes.habitDetail}/${habit.serverId}', extra: habit);
+              context.push(
+                '${AppRoutes.habitDetail}/${habit.serverId}',
+                extra: habit,
+              );
             }
           },
           borderRadius: BorderRadius.circular(AppTheme.radius),
@@ -223,12 +256,17 @@ class _HabitListItem extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: habitColorFromHex(habit.colorHex, fallback: iconBg).withValues(alpha: 0.25),
+                    color: habitColorFromHex(
+                      habit.colorHex,
+                      fallback: iconBg,
+                    ).withValues(alpha: 0.25),
                     borderRadius: BorderRadius.circular(AppTheme.radius),
                   ),
                   alignment: Alignment.center,
                   child: Icon(
-                    hidden ? Icons.visibility_off_outlined : habitIconFromName(habit.iconName),
+                    hidden
+                        ? Icons.visibility_off_outlined
+                        : habitIconFromName(habit.iconName),
                     size: 20,
                     color: habitColorFromHex(habit.colorHex, fallback: primary),
                   ),
@@ -240,13 +278,21 @@ class _HabitListItem extends StatelessWidget {
                     children: [
                       Text(
                         habit.name ?? '',
-                        style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w700, color: text),
+                        style: GoogleFonts.dmSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: text,
+                        ),
                       ),
-                      if (habit.category != null && habit.category!.isNotEmpty) ...[
+                      if (habit.category != null &&
+                          habit.category!.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(
-                          habit.category!,
-                          style: GoogleFonts.dmSans(fontSize: 12, color: textMuted),
+                          localizeHabitCategory(habit.category!, languageCode),
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            color: textMuted,
+                          ),
                         ),
                       ],
                     ],

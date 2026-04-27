@@ -3,6 +3,7 @@ import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/habit_display_localization.dart';
 import '../../../data/local/entity/local_habit.dart';
 
 const kGoalTypes = ['completion', 'count', 'duration', 'number'];
@@ -121,6 +122,8 @@ Future<HabitEditResult?> showHabitEditSheet(
     backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
     builder: (ctx) {
       final l10n = AppLocalizations.of(ctx)!;
+      final lang = Localizations.localeOf(ctx).languageCode;
+      final isEn = lang == 'en';
       String goalTypeLabel(String type) {
         switch (type) {
           case 'count':
@@ -197,13 +200,16 @@ Future<HabitEditResult?> showHabitEditSheet(
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: normalizedUnitForGoalType(goalType, unit),
-                      decoration: const InputDecoration(
-                        labelText: '단위',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: isEn ? 'Unit' : '단위',
+                        border: const OutlineInputBorder(),
                       ),
                       items: unitsForGoalType(goalType)
                           .map(
-                            (e) => DropdownMenuItem(value: e, child: Text(e)),
+                            (e) => DropdownMenuItem(
+                              value: e,
+                              child: Text(localizeHabitUnit(e, lang)),
+                            ),
                           )
                           .toList(),
                       onChanged: (v) => setModalState(() => unit = v),
@@ -218,8 +224,8 @@ Future<HabitEditResult?> showHabitEditSheet(
                         border: const OutlineInputBorder(),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'gte', child: Text('이상(>=)')),
-                        DropdownMenuItem(value: 'lte', child: Text('이하(<=)')),
+                        DropdownMenuItem(value: 'gte', child: Text('>=')),
+                        DropdownMenuItem(value: 'lte', child: Text('<=')),
                       ],
                       onChanged: (v) =>
                           setModalState(() => numberDirection = v ?? 'gte'),
@@ -230,7 +236,7 @@ Future<HabitEditResult?> showHabitEditSheet(
                     TextFormField(
                       initialValue: goalValue?.toInt().toString(),
                       decoration: InputDecoration(
-                        labelText: l10n.goalValue,
+                        labelText: isEn ? 'Target value' : l10n.goalValue,
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,

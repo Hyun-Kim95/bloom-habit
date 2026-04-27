@@ -21,7 +21,16 @@ class AppSettings {
   bool get hapticEnabled => _prefs.getBool(_keyHapticEnabled) ?? true;
   bool get hasSeenOnboarding => _prefs.getBool(_keyOnboardingSeen) ?? false;
   bool get showOnboardingOnlyFirstLaunch => _prefs.getBool(_keyOnboardingOnlyFirstLaunch) ?? true;
-  String get themeMode => _prefs.getString(_keyThemeMode) ?? 'system';
+  String get themeMode {
+    final raw = (_prefs.getString(_keyThemeMode) ?? '').trim().toLowerCase();
+    if (raw == 'dark') return 'dark';
+    if (raw == 'light') return 'light';
+    if (raw == 'system') {
+      // Migrate deprecated mode to the new default.
+      _prefs.setString(_keyThemeMode, 'light');
+    }
+    return 'light';
+  }
   String get localeCode => _prefs.getString(kSettingsLocaleKey) ?? 'ko';
 
   Future<void> setNotificationsEnabled(bool value) async {
@@ -45,7 +54,9 @@ class AppSettings {
   }
 
   Future<void> setThemeMode(String value) async {
-    await _prefs.setString(_keyThemeMode, value);
+    final normalized = value.trim().toLowerCase();
+    final target = normalized == 'dark' ? 'dark' : 'light';
+    await _prefs.setString(_keyThemeMode, target);
   }
 
   Future<void> setLocaleCode(String value) async {

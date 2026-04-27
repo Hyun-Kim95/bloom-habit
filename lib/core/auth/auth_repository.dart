@@ -50,6 +50,13 @@ class MeProfile {
   }
 }
 
+class AvatarUploadPresign {
+  const AvatarUploadPresign({required this.uploadUrl, required this.publicUrl});
+
+  final String uploadUrl;
+  final String publicUrl;
+}
+
 /// Social login + server token issuance.
 class AuthRepository {
   AuthRepository({
@@ -80,8 +87,9 @@ class AuthRepository {
 
       final auth = await account.authentication;
       final idToken = auth.idToken;
-      if (idToken == null)
+      if (idToken == null) {
         return AuthResult.fail(AppStrings.authIdTokenMissing);
+      }
 
       final email = account.email;
       final displayName = account.displayName;
@@ -269,6 +277,38 @@ class AuthRepository {
     }
     if (data.isEmpty) return;
     await _api.dio.patch<Map<String, dynamic>>(ApiEndpoints.me, data: data);
+  }
+
+  Future<AvatarUploadPresign> createAvatarUploadPresign({
+    required String fileName,
+    required int fileSize,
+    String? contentType,
+  }) async {
+    final res = await _api.dio.post<Map<String, dynamic>>(
+      ApiEndpoints.meAvatarPresign,
+      data: {
+        'fileName': fileName,
+        'fileSize': fileSize,
+        if (contentType != null) 'contentType': contentType,
+      },
+    );
+    final data = res.data ?? const <String, dynamic>{};
+    final uploadUrl = data['uploadUrl']?.toString() ?? '';
+    final publicUrl = data['publicUrl']?.toString() ?? '';
+    if (uploadUrl.isEmpty || publicUrl.isEmpty) {
+      throw Exception('Invalid avatar upload presign response');
+    }
+    return AvatarUploadPresign(uploadUrl: uploadUrl, publicUrl: publicUrl);
+  }
+
+  Future<void> uploadAvatarFile({
+    required String uploadUrl,
+    required Uint8List bytes,
+  }) async {
+    final formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(bytes, filename: 'avatar'),
+    });
+    await _api.dio.put(uploadUrl, data: formData);
   }
 
   /// Deactivate account on server with reason and clear local tokens.

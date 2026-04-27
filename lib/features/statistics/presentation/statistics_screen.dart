@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
+import '../../../core/utils/habit_display_localization.dart';
 import '../../../core/utils/habit_icon_color.dart';
 import '../../../data/local/entity/local_habit.dart';
 
@@ -15,10 +16,11 @@ class StatisticsScreen extends ConsumerStatefulWidget {
   ConsumerState<StatisticsScreen> createState() => _StatisticsScreenState();
 }
 
-class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with SingleTickerProviderStateMixin {
+class _StatisticsScreenState extends ConsumerState<StatisticsScreen>
+    with SingleTickerProviderStateMixin {
   List<LocalHabit> _habits = [];
   Map<String, int> _streaks = {};
-  Map<String, bool> _todayCompleted = {};
+  Map<String, bool> _dayCompleted = {};
   Map<String, int> _weekCompleted = {};
   Map<String, int> _monthCompleted = {};
   bool _loading = true;
@@ -35,6 +37,14 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
 
   /// Week tab: selected week's Monday (local).
   DateTime _selectedWeekStart = _thisWeekMonday();
+
+  /// Day tab: selected day (local, yyyy-mm-dd).
+  DateTime _selectedDay = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    DateTime.now().day,
+  );
+
   /// Month tab: selected year/month.
   int _selectedYear = DateTime.now().year;
   int _selectedMonth = DateTime.now().month;
@@ -62,25 +72,52 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
     setState(() => _loading = true);
     final repo = ref.read(habitRepositoryProvider);
     final habits = await repo.getActiveHabits();
-    final completed = await repo.getTodayCompletedByHabit();
+    final dayCompletedCount = await repo.getCompletedCountByHabitForDateRange(
+      _selectedDay,
+      _selectedDay,
+    );
+    final completed = <String, bool>{};
+    for (final e in dayCompletedCount.entries) {
+      completed[e.key] = e.value > 0;
+    }
     final weekEnd = _selectedWeekStart.add(const Duration(days: 6));
-    final weekCompleted = await repo.getCompletedCountByHabitForDateRange(_selectedWeekStart, weekEnd);
+    final weekCompleted = await repo.getCompletedCountByHabitForDateRange(
+      _selectedWeekStart,
+      weekEnd,
+    );
     final monthStart = DateTime(_selectedYear, _selectedMonth, 1);
-    final monthEnd = DateTime(_selectedYear, _selectedMonth + 1, 0); // last day of selected month
-    final monthCompleted = await repo.getCompletedCountByHabitForDateRange(monthStart, monthEnd);
-    final weekSuccess = await repo.getSuccessRateForDateRange(_selectedWeekStart, weekEnd);
-    final monthSuccess = await repo.getSuccessRateForDateRange(monthStart, monthEnd);
+    final monthEnd = DateTime(
+      _selectedYear,
+      _selectedMonth + 1,
+      0,
+    ); // last day of selected month
+    final monthCompleted = await repo.getCompletedCountByHabitForDateRange(
+      monthStart,
+      monthEnd,
+    );
+    final weekSuccess = await repo.getSuccessRateForDateRange(
+      _selectedWeekStart,
+      weekEnd,
+    );
+    final monthSuccess = await repo.getSuccessRateForDateRange(
+      monthStart,
+      monthEnd,
+    );
     final streaks = <String, int>{};
     for (final h in habits) {
       if (h.serverId != null) {
         streaks[h.serverId!] = await repo.getStreakDays(h.serverId!);
       }
     }
-    final sevenDay = await repo.getRolling7DaySuccessRate();
+    final sevenDayStart = _selectedDay.subtract(const Duration(days: 6));
+    final sevenDay = await repo.getSuccessRateForDateRange(
+      sevenDayStart,
+      _selectedDay,
+    );
     if (mounted) {
       setState(() {
         _habits = habits;
-        _todayCompleted = completed;
+        _dayCompleted = completed;
         _weekCompleted = weekCompleted;
         _monthCompleted = monthCompleted;
         _streaks = streaks;
@@ -99,12 +136,31 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
   }
 
   void _prevWeek() {
-    setState(() => _selectedWeekStart = _selectedWeekStart.subtract(const Duration(days: 7)));
+    setState(
+      () => _selectedWeekStart = _selectedWeekStart.subtract(
+        const Duration(days: 7),
+      ),
+    );
     _load();
   }
 
   void _nextWeek() {
-    setState(() => _selectedWeekStart = _selectedWeekStart.add(const Duration(days: 7)));
+    setState(
+      () =>
+          _selectedWeekStart = _selectedWeekStart.add(const Duration(days: 7)),
+    );
+    _load();
+  }
+
+  void _prevDay() {
+    setState(
+      () => _selectedDay = _selectedDay.subtract(const Duration(days: 1)),
+    );
+    _load();
+  }
+
+  void _nextDay() {
+    setState(() => _selectedDay = _selectedDay.add(const Duration(days: 1)));
     _load();
   }
 
@@ -138,13 +194,18 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
         '${end.month.toString().padLeft(2, '0')}.${end.day.toString().padLeft(2, '0')}';
   }
 
-  String _monthLabel(AppLocalizations l10n) => l10n.yearMonth(_selectedYear, _selectedMonth);
+  String _monthLabel(AppLocalizations l10n) =>
+      l10n.yearMonth(_selectedYear, _selectedMonth);
+
+  String _dayLabel() {
+    return '${_selectedDay.year}.${_selectedDay.month.toString().padLeft(2, '0')}.${_selectedDay.day.toString().padLeft(2, '0')}';
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final completedCount = _todayCompleted.values.where((v) => v).length;
+    final completedCount = _dayCompleted.values.where((v) => v).length;
     final weekTotal = _weekCompleted.values.fold<int>(0, (a, b) => a + b);
     final monthTotal = _monthCompleted.values.fold<int>(0, (a, b) => a + b);
 
@@ -167,7 +228,9 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : RefreshIndicator(
               onRefresh: _load,
               color: AppColors.primary,
@@ -188,6 +251,13 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
+        _PeriodSelector(
+          label: _dayLabel(),
+          onPrev: _prevDay,
+          onNext: _canGoNextDay ? _nextDay : null,
+          isDark: isDark,
+        ),
+        const SizedBox(height: 16),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -263,7 +333,9 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                         style: GoogleFonts.dmSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+                          color: isDark
+                              ? AppColors.foregroundDark
+                              : AppColors.foreground,
                         ),
                       ),
                       Text(
@@ -282,13 +354,20 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                     child: LinearProgressIndicator(
                       value: _sevenDayPercent / 100,
                       minHeight: 10,
-                      backgroundColor: isDark ? AppColors.mutedDark : AppColors.muted,
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      backgroundColor: isDark
+                          ? AppColors.mutedDark
+                          : AppColors.muted,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        AppColors.primary,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    l10n.successPairCount(_sevenDayCompleted, _sevenDayPossible),
+                    l10n.successPairCount(
+                      _sevenDayCompleted,
+                      _sevenDayPossible,
+                    ),
                     style: GoogleFonts.dmSans(
                       fontSize: 12,
                       color: AppColors.mutedFg(isDark),
@@ -306,6 +385,12 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
 
   bool get _canGoNextWeek {
     return _selectedWeekStart.isBefore(_thisWeekMonday());
+  }
+
+  bool get _canGoNextDay {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return _selectedDay.isBefore(today);
   }
 
   bool get _canGoNextMonth {
@@ -341,7 +426,11 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
     );
   }
 
-  Widget _buildMonthTab(bool isDark, int totalCompleted, AppLocalizations l10n) {
+  Widget _buildMonthTab(
+    bool isDark,
+    int totalCompleted,
+    AppLocalizations l10n,
+  ) {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -418,7 +507,9 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                     style: GoogleFonts.dmSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+                      color: isDark
+                          ? AppColors.foregroundDark
+                          : AppColors.foreground,
                     ),
                   ),
                   Text(
@@ -437,8 +528,12 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
                 child: LinearProgressIndicator(
                   value: percent / 100,
                   minHeight: 10,
-                  backgroundColor: isDark ? AppColors.mutedDark : AppColors.muted,
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  backgroundColor: isDark
+                      ? AppColors.mutedDark
+                      : AppColors.muted,
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    AppColors.primary,
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -456,7 +551,12 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
     );
   }
 
-  Widget _buildPeriodCard(bool isDark, String periodLabel, int totalCompleted, AppLocalizations l10n) {
+  Widget _buildPeriodCard(
+    bool isDark,
+    String periodLabel,
+    int totalCompleted,
+    AppLocalizations l10n,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -514,7 +614,10 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
               child: Center(
                 child: Text(
                   l10n.noHabitsYet,
-                  style: GoogleFonts.dmSans(fontSize: 15, color: AppColors.mutedFg(isDark)),
+                  style: GoogleFonts.dmSans(
+                    fontSize: 15,
+                    color: AppColors.mutedFg(isDark),
+                  ),
                 ),
               ),
             ),
@@ -565,92 +668,95 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> with Single
 
   Widget _buildRestOfStatistics(bool isDark) {
     final l10n = AppLocalizations.of(context)!;
+    final languageCode = Localizations.localeOf(context).languageCode;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-                  const SizedBox(height: 24),
-                  Text(
-                    l10n.streakByHabit,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.foregroundDark : AppColors.foreground,
-                    ),
+        const SizedBox(height: 24),
+        Text(
+          l10n.streakByHabit,
+          style: GoogleFonts.dmSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (_habits.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: Text(
+                  l10n.noHabitsYet,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 15,
+                    color: AppColors.mutedFg(isDark),
                   ),
-                  const SizedBox(height: 12),
-                  if (_habits.isEmpty)
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Center(
-                          child: Text(
-                            l10n.noHabitsYet,
-                            style: GoogleFonts.dmSans(
-                              fontSize: 15,
-                              color: AppColors.mutedFg(isDark),
-                            ),
-                          ),
+                ),
+              ),
+            ),
+          )
+        else
+          ..._habits.map((h) {
+            final streak = _streaks[h.serverId] ?? 0;
+            final done = _dayCompleted[h.serverId] ?? false;
+            final habitColor = habitColorFromHex(h.colorHex);
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: habitColor.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    habitIconFromName(h.iconName),
+                    size: 18,
+                    color: habitColor,
+                  ),
+                ),
+                title: Text(
+                  h.name ?? '',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: isDark
+                        ? AppColors.foregroundDark
+                        : AppColors.foreground,
+                  ),
+                ),
+                subtitle: h.category != null && h.category!.isNotEmpty
+                    ? Text(
+                        localizeHabitCategory(h.category!, languageCode),
+                        style: GoogleFonts.dmSans(
+                          fontSize: 13,
+                          color: AppColors.mutedFg(isDark),
                         ),
+                      )
+                    : null,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (done)
+                      Icon(Icons.check_circle, size: 20, color: habitColor),
+                    const SizedBox(width: 8),
+                    Text(
+                      l10n.daysCount(streak),
+                      style: GoogleFonts.dmSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: habitColor,
                       ),
-                    )
-                  else
-                    ..._habits.map((h) {
-                      final streak = _streaks[h.serverId] ?? 0;
-                      final done = _todayCompleted[h.serverId] ?? false;
-                      final habitColor = habitColorFromHex(h.colorHex);
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          leading: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: habitColor.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            alignment: Alignment.center,
-                            child: Icon(
-                              habitIconFromName(h.iconName),
-                              size: 18,
-                              color: habitColor,
-                            ),
-                          ),
-                          title: Text(
-                            h.name ?? '',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: isDark ? AppColors.foregroundDark : AppColors.foreground,
-                            ),
-                          ),
-                          subtitle: h.category != null && h.category!.isNotEmpty
-                              ? Text(
-                                  h.category!,
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 13,
-                                    color: AppColors.mutedFg(isDark),
-                                  ),
-                                )
-                              : null,
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (done)
-                                Icon(Icons.check_circle, size: 20, color: habitColor),
-                              const SizedBox(width: 8),
-                              Text(
-                                l10n.daysCount(streak),
-                                style: GoogleFonts.dmSans(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: habitColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
       ],
     );
   }
@@ -680,7 +786,10 @@ class _PeriodSelector extends StatelessWidget {
           icon: const Icon(Icons.chevron_left),
           color: isDark ? AppColors.primaryDark : AppColors.primary,
           style: IconButton.styleFrom(
-            backgroundColor: (isDark ? AppColors.primaryDark : AppColors.primary).withValues(alpha: 0.12),
+            backgroundColor:
+                (isDark ? AppColors.primaryDark : AppColors.primary).withValues(
+                  alpha: 0.12,
+                ),
           ),
         ),
         Text(
@@ -698,7 +807,10 @@ class _PeriodSelector extends StatelessWidget {
               ? (isDark ? AppColors.primaryDark : AppColors.primary)
               : AppColors.mutedFg(isDark),
           style: IconButton.styleFrom(
-            backgroundColor: (isDark ? AppColors.primaryDark : AppColors.primary).withValues(alpha: 0.12),
+            backgroundColor:
+                (isDark ? AppColors.primaryDark : AppColors.primary).withValues(
+                  alpha: 0.12,
+                ),
           ),
         ),
       ],
@@ -748,9 +860,11 @@ class _SummaryChip extends StatelessWidget {
               style: GoogleFonts.dmSans(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: valueColor ?? (Theme.of(context).brightness == Brightness.dark
-                    ? AppColors.foregroundDark
-                    : AppColors.foreground),
+                color:
+                    valueColor ??
+                    (Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.foregroundDark
+                        : AppColors.foreground),
               ),
             ),
           ],

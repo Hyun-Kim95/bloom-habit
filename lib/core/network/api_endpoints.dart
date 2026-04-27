@@ -7,6 +7,7 @@ abstract class ApiEndpoints {
   static const String authLogout = '/auth/logout';
 
   static const String me = '/me';
+  static const String meAvatarPresign = '/me/avatar/presign';
   static const String habitCategories = '/habits/categories';
   static const String habitTemplates = '/habits/templates';
   static String habits([String? id]) => id == null ? '/habits' : '/habits/$id';

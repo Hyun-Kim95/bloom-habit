@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/notifications/notification_service.dart';
+import '../../../core/utils/habit_display_localization.dart';
 import '../../../data/habit/habit_repository.dart';
 
 class HabitCreateScreen extends ConsumerStatefulWidget {
@@ -150,7 +151,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
       if (t == null) return;
       final lang = Localizations.localeOf(context).languageCode;
       _nameController.text = t.resolvedName(lang);
-      _selectedCategory = t.category;
+      _selectedCategory = t.category ?? t.categoryEn;
       _goalType = _goalTypes.contains(t.goalType) ? t.goalType : 'completion';
       _numberDirection = (t.numberDirection == 'lte') ? 'lte' : 'gte';
       _unit = _normalizedUnitForGoalType(_goalType, t.unit);
@@ -255,6 +256,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final muted = AppColors.mutedFg(isDark);
     final lang = Localizations.localeOf(context).languageCode;
+    final isEn = lang == 'en';
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       appBar: AppBar(
@@ -367,7 +369,10 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                 ..._categories.map(
                   (c) => DropdownMenuItem<String?>(
                     value: c,
-                    child: Text(c, style: GoogleFonts.dmSans()),
+                    child: Text(
+                      localizeHabitCategory(c, lang),
+                      style: GoogleFonts.dmSans(),
+                    ),
                   ),
                 ),
               ],
@@ -429,7 +434,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
               DropdownButtonFormField<String>(
                 value: _normalizedUnitForGoalType(_goalType, _unit),
                 decoration: InputDecoration(
-                  labelText: '단위',
+                  labelText: isEn ? 'Unit' : '단위',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radius),
                   ),
@@ -442,7 +447,10 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                     .map(
                       (e) => DropdownMenuItem<String>(
                         value: e,
-                        child: Text(e, style: GoogleFonts.dmSans()),
+                        child: Text(
+                          localizeHabitUnit(e, lang),
+                          style: GoogleFonts.dmSans(),
+                        ),
                       ),
                     )
                     .toList(),
@@ -464,8 +472,8 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                   ),
                 ),
                 items: const [
-                  DropdownMenuItem(value: 'gte', child: Text('이상(>=)')),
-                  DropdownMenuItem(value: 'lte', child: Text('이하(<=)')),
+                  DropdownMenuItem(value: 'gte', child: Text('>=')),
+                  DropdownMenuItem(value: 'lte', child: Text('<=')),
                 ],
                 onChanged: (v) => setState(() => _numberDirection = v ?? 'gte'),
               ),
@@ -476,10 +484,10 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                 initialValue: (_goalValue ?? 1).toInt().toString(),
                 decoration: InputDecoration(
                   labelText: _goalType == 'count'
-                      ? '완료 횟수'
+                      ? (isEn ? 'Count target' : '완료 횟수')
                       : _goalType == 'duration'
                       ? l10n.goalDurationHint
-                      : '완료값',
+                      : (isEn ? 'Target value' : '완료값'),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radius),
                   ),

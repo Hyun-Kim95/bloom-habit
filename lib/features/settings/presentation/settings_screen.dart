@@ -28,7 +28,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       case 'dark':
         return l10n.darkTheme;
       default:
-        return l10n.systemTheme;
+        return l10n.lightTheme;
     }
   }
 
@@ -45,7 +45,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void initState() {
     super.initState();
     PackageInfo.fromPlatform().then((info) {
-      if (mounted) setState(() => _versionText = '${info.version}+${info.buildNumber}');
+      if (mounted)
+        setState(() => _versionText = '${info.version}+${info.buildNumber}');
     });
   }
 
@@ -125,10 +126,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 children: [
                   ListTile(
-                    leading: Icon(Icons.language_outlined, color: isDark ? AppColors.primaryDark : AppColors.primary, size: 24),
+                    leading: Icon(
+                      Icons.language_outlined,
+                      color: isDark ? AppColors.primaryDark : AppColors.primary,
+                      size: 24,
+                    ),
                     title: Text(
                       l10n.language,
-                      style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     subtitle: Text(
                       _localeLabel(settings.localeCode),
@@ -162,10 +170,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   const Divider(height: 1),
                   ListTile(
-                    leading: Icon(Icons.dark_mode_outlined, color: isDark ? AppColors.primaryDark : AppColors.primary, size: 24),
+                    leading: Icon(
+                      Icons.dark_mode_outlined,
+                      color: isDark ? AppColors.primaryDark : AppColors.primary,
+                      size: 24,
+                    ),
                     title: Text(
                       l10n.theme,
-                      style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     subtitle: Text(
                       _themeModeLabel(settings.themeMode),
@@ -180,10 +195,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              ListTile(
-                                title: Text(l10n.systemTheme),
-                                onTap: () => Navigator.pop(ctx, 'system'),
-                              ),
                               ListTile(
                                 title: Text(l10n.lightTheme),
                                 onTap: () => Navigator.pop(ctx, 'light'),
@@ -229,13 +240,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     },
                     title: Text(
                       l10n.sound,
-                      style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     subtitle: Text(
                       l10n.soundSubtitle,
                       style: GoogleFonts.dmSans(fontSize: 13, color: muted),
                     ),
-                    activeThumbColor: isDark ? AppColors.primaryDark : AppColors.primary,
+                    activeThumbColor: isDark
+                        ? AppColors.primaryDark
+                        : AppColors.primary,
                   ),
                   SwitchListTile(
                     value: settings.hapticEnabled,
@@ -245,13 +261,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     },
                     title: Text(
                       l10n.haptic,
-                      style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     subtitle: Text(
                       l10n.hapticSubtitle,
                       style: GoogleFonts.dmSans(fontSize: 13, color: muted),
                     ),
-                    activeThumbColor: isDark ? AppColors.primaryDark : AppColors.primary,
+                    activeThumbColor: isDark
+                        ? AppColors.primaryDark
+                        : AppColors.primary,
                   ),
                 ],
               ),
@@ -274,10 +295,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 children: [
                   ListTile(
-                    leading: Icon(Icons.replay, color: isDark ? AppColors.primaryDark : AppColors.primary, size: 24),
+                    leading: Icon(
+                      Icons.replay,
+                      color: isDark ? AppColors.primaryDark : AppColors.primary,
+                      size: 24,
+                    ),
                     title: Text(
                       l10n.replayOnboarding,
-                      style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     subtitle: Text(
                       l10n.replayOnboardingSubtitle,
@@ -294,13 +322,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     },
                     title: Text(
                       l10n.showOnlyFirstLaunch,
-                      style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     subtitle: Text(
                       l10n.showOnlyFirstLaunchSubtitle,
                       style: GoogleFonts.dmSans(fontSize: 13, color: muted),
                     ),
-                    activeThumbColor: isDark ? AppColors.primaryDark : AppColors.primary,
+                    activeThumbColor: isDark
+                        ? AppColors.primaryDark
+                        : AppColors.primary,
                   ),
                 ],
               ),
@@ -324,6 +357,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             subtitle: null,
             titleColor: AppColors.destructive,
             onTap: () async {
+              await ref.read(habitRepositoryProvider).clearAllLocalData();
               await ref.read(authRepositoryProvider).logout();
               if (!context.mounted) return;
               ref.invalidate(sessionRestoredProvider);
@@ -354,16 +388,23 @@ class _SettingsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final fg = titleColor ?? (isDark ? AppColors.foregroundDark : AppColors.foreground);
+    final fg =
+        titleColor ??
+        (isDark ? AppColors.foregroundDark : AppColors.foreground);
     final muted = AppColors.mutedFg(isDark);
-    final iconColor = titleColor ?? (isDark ? AppColors.primaryDark : AppColors.primary);
+    final iconColor =
+        titleColor ?? (isDark ? AppColors.primaryDark : AppColors.primary);
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: Icon(icon, color: iconColor, size: 24),
         title: Text(
           title,
-          style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w500, color: fg),
+          style: GoogleFonts.dmSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: fg,
+          ),
         ),
         subtitle: subtitle != null
             ? Text(

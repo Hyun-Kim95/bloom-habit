@@ -4,6 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import { extname, join } from 'path';
+import { mkdir, writeFile } from 'fs/promises';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { sign as signJwt } from './jwt-simple';
@@ -225,6 +228,61 @@ export class AuthService {
     await this.userRepo.save(user);
   }
 
+  async createAvatarUploadPresign(
+    userId: string,
+    body: { fileName?: string; fileSize?: number; contentType?: string },
+  ): Promise<{ uploadToken: string; fileName: string }> {
+    const fileSize = Number(body.fileSize ?? 0);
+    if (!Number.isFinite(fileSize) || fileSize <= 0) {
+      throw new BadRequestException('fileSize must be greater than 0');
+    }
+    const maxBytes = 5 * 1024 * 1024;
+    if (fileSize > maxBytes) {
+      throw new BadRequestException('파일 크기는 5MB 이하여야 합니다.');
+    }
+
+    const safeExt = this.resolveSafeImageExtension(
+      body.fileName,
+      body.contentType,
+    );
+    const fileName = `${Date.now()}-${randomBytes(6).toString('hex')}.${safeExt}`;
+    const payload = {
+      userId,
+      fileName,
+      maxBytes,
+      exp: Date.now() + 5 * 60 * 1000,
+    };
+    return {
+      uploadToken: this.signUploadToken(payload),
+      fileName,
+    };
+  }
+
+  async uploadAvatarFromPresignedToken(
+    userId: string,
+    uploadToken: string,
+    file: { buffer: Buffer; size: number; mimetype?: string },
+  ): Promise<string> {
+    const payload = this.verifyUploadToken(uploadToken);
+    if (payload.userId !== userId) {
+      throw new BadRequestException('잘못된 업로드 토큰입니다.');
+    }
+    if (!file.buffer || file.size <= 0) {
+      throw new BadRequestException('업로드 파일이 비어 있습니다.');
+    }
+    if (file.size > payload.maxBytes) {
+      throw new BadRequestException('파일 크기 제한을 초과했습니다.');
+    }
+    if (!this.isAllowedImageMime(file.mimetype)) {
+      throw new BadRequestException('이미지 파일만 업로드할 수 있습니다.');
+    }
+    const uploadDir = join(process.cwd(), 'uploads', 'avatars');
+    await mkdir(uploadDir, { recursive: true });
+    const targetPath = join(uploadDir, payload.fileName);
+    await writeFile(targetPath, file.buffer);
+    return payload.fileName;
+  }
+
   async logout(_userId: string) {}
 
   /**
@@ -349,6 +407,94 @@ export class AuthService {
       })
       .orderBy('u.createdAt', 'ASC')
       .getOne();
+  }
+
+  private resolveSafeImageExtension(
+    fileName?: string,
+    contentType?: string,
+  ): string {
+    const byMime = contentType?.toLowerCase().trim();
+    if (byMime == 'image/jpeg') return 'jpg';
+    if (byMime == 'image/png') return 'png';
+    if (byMime == 'image/webp') return 'webp';
+    const ext = extname(fileName ?? '')
+      .replace('.', '')
+      .toLowerCase()
+      .trim();
+    if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+      return ext == 'jpeg' ? 'jpg' : ext;
+    }
+    return 'jpg';
+  }
+
+  private isAllowedImageMime(mime?: string): boolean {
+    const normalized = (mime ?? '').toLowerCase().trim();
+    return ['image/jpeg', 'image/png', 'image/webp'].includes(normalized);
+  }
+
+  private signUploadToken(payload: {
+    userId: string;
+    fileName: string;
+    maxBytes: number;
+    exp: number;
+  }): string {
+    const raw = JSON.stringify(payload);
+    const encoded = Buffer.from(raw, 'utf8').toString('base64url');
+    const signature = this.uploadHmac(encoded);
+    return `${encoded}.${signature}`;
+  }
+
+  private verifyUploadToken(token: string): {
+    userId: string;
+    fileName: string;
+    maxBytes: number;
+    exp: number;
+  } {
+    const [encoded, signature] = token.split('.');
+    if (!encoded || !signature) {
+      throw new BadRequestException('잘못된 업로드 토큰 형식입니다.');
+    }
+    const expected = this.uploadHmac(encoded);
+    if (!this.safeCompare(expected, signature)) {
+      throw new BadRequestException('업로드 토큰 검증에 실패했습니다.');
+    }
+    const parsed = JSON.parse(
+      Buffer.from(encoded, 'base64url').toString('utf8'),
+    ) as {
+      userId?: string;
+      fileName?: string;
+      maxBytes?: number;
+      exp?: number;
+    };
+    if (
+      !parsed.userId ||
+      !parsed.fileName ||
+      !Number.isFinite(parsed.maxBytes) ||
+      !Number.isFinite(parsed.exp)
+    ) {
+      throw new BadRequestException('잘못된 업로드 토큰 값입니다.');
+    }
+    if (Date.now() > Number(parsed.exp)) {
+      throw new BadRequestException('업로드 토큰이 만료되었습니다.');
+    }
+    return {
+      userId: parsed.userId,
+      fileName: parsed.fileName,
+      maxBytes: Number(parsed.maxBytes),
+      exp: Number(parsed.exp),
+    };
+  }
+
+  private uploadHmac(value: string): string {
+    const secret = process.env.APP_UPLOAD_TOKEN_SECRET || process.env.JWT_SECRET || 'bloom-habit-avatar-upload-secret';
+    return createHmac('sha256', secret).update(value).digest('base64url');
+  }
+
+  private safeCompare(left: string, right: string): boolean {
+    const leftBuf = Buffer.from(left);
+    const rightBuf = Buffer.from(right);
+    if (leftBuf.length !== rightBuf.length) return false;
+    return timingSafeEqual(leftBuf, rightBuf);
   }
 }
 

@@ -3,17 +3,12 @@ import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/auth/auth_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
-
-bool _isValidHttpAvatarUrl(String url) {
-  final t = url.trim();
-  if (t.isEmpty) return false;
-  return RegExp(r'^https?://', caseSensitive: false).hasMatch(t);
-}
 
 String _maskEmail(String? email) {
   if (email == null || email.isEmpty) return '';
@@ -53,6 +48,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   bool _loadingProfile = true;
   MeProfile? _profile;
   String? _profileError;
+  bool _avatarUploading = false;
 
   @override
   void initState() {
@@ -167,51 +163,28 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     }
   }
 
-  Future<void> _manageProfilePhoto() async {
+  Future<void> _uploadAvatar(ImageSource source) async {
+    if (_avatarUploading) return;
     final l10n = AppLocalizations.of(context)!;
-    final controller = TextEditingController(text: (_profile?.avatarUrl ?? '').trim());
-    final newUrl = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.profilePhotoDialogTitle),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(hintText: l10n.profilePhotoUrlHint),
-          keyboardType: TextInputType.url,
-          autocorrect: false,
-          maxLines: 3,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await _clearAvatar();
-            },
-            child: Text(l10n.resetProfilePhotoButton),
-          ),
-          FilledButton(
-            onPressed: () {
-              final u = controller.text.trim();
-              if (!_isValidHttpAvatarUrl(u)) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  SnackBar(content: Text(l10n.profilePhotoInvalidUrl)),
-                );
-                return;
-              }
-              Navigator.pop(ctx, u);
-            },
-            child: Text(l10n.save),
-          ),
-        ],
-      ),
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 88,
     );
-    if (!mounted || newUrl == null) return;
+    if (picked == null || !mounted) return;
+    setState(() => _avatarUploading = true);
     try {
-      await ref.read(authRepositoryProvider).updateMeProfile(avatarUrl: newUrl);
+      final auth = ref.read(authRepositoryProvider);
+      final bytes = await picked.readAsBytes();
+      final presign = await auth.createAvatarUploadPresign(
+        fileName: picked.name,
+        fileSize: bytes.length,
+        contentType: picked.mimeType,
+      );
+      await auth.uploadAvatarFile(uploadUrl: presign.uploadUrl, bytes: bytes);
+      await auth.updateMeProfile(avatarUrl: presign.publicUrl);
       await _loadProfile();
       if (mounted) {
         ScaffoldMessenger.of(
@@ -226,6 +199,51 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _avatarUploading = false);
+    }
+  }
+
+  Future<void> _manageProfilePhoto() async {
+    final l10n = AppLocalizations.of(context)!;
+    final isEn = Localizations.localeOf(context).languageCode == 'en';
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: Text(isEn ? 'Camera' : '카메라'),
+              onTap: () => Navigator.pop(ctx, 'camera'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: Text(isEn ? 'Gallery' : '앨범'),
+              onTap: () => Navigator.pop(ctx, 'gallery'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.hide_image_outlined),
+              title: Text(l10n.resetProfilePhotoButton),
+              onTap: () => Navigator.pop(ctx, 'clear'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || action == null) return;
+    if (action == 'camera') {
+      await _uploadAvatar(ImageSource.camera);
+      return;
+    }
+    if (action == 'gallery') {
+      await _uploadAvatar(ImageSource.gallery);
+      return;
+    }
+    if (action == 'clear') {
+      await _clearAvatar();
     }
   }
 
@@ -422,7 +440,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                         style: GoogleFonts.dmSans(fontSize: 12, color: muted),
                       ),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: _manageProfilePhoto,
+                      onTap: _avatarUploading ? null : _manageProfilePhoto,
                     ),
                   ],
                 ),
@@ -459,6 +477,9 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                 onPressed: _withdrawing
                     ? null
                     : () async {
+                        await ref
+                            .read(habitRepositoryProvider)
+                            .clearAllLocalData();
                         await ref.read(authRepositoryProvider).logout();
                         if (!context.mounted) return;
                         ref.invalidate(sessionRestoredProvider);

@@ -30,7 +30,9 @@ void main() async {
   final notif = NotificationService();
   await notif.init();
   await FcmNotificationListener.init(notif);
-  runApp(ProviderScope(child: BloomHabitApp(initialLocaleCode: initialLocaleCode)));
+  runApp(
+    ProviderScope(child: BloomHabitApp(initialLocaleCode: initialLocaleCode)),
+  );
 }
 
 class BloomHabitApp extends ConsumerStatefulWidget {
@@ -62,7 +64,7 @@ class _BloomHabitAppState extends ConsumerState<BloomHabitApp> {
     final themeMode = switch (settings?.themeMode) {
       'light' => ThemeMode.light,
       'dark' => ThemeMode.dark,
-      _ => ThemeMode.system,
+      _ => ThemeMode.light,
     };
     final localeCode = settings?.localeCode ?? widget.initialLocaleCode;
     AppStrings.localeCode = localeCode;
