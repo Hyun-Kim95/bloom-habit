@@ -71,9 +71,8 @@ export class MeController {
       decodeURIComponent(token),
       file,
     );
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
     return {
-      avatarUrl: `${baseUrl}/static/avatars/${storedFileName}`,
+      avatarUrl: `/static/avatars/${storedFileName}`,
     };
   }
 
@@ -83,10 +82,9 @@ export class MeController {
     @Body() body: { fileName?: string; fileSize?: number; contentType?: string },
   ) {
     const presign = await this.auth.createAvatarUploadPresign(req.userId, body);
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
     return {
-      uploadUrl: `${baseUrl}/me/avatar/upload/${encodeURIComponent(presign.uploadToken)}`,
-      publicUrl: `${baseUrl}/static/avatars/${presign.fileName}`,
+      uploadUrl: `/me/avatar/upload/${encodeURIComponent(presign.uploadToken)}`,
+      publicUrl: `/static/avatars/${presign.fileName}`,
     };
   }
 

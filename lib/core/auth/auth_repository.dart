@@ -293,8 +293,8 @@ class AuthRepository {
       },
     );
     final data = res.data ?? const <String, dynamic>{};
-    final uploadUrl = data['uploadUrl']?.toString() ?? '';
-    final publicUrl = data['publicUrl']?.toString() ?? '';
+    final uploadUrl = _resolveApiUrl(data['uploadUrl']?.toString() ?? '');
+    final publicUrl = _resolveApiUrl(data['publicUrl']?.toString() ?? '');
     if (uploadUrl.isEmpty || publicUrl.isEmpty) {
       throw Exception('Invalid avatar upload presign response');
     }
@@ -315,13 +315,24 @@ class AuthRepository {
         contentType: DioMediaType.parse(normalizedMime),
       ),
     });
-    await _api.dio.put(
-      uploadUrl,
-      data: formData,
-      options: Options(
-        headers: <String, String>{'Content-Type': 'multipart/form-data'},
-      ),
-    );
+    try {
+      await _api.dio.put(
+        uploadUrl,
+        data: formData,
+        options: Options(
+          headers: <String, String>{'Content-Type': 'multipart/form-data'},
+          followRedirects: false,
+          validateStatus: (status) =>
+              status != null && status >= 200 && status < 400,
+        ),
+      );
+    } on DioException catch (e) {
+      final location = e.response?.headers.value('location');
+      debugPrint(
+        'AuthRepository: avatar upload failed status=${e.response?.statusCode} location=$location',
+      );
+      rethrow;
+    }
   }
 
   String _normalizeImageMimeType(String? mimeType, String fileName) {
@@ -331,6 +342,18 @@ class AuthRepository {
     if (lowerName.endsWith('.png')) return 'image/png';
     if (lowerName.endsWith('.webp')) return 'image/webp';
     return 'image/jpeg';
+  }
+
+  String _resolveApiUrl(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return '';
+    final parsed = Uri.tryParse(trimmed);
+    if (parsed != null && parsed.hasScheme) return trimmed;
+    final base = Uri.parse(_api.dio.options.baseUrl);
+    final resolved = base.resolveUri(
+      Uri.parse(trimmed.startsWith('/') ? trimmed.substring(1) : trimmed),
+    );
+    return resolved.toString();
   }
 
   /// Deactivate account on server with reason and clear local tokens.

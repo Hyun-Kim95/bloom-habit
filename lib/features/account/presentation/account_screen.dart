@@ -203,8 +203,9 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       }
     } catch (e) {
       if (e is DioException) {
+        final location = e.response?.headers.value('location');
         debugPrint(
-          'AccountScreen: avatar upload failed status=${e.response?.statusCode}, data=${e.response?.data}',
+          'AccountScreen: avatar upload failed status=${e.response?.statusCode}, location=$location, data=${e.response?.data}',
         );
       } else {
         debugPrint('AccountScreen: avatar upload failed error=$e');

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -108,10 +109,22 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
           await repo.recordToday(_habit.serverId!, value: minutes);
           if (mounted) {
             final settings = ref.read(appSettingsProvider).value;
-            await HabitCompletionFeedback.trigger(
+            debugPrint(
+              'HabitDetailScreen: feedback request(duration-stop) {hapticEnabled: ${settings?.hapticEnabled ?? true}, soundEnabled: ${settings?.soundEnabled ?? true}, goalType: duration, habitId: ${_habit.serverId}}',
+            );
+            final feedbackPlayed = await HabitCompletionFeedback.trigger(
               hapticEnabled: settings?.hapticEnabled ?? true,
               soundEnabled: settings?.soundEnabled ?? true,
             );
+            if (!feedbackPlayed && kDebugMode && mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('피드백 재생 실패(디버그). 로그를 확인해 주세요.'),
+                  behavior: SnackBarBehavior.floating,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
           }
         } else if (mounted) {
           final isEn = Localizations.localeOf(context).languageCode == 'en';
@@ -177,6 +190,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       if (!mounted) return;
       if (shouldPlayFeedback) {
         final settings = ref.read(appSettingsProvider).value;
+        debugPrint(
+          'HabitDetailScreen: feedback request {hapticEnabled: ${settings?.hapticEnabled ?? true}, soundEnabled: ${settings?.soundEnabled ?? true}, goalType: $goalType, habitId: ${_habit.serverId}}',
+        );
         final feedbackPlayed = await HabitCompletionFeedback.trigger(
           hapticEnabled: settings?.hapticEnabled ?? true,
           soundEnabled: settings?.soundEnabled ?? true,
@@ -185,6 +201,15 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
           debugPrint(
             'HabitDetailScreen: completion feedback did not play after save success.',
           );
+          if (kDebugMode && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('피드백 재생 실패(디버그). 로그를 확인해 주세요.'),
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
         }
       }
       setState(() {

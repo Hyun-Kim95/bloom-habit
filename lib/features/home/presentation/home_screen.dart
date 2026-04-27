@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:bloom_habit/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -442,6 +443,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (!mounted) return;
       if (shouldPlayFeedback) {
         final settings = ref.read(appSettingsProvider).value;
+        debugPrint(
+          'HomeScreen: feedback request {hapticEnabled: ${settings?.hapticEnabled ?? true}, soundEnabled: ${settings?.soundEnabled ?? true}, goalType: $goalType, habitId: $sid}',
+        );
         final feedbackPlayed = await HabitCompletionFeedback.trigger(
           hapticEnabled: settings?.hapticEnabled ?? true,
           soundEnabled: settings?.soundEnabled ?? true,
@@ -450,6 +454,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           debugPrint(
             'HomeScreen: completion feedback did not play after save success.',
           );
+          if (kDebugMode && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('피드백 재생 실패(디버그). 로그를 확인해 주세요.'),
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
         }
       }
       final l10n = AppLocalizations.of(context)!;
