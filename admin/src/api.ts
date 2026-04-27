@@ -60,6 +60,56 @@ export const api = {
         completionRatePercent: number | null
       }[]
     >('/admin/users'),
+  getUserDetail: (id: string) =>
+    request<{
+      user: {
+        id: string
+        email: string | null
+        authProvider: 'google' | 'apple' | 'kakao' | 'naver' | 'unknown'
+        displayName: string | null
+        createdAt: string
+        isActive: boolean
+        deactivatedAt: string | null
+        deactivationReason: string | null
+        deactivatedBy: 'self' | 'admin' | null
+      }
+      summary30d: {
+        from: string
+        to: string
+        totalHabits: number
+        trackedHabitCount: number
+        totalRecords: number
+        completedRecords: number
+        completionRatePercent: number | null
+      }
+      todaySummary: {
+        date: string
+        totalHabits: number
+        recordedHabits: number
+        completedHabits: number
+        completionRatePercent: number | null
+      }
+      habits: {
+        id: string
+        name: string
+        category: string | null
+        goalType: string
+        numberDirection: 'gte' | 'lte'
+        unit: string | null
+        goalValue: number | null
+        today: {
+          hasRecord: boolean
+          value: number | null
+          completed: boolean
+        }
+        summary30d: {
+          totalRecords: number
+          completedRecords: number
+          completionRatePercent: number | null
+          latestValue: number | null
+        }
+      }[]
+    }>(`/admin/users/${id}`),
   setUserActive: (id: string, isActive: boolean, reason?: string) =>
     request<{ ok: true }>(`/admin/users/${id}/active`, {
       method: 'PATCH',

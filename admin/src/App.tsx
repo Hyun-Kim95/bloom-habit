@@ -8,6 +8,7 @@ import Notices from './pages/Notices'
 import Inquiries from './pages/Inquiries'
 import Legal from './pages/Legal'
 import Users from './pages/Users'
+import UserDetail from './pages/UserDetail'
 
 function getToken(): string | null {
   return localStorage.getItem('bloom_admin_token')
@@ -45,6 +46,7 @@ export default function App() {
         >
           <Route index element={<Dashboard />} />
           <Route path="users" element={<Users />} />
+          <Route path="users/:id" element={<UserDetail />} />
           <Route path="habit-templates" element={<HabitTemplates />} />
           <Route path="habit-categories" element={<Navigate to="/habit-templates" replace />} />
           <Route path="notices" element={<Notices />} />

@@ -53,6 +53,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     final values = await repo.getTodayValueByHabit();
     final streak = await repo.getStreakDays(_habit.serverId ?? '');
     final habit = await repo.getHabitByServerId(_habit.serverId ?? '');
+    final timerState = await DurationTimerService.getState();
     if (mounted) {
       setState(() {
         _todayCompleted = completed[_habit.serverId] ?? false;
@@ -64,6 +65,10 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
           _reminderHour = habit.reminderHour ?? 9;
           _reminderMinute = habit.reminderMinute ?? 0;
         }
+        _durationRunning =
+            timerState.running &&
+            timerState.habitId != null &&
+            timerState.habitId == _habit.serverId;
       });
     }
   }
@@ -77,11 +82,12 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     final from = now.subtract(const Duration(days: 30));
     final list = await repo.getRecordHistory(sid, from: from, to: now);
     list.sort((a, b) => b.recordDate.compareTo(a.recordDate));
-    if (mounted)
+    if (mounted) {
       setState(() {
         _recordHistory = list;
         _historyLoading = false;
       });
+    }
   }
 
   Future<void> _recordToday() async {
@@ -96,7 +102,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         final repo = ref.read(habitRepositoryProvider);
         final elapsedMs = await DurationTimerService.stop();
         final minutes = ((elapsedMs ?? 0) / 60000.0);
-        if (minutes > 0) {
+        if (minutes >= 1) {
           await repo.recordToday(_habit.serverId!, value: minutes);
         }
         if (!mounted) return;
@@ -124,14 +130,27 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       if (goalType == 'completion') {
         await repo.recordToday(_habit.serverId!, completed: true);
       } else if (goalType == 'duration') {
-        await DurationTimerService.start(habitName: _habit.name ?? 'Habit');
-        _durationRunning = true;
         if (mounted) {
-          setState(() => _recording = false);
+          setState(() {
+            _durationRunning = true;
+            _recording = false;
+          });
+        }
+        try {
+          await DurationTimerService.start(
+            habitName: _habit.name ?? 'Habit',
+            habitId: _habit.serverId,
+          );
+        } catch (_) {
+          if (mounted) {
+            setState(() {
+              _durationRunning = false;
+            });
+          }
         }
         return;
       } else {
-        final inputValue = await _askRecordValue(goalType);
+        final inputValue = await _askRecordValue(goalType, _habit.unit);
         if (inputValue == null) {
           if (mounted) setState(() => _recording = false);
           return;
@@ -159,9 +178,11 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     }
   }
 
-  Future<double?> _askRecordValue(String goalType) async {
+  Future<double?> _askRecordValue(String goalType, String? unit) async {
     final l10n = AppLocalizations.of(context)!;
-    final controller = TextEditingController();
+    final controller = TextEditingController(text: '1');
+    final normalizedUnit = (unit ?? '').trim();
+    final unitHint = normalizedUnit.isEmpty ? null : normalizedUnit;
     return showDialog<double>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -175,6 +196,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                 : goalType == 'duration'
                 ? l10n.goalDurationHint
                 : l10n.goalNumberHint,
+            suffixText: goalType == 'count' ? null : unitHint,
           ),
         ),
         actions: [
@@ -377,16 +399,17 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) async {
-              if (value == 'edit')
+              if (value == 'edit') {
                 await _openEdit();
-              else if (value == 'archive') {
+              } else if (value == 'archive') {
                 if (isHidden) {
                   await _unarchive();
                 } else {
                   await _archive();
                 }
-              } else if (value == 'delete')
+              } else if (value == 'delete') {
                 await _confirmDelete();
+              }
             },
             itemBuilder: (ctx) => [
               PopupMenuItem(value: 'edit', child: Text(l10n.edit)),
@@ -532,7 +555,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: _recordHistory.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, unused) => const Divider(height: 1),
                   itemBuilder: (_, i) {
                     final r = _recordHistory[i];
                     return ListTile(

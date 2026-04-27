@@ -12,7 +12,13 @@ import {
 import { AuthService } from '../auth/auth.service';
 import { HabitsService } from '../habits/habits.service';
 import { AdminAuthService } from './admin-auth.service';
-import { AdminDataService, HabitTemplateDto, InquiryAdminDto, LegalDocumentDto, NoticeDto } from './admin-data.service';
+import {
+  AdminDataService,
+  HabitTemplateDto,
+  InquiryAdminDto,
+  LegalDocumentDto,
+  NoticeDto,
+} from './admin-data.service';
 import { AdminGuard } from './admin.guard';
 import { AdminStatsService } from './admin-stats.service';
 
@@ -48,12 +54,23 @@ export class AdminController {
         displayName: u.displayName,
         createdAt: u.createdAt,
         isActive: u.isActive,
+        deactivatedAt: u.deactivatedAt,
+        deactivationReason: u.deactivationReason,
+        deactivatedBy: u.deactivatedBy,
         habitCount: s.habitCount,
         totalRecords: s.totalRecords,
         completedRecords: s.completedRecords,
         completionRatePercent,
       };
     });
+  }
+
+  @Get('users/:id')
+  @UseGuards(AdminGuard)
+  async userDetail(@Param('id') id: string) {
+    const detail = await this.adminData.getUserDetail(id);
+    if (!detail) return { statusCode: 404, message: 'Not found' };
+    return detail;
   }
 
   @Get('stats')

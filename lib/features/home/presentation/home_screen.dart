@@ -130,6 +130,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final habits = await repo.getActiveHabits();
       final completed = await repo.getTodayCompletedByHabit();
       final todayValues = await repo.getTodayValueByHabit();
+      final timerState = await DurationTimerService.getState();
       final nowMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
       final curIdx = _linearHeatmapMonthIndex(nowMonth);
       final heatmapCounts = await _loadHeatmapCountsFor(nowMonth);
@@ -138,6 +139,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _habits = habits;
           _todayCompleted = completed;
           _todayValues = todayValues;
+          _durationRunningHabits
+            ..clear()
+            ..addAll(
+              timerState.running && timerState.habitId != null
+                  ? <String>{timerState.habitId!}
+                  : <String>{},
+            );
           _heatmapCache
             ..clear()
             ..[curIdx] = heatmapCounts;
@@ -371,7 +379,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           try {
             final elapsedMs = await DurationTimerService.stop();
             final minutes = ((elapsedMs ?? 0) / 60000.0);
-            if (minutes > 0) {
+            if (minutes >= 1) {
               await repo.recordToday(sid, value: minutes);
             }
           } catch (_) {
@@ -383,16 +391,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             rethrow;
           }
         } else {
-          await DurationTimerService.start(habitName: h.name ?? 'Habit');
           if (mounted) {
             setState(() {
               _durationRunningHabits.add(sid);
             });
           }
+          try {
+            await DurationTimerService.start(
+              habitName: h.name ?? 'Habit',
+              habitId: sid,
+            );
+          } catch (_) {
+            if (mounted) {
+              setState(() {
+                _durationRunningHabits.remove(sid);
+              });
+            }
+            rethrow;
+          }
           return;
         }
       } else {
-        final input = await _askRecordValue(goalType);
+        final input = await _askRecordValue(goalType, h.unit);
         if (input == null) return;
         await repo.recordToday(sid, value: input);
       }
@@ -412,9 +432,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  Future<double?> _askRecordValue(String goalType) async {
+  Future<double?> _askRecordValue(String goalType, String? unit) async {
     final l10n = AppLocalizations.of(context)!;
-    final controller = TextEditingController();
+    final controller = TextEditingController(text: '1');
+    final normalizedUnit = (unit ?? '').trim();
+    final unitHint = normalizedUnit.isEmpty ? null : normalizedUnit;
     return showDialog<double>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -428,6 +450,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 : goalType == 'duration'
                 ? l10n.goalDurationHint
                 : l10n.goalNumberHint,
+            suffixText: goalType == 'count' ? null : unitHint,
           ),
           onSubmitted: (_) {},
         ),

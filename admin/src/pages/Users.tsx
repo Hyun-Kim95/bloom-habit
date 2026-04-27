@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
 import { useI18n } from '../i18n/I18nContext'
+import { useNavigate } from 'react-router-dom'
 
 type User = {
   id: string
@@ -23,6 +24,7 @@ type SortDir = 'asc' | 'desc'
 
 export default function Users() {
   const { t, locale } = useI18n()
+  const navigate = useNavigate()
   const [users, setUsers] = useState<User[]>([])
   const [initialError, setInitialError] = useState('')
   const [error, setError] = useState('')
@@ -266,17 +268,26 @@ export default function Users() {
                   {u.completionRatePercent != null ? `${u.completionRatePercent}%` : '-'}
                 </td>
                 <td className="p-3 text-right">
-                  <button
-                    type="button"
-                    onClick={() => toggleUserActive(u)}
-                    className={`rounded-md px-3 py-1.5 text-xs font-medium ${
-                      u.isActive
-                        ? 'border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20'
-                        : 'border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20'
-                    }`}
-                  >
-                    {u.isActive ? t('users.deactivate') : t('users.activate')}
-                  </button>
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/users/${u.id}`)}
+                      className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
+                    >
+                      {t('users.detail')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleUserActive(u)}
+                      className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+                        u.isActive
+                          ? 'border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20'
+                          : 'border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20'
+                      }`}
+                    >
+                      {u.isActive ? t('users.deactivate') : t('users.activate')}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

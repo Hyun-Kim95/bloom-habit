@@ -4,6 +4,7 @@ import { In, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import {
   Habit as HabitEntity,
+  HabitRecord as HabitRecordEntity,
   HabitTemplate as HabitTemplateEntity,
   Inquiry as InquiryEntity,
   LegalDocument as LegalDocumentEntity,
@@ -73,6 +74,60 @@ export interface LegalDocumentDto {
   updatedAt: string;
 }
 
+export interface AdminUserProgressSummaryDto {
+  from: string;
+  to: string;
+  totalHabits: number;
+  trackedHabitCount: number;
+  totalRecords: number;
+  completedRecords: number;
+  completionRatePercent: number | null;
+}
+
+export interface AdminUserHabitProgressItemDto {
+  id: string;
+  name: string;
+  category: string | null;
+  goalType: string;
+  numberDirection: 'gte' | 'lte';
+  unit: string | null;
+  goalValue: number | null;
+  today: {
+    hasRecord: boolean;
+    value: number | null;
+    completed: boolean;
+  };
+  summary30d: {
+    totalRecords: number;
+    completedRecords: number;
+    completionRatePercent: number | null;
+    latestValue: number | null;
+  };
+}
+
+export interface AdminUserDetailDto {
+  user: {
+    id: string;
+    email: string | null;
+    authProvider: 'google' | 'apple' | 'kakao' | 'naver' | 'unknown';
+    displayName: string | null;
+    createdAt: string;
+    isActive: boolean;
+    deactivatedAt: string | null;
+    deactivationReason: string | null;
+    deactivatedBy: 'self' | 'admin' | null;
+  };
+  summary30d: AdminUserProgressSummaryDto;
+  todaySummary: {
+    date: string;
+    totalHabits: number;
+    recordedHabits: number;
+    completedHabits: number;
+    completionRatePercent: number | null;
+  };
+  habits: AdminUserHabitProgressItemDto[];
+}
+
 @Injectable()
 export class AdminDataService {
   constructor(
@@ -80,6 +135,8 @@ export class AdminDataService {
     private readonly templateRepo: Repository<HabitTemplateEntity>,
     @InjectRepository(HabitEntity)
     private readonly habitRepo: Repository<HabitEntity>,
+    @InjectRepository(HabitRecordEntity)
+    private readonly habitRecordRepo: Repository<HabitRecordEntity>,
     @InjectRepository(NoticeEntity)
     private readonly noticeRepo: Repository<NoticeEntity>,
     @InjectRepository(SystemConfigEntity)
@@ -92,6 +149,135 @@ export class AdminDataService {
     private readonly legalRepo: Repository<LegalDocumentEntity>,
     private readonly pushService: PushService,
   ) {}
+
+  private dateKey(date: Date): string {
+    return date.toISOString().slice(0, 10);
+  }
+
+  async getUserDetail(userId: string): Promise<AdminUserDetailDto | null> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) return null;
+
+    const habits = await this.habitRepo
+      .createQueryBuilder('h')
+      .where('h.userId = :userId', { userId })
+      .andWhere('h.archivedAt IS NULL')
+      .orderBy('h.createdAt', 'ASC')
+      .getMany();
+    const habitIds = habits.map((h) => h.id);
+    const today = this.dateKey(new Date());
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - 29);
+    const from = this.dateKey(fromDate);
+
+    const records = habitIds.length
+      ? await this.habitRecordRepo
+          .createQueryBuilder('r')
+          .where('r.habitId IN (:...habitIds)', { habitIds })
+          .andWhere('r.recordDate BETWEEN :from AND :to', { from, to: today })
+          .orderBy('r.recordDate', 'DESC')
+          .addOrderBy('r.updatedAt', 'DESC')
+          .getMany()
+      : [];
+
+    const todayByHabit = new Map<string, HabitRecordEntity>();
+    const recordsByHabit = new Map<string, HabitRecordEntity[]>();
+    for (const record of records) {
+      const list = recordsByHabit.get(record.habitId) ?? [];
+      list.push(record);
+      recordsByHabit.set(record.habitId, list);
+      if (record.recordDate === today && !todayByHabit.has(record.habitId)) {
+        todayByHabit.set(record.habitId, record);
+      }
+    }
+
+    let summaryTotalRecords = 0;
+    let summaryCompletedRecords = 0;
+    let trackedHabitCount = 0;
+    let todayRecordedHabits = 0;
+    let todayCompletedHabits = 0;
+
+    const habitItems: AdminUserHabitProgressItemDto[] = habits.map((habit) => {
+      const habitRecords = recordsByHabit.get(habit.id) ?? [];
+      const totalRecords = habitRecords.length;
+      const completedRecords = habitRecords.filter((r) => r.completed).length;
+      const latestValue = habitRecords.length > 0 ? (habitRecords[0].value ?? null) : null;
+      const todayRecord = todayByHabit.get(habit.id);
+      const todayHasRecord = Boolean(todayRecord);
+      const todayCompleted = todayRecord?.completed === true;
+      const todayValue = todayRecord?.value ?? null;
+
+      summaryTotalRecords += totalRecords;
+      summaryCompletedRecords += completedRecords;
+      if (totalRecords > 0) trackedHabitCount += 1;
+      if (todayHasRecord) todayRecordedHabits += 1;
+      if (todayCompleted) todayCompletedHabits += 1;
+
+      return {
+        id: habit.id,
+        name: habit.name,
+        category: habit.category,
+        goalType: habit.goalType,
+        numberDirection: habit.numberDirection === 'lte' ? 'lte' : 'gte',
+        unit: habit.unit,
+        goalValue: habit.goalValue,
+        today: {
+          hasRecord: todayHasRecord,
+          value: todayValue,
+          completed: todayCompleted,
+        },
+        summary30d: {
+          totalRecords,
+          completedRecords,
+          completionRatePercent:
+            totalRecords > 0 ? Math.round((completedRecords / totalRecords) * 100) : null,
+          latestValue,
+        },
+      };
+    });
+
+    const totalHabits = habits.length;
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        authProvider:
+          user.authProvider === 'google' ||
+          user.authProvider === 'apple' ||
+          user.authProvider === 'kakao' ||
+          user.authProvider === 'naver'
+            ? user.authProvider
+            : 'unknown',
+        displayName: user.displayName,
+        createdAt: user.createdAt.toISOString(),
+        isActive: user.isActive,
+        deactivatedAt: user.deactivatedAt?.toISOString() ?? null,
+        deactivationReason: user.deactivationReason ?? null,
+        deactivatedBy: user.deactivatedBy ?? null,
+      },
+      summary30d: {
+        from,
+        to: today,
+        totalHabits,
+        trackedHabitCount,
+        totalRecords: summaryTotalRecords,
+        completedRecords: summaryCompletedRecords,
+        completionRatePercent:
+          summaryTotalRecords > 0
+            ? Math.round((summaryCompletedRecords / summaryTotalRecords) * 100)
+            : null,
+      },
+      todaySummary: {
+        date: today,
+        totalHabits,
+        recordedHabits: todayRecordedHabits,
+        completedHabits: todayCompletedHabits,
+        completionRatePercent:
+          totalHabits > 0 ? Math.round((todayCompletedHabits / totalHabits) * 100) : null,
+      },
+      habits: habitItems,
+    };
+  }
 
   private requireTemplateVisuals(colorHex?: string | null, iconName?: string | null): {
     colorHex: string;
