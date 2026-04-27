@@ -41,7 +41,7 @@ try {
         if (-not (Test-Path -LiteralPath $ingestConfigPath)) {
             $syncScript = Join-Path $projectRoot "scripts\obsidian\sync-docs.ps1"
             if (Test-Path -LiteralPath $syncScript) {
-                pwsh -NoProfile -ExecutionPolicy Bypass -File $syncScript | Out-Null
+                powershell -NoProfile -ExecutionPolicy Bypass -File $syncScript | Out-Null
             }
         }
         exit 0
@@ -51,13 +51,13 @@ try {
 
     $syncScript = Join-Path $projectRoot "scripts\obsidian\sync-docs.ps1"
     if (Test-Path -LiteralPath $syncScript) {
-        pwsh -NoProfile -ExecutionPolicy Bypass -File $syncScript | Out-Null
+        powershell -NoProfile -ExecutionPolicy Bypass -File $syncScript | Out-Null
     }
 
     $installHookScript = Join-Path $projectRoot "scripts\obsidian\install-hook.ps1"
     $gitDir = Join-Path $projectRoot ".git"
     if ((Test-Path -LiteralPath $gitDir) -and (Test-Path -LiteralPath $installHookScript)) {
-        pwsh -NoProfile -ExecutionPolicy Bypass -File $installHookScript -TargetRepo $projectRoot | Out-Null
+        powershell -NoProfile -ExecutionPolicy Bypass -File $installHookScript -TargetRepo $projectRoot | Out-Null
     }
 
     $timestamp = (Get-Date).ToString("s")

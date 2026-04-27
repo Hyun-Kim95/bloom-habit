@@ -56,7 +56,7 @@ try {
     }
 
     if (-not $hookGood) {
-        pwsh -NoProfile -ExecutionPolicy Bypass -File $installScript -TargetRepo $projectRoot 2>$null | Out-Null
+        powershell -NoProfile -ExecutionPolicy Bypass -File $installScript -TargetRepo $projectRoot 2>$null | Out-Null
         $hookGood = Test-HookLooksCurrent -Path $hookFile
     }
 

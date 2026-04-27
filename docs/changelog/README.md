@@ -1,0 +1,28 @@
+﻿---
+type: doc
+project: bloom_habit
+doc_lane: changelog
+updated_at: 2026-04-12T00:05:09
+tags: [docs, vault-sync]
+---
+
+# changelog
+
+이 폴더는 작업 변경 이력을 남긴다.
+
+기록 권장 항목:
+- 변경 날짜
+- 작업명
+- 변경 내용
+- 영향 범위
+- 확인 필요사항
+
+권장 파일명 예시:
+- 2026-04.md
+- 2026-05.md
+## Vault
+
+- [[bloom_habit/docs/bloom_habit-docs-hub|Hub]]
+- [[bloom_habit/docs/obsidian/dashboards/projects-overview|Dashboards]]
+- [[bloom_habit/docs/obsidian/dashboards/commit-journal-overview|Commit journals (Dataview)]]
+

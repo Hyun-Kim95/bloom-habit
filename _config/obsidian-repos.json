@@ -1,0 +1,9 @@
+{
+  "repositories": [
+    {
+      "slug": "bloom_habit",
+      "path": "d:\\cursor\\flutter_test\\bloom_habit",
+      "docsPaths": ["docs"]
+    }
+  ]
+}

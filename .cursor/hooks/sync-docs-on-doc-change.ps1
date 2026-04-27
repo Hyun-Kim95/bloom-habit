@@ -69,7 +69,7 @@ try {
         exit 0
     }
 
-    $payload = $raw | ConvertFrom-Json
+    $payload = $raw | ConvertFrom-Json -Depth 20
     $allStrings = Get-AllStringValues -Node $payload
     $normalized = $allStrings | ForEach-Object { $_.ToLowerInvariant().Replace("/", "\") }
 
@@ -110,7 +110,7 @@ try {
         }
     }
 
-    pwsh -NoProfile -ExecutionPolicy Bypass -File $syncScript | Out-Null
+    powershell -NoProfile -ExecutionPolicy Bypass -File $syncScript | Out-Null
     if (-not (Test-Path -LiteralPath $stateDir)) {
         New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
     }

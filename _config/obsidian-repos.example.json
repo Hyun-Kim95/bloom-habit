@@ -1,0 +1,16 @@
+{
+  "repositories": [
+    {
+      "slug": "bloom_habit",
+      "displayName": "My Cursor template (optional)",
+      "hubFileStem": "my-template-hub",
+      "path": "d:\\cursor\\flutter_test\\bloom_habit",
+      "docsPaths": ["docs"]
+    },
+    {
+      "slug": "another-project",
+      "path": "d:\\work\\another-project",
+      "docsPaths": ["docs", "adr"]
+    }
+  ]
+}
