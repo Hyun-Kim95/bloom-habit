@@ -6,31 +6,63 @@ import '../../../core/theme/app_theme.dart';
 import '../../../data/local/entity/local_habit.dart';
 
 const kGoalTypes = ['completion', 'count', 'duration', 'number'];
+const kDurationUnits = ['분', '시간'];
+const kNumberUnits = ['개', 'kg', 'km', 'ml', '걸음', '점'];
 
 const kColorPresets = [
-  '22C55E', '3B82F6', 'F59E0B', 'EF4444', '8B5CF6', 'EC4899', '14B8A6', '6B7280',
+  '22C55E',
+  '3B82F6',
+  'F59E0B',
+  'EF4444',
+  '8B5CF6',
+  'EC4899',
+  '14B8A6',
+  '6B7280',
 ];
 
 const kIconNames = [
-  'fitness_center', 'menu_book', 'local_drink', 'self_improvement', 'bedtime',
-  'eco', 'psychology', 'work', 'volunteer_activism', 'star', 'check_circle', 'flag',
+  'fitness_center',
+  'menu_book',
+  'local_drink',
+  'self_improvement',
+  'bedtime',
+  'eco',
+  'psychology',
+  'work',
+  'volunteer_activism',
+  'star',
+  'check_circle',
+  'flag',
 ];
 
 IconData iconDataFromName(String name) {
   switch (name) {
-    case 'fitness_center': return Icons.fitness_center;
-    case 'menu_book': return Icons.menu_book;
-    case 'local_drink': return Icons.local_drink;
-    case 'self_improvement': return Icons.self_improvement;
-    case 'bedtime': return Icons.bedtime;
-    case 'eco': return Icons.eco;
-    case 'psychology': return Icons.psychology;
-    case 'work': return Icons.work;
-    case 'volunteer_activism': return Icons.volunteer_activism;
-    case 'star': return Icons.star;
-    case 'check_circle': return Icons.check_circle;
-    case 'flag': return Icons.flag;
-    default: return Icons.star;
+    case 'fitness_center':
+      return Icons.fitness_center;
+    case 'menu_book':
+      return Icons.menu_book;
+    case 'local_drink':
+      return Icons.local_drink;
+    case 'self_improvement':
+      return Icons.self_improvement;
+    case 'bedtime':
+      return Icons.bedtime;
+    case 'eco':
+      return Icons.eco;
+    case 'psychology':
+      return Icons.psychology;
+    case 'work':
+      return Icons.work;
+    case 'volunteer_activism':
+      return Icons.volunteer_activism;
+    case 'star':
+      return Icons.star;
+    case 'check_circle':
+      return Icons.check_circle;
+    case 'flag':
+      return Icons.flag;
+    default:
+      return Icons.star;
   }
 }
 
@@ -40,6 +72,7 @@ class HabitEditResult {
     required this.name,
     required this.goalType,
     required this.numberDirection,
+    this.unit,
     this.goalValue,
     this.colorHex,
     this.iconName,
@@ -47,6 +80,7 @@ class HabitEditResult {
   final String name;
   final String goalType;
   final String numberDirection;
+  final String? unit;
   final double? goalValue;
   final String? colorHex;
   final String? iconName;
@@ -60,6 +94,23 @@ Future<HabitEditResult?> showHabitEditSheet(
   final nameController = TextEditingController(text: habit.name ?? '');
   String goalType = habit.goalType ?? 'completion';
   String numberDirection = (habit.numberDirection == 'lte') ? 'lte' : 'gte';
+  String? unit = habit.unit;
+  List<String> unitsForGoalType(String type) {
+    if (type == 'duration') return kDurationUnits;
+    if (type == 'number') return kNumberUnits;
+    return const [];
+  }
+
+  String? normalizedUnitForGoalType(String type, String? currentUnit) {
+    if (type == 'completion' || type == 'count') return null;
+    final units = unitsForGoalType(type);
+    if (units.isEmpty) return null;
+    if (currentUnit != null && units.contains(currentUnit)) return currentUnit;
+    return units.first;
+  }
+
+  unit = normalizedUnitForGoalType(goalType, unit);
+
   double? goalValue = habit.goalValue;
   String? colorHex = habit.colorHex;
   String? iconName = habit.iconName;
@@ -82,10 +133,13 @@ Future<HabitEditResult?> showHabitEditSheet(
             return l10n.goalTypeCompletion;
         }
       }
+
       return StatefulBuilder(
         builder: (ctx, setModalState) {
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -94,7 +148,10 @@ Future<HabitEditResult?> showHabitEditSheet(
                 children: [
                   Text(
                     l10n.editHabit,
-                    style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.dmSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   TextField(
@@ -113,10 +170,45 @@ Future<HabitEditResult?> showHabitEditSheet(
                       border: OutlineInputBorder(),
                     ),
                     items: kGoalTypes
-                        .map((e) => DropdownMenuItem(value: e, child: Text(goalTypeLabel(e))))
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e,
+                            child: Text(goalTypeLabel(e)),
+                          ),
+                        )
                         .toList(),
-                    onChanged: (v) => setModalState(() => goalType = v ?? 'completion'),
+                    onChanged: (v) => setModalState(() {
+                      goalType = v ?? 'completion';
+                      if (goalType == 'count') {
+                        goalValue ??= 1;
+                      }
+                      if (goalType == 'duration') {
+                        unit = normalizedUnitForGoalType(goalType, unit);
+                      }
+                      if (goalType == 'number') {
+                        goalValue ??= 1;
+                        unit = normalizedUnitForGoalType(goalType, unit);
+                      }
+                      if (goalType == 'completion' || goalType == 'count')
+                        unit = null;
+                    }),
                   ),
+                  if (goalType == 'duration' || goalType == 'number') ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: normalizedUnitForGoalType(goalType, unit),
+                      decoration: const InputDecoration(
+                        labelText: '단위',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: unitsForGoalType(goalType)
+                          .map(
+                            (e) => DropdownMenuItem(value: e, child: Text(e)),
+                          )
+                          .toList(),
+                      onChanged: (v) => setModalState(() => unit = v),
+                    ),
+                  ],
                   if (goalType == 'number') ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
@@ -129,7 +221,8 @@ Future<HabitEditResult?> showHabitEditSheet(
                         DropdownMenuItem(value: 'gte', child: Text('이상(>=)')),
                         DropdownMenuItem(value: 'lte', child: Text('이하(<=)')),
                       ],
-                      onChanged: (v) => setModalState(() => numberDirection = v ?? 'gte'),
+                      onChanged: (v) =>
+                          setModalState(() => numberDirection = v ?? 'gte'),
                     ),
                   ],
                   if (goalType != 'completion') ...[
@@ -148,7 +241,13 @@ Future<HabitEditResult?> showHabitEditSheet(
                     ),
                   ],
                   const SizedBox(height: 16),
-                  Text(l10n.color, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  Text(
+                    l10n.color,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 10,
@@ -156,21 +255,34 @@ Future<HabitEditResult?> showHabitEditSheet(
                     children: kColorPresets.map((hex) {
                       final selected = colorHex == hex;
                       return GestureDetector(
-                        onTap: () => setModalState(() => colorHex = selected ? null : hex),
+                        onTap: () => setModalState(
+                          () => colorHex = selected ? null : hex,
+                        ),
                         child: Container(
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(
                             color: Color(int.parse('FF$hex', radix: 16)),
                             shape: BoxShape.circle,
-                            border: selected ? Border.all(color: isDark ? Colors.white : Colors.black, width: 2) : null,
+                            border: selected
+                                ? Border.all(
+                                    color: isDark ? Colors.white : Colors.black,
+                                    width: 2,
+                                  )
+                                : null,
                           ),
                         ),
                       );
                     }).toList(),
                   ),
                   const SizedBox(height: 16),
-                  Text(l10n.icon, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  Text(
+                    l10n.icon,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -178,18 +290,26 @@ Future<HabitEditResult?> showHabitEditSheet(
                     children: kIconNames.map((name) {
                       final selected = iconName == name;
                       return GestureDetector(
-                        onTap: () => setModalState(() => iconName = selected ? null : name),
+                        onTap: () => setModalState(
+                          () => iconName = selected ? null : name,
+                        ),
                         child: Container(
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: selected ? AppColors.primary.withValues(alpha: 0.2) : AppColors.muted.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(AppTheme.radius),
+                            color: selected
+                                ? AppColors.primary.withValues(alpha: 0.2)
+                                : AppColors.muted.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.radius,
+                            ),
                           ),
                           child: Icon(
                             iconDataFromName(name),
                             color: selected
-                                ? (isDark ? AppColors.primaryDark : AppColors.primary)
+                                ? (isDark
+                                      ? AppColors.primaryDark
+                                      : AppColors.primary)
                                 : AppColors.mutedFg(isDark),
                             size: 24,
                           ),
@@ -202,14 +322,18 @@ Future<HabitEditResult?> showHabitEditSheet(
                     onPressed: () {
                       final name = nameController.text.trim();
                       if (name.isEmpty) return;
-                      Navigator.pop(ctx, HabitEditResult(
-                        name: name,
-                        goalType: goalType,
-                        numberDirection: numberDirection,
-                        goalValue: goalValue,
-                        colorHex: colorHex,
-                        iconName: iconName,
-                      ));
+                      Navigator.pop(
+                        ctx,
+                        HabitEditResult(
+                          name: name,
+                          goalType: goalType,
+                          numberDirection: numberDirection,
+                          unit: normalizedUnitForGoalType(goalType, unit),
+                          goalValue: goalValue,
+                          colorHex: colorHex,
+                          iconName: iconName,
+                        ),
+                      );
                     },
                     child: Text(l10n.save),
                   ),

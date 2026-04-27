@@ -41,6 +41,7 @@ export interface HabitTemplateDto {
   categoryEn?: string;
   goalType: string;
   numberDirection: 'gte' | 'lte';
+  unit?: string;
   goalValue?: number | null;
   colorHex?: string;
   iconName?: string;
@@ -117,6 +118,7 @@ export class AdminDataService {
       categoryEn: t.categoryEn ?? undefined,
       goalType: t.goalType,
       numberDirection: t.numberDirection === 'lte' ? 'lte' : 'gte',
+      unit: t.unit ?? undefined,
       goalValue: t.goalValue ?? undefined,
       colorHex: t.colorHex ?? undefined,
       iconName: t.iconName ?? undefined,
@@ -169,6 +171,7 @@ export class AdminDataService {
       categoryEn: typeof body.categoryEn === 'string' ? body.categoryEn.trim() || null : null,
       goalType,
       numberDirection,
+      unit: body.unit?.trim() || null,
       goalValue,
       colorHex: visuals.colorHex,
       iconName: visuals.iconName,
@@ -183,6 +186,7 @@ export class AdminDataService {
       categoryEn: t.categoryEn ?? undefined,
       goalType: t.goalType,
       numberDirection: t.numberDirection === 'lte' ? 'lte' : 'gte',
+      unit: t.unit ?? undefined,
       goalValue: t.goalValue ?? undefined,
       colorHex: t.colorHex ?? undefined,
       iconName: t.iconName ?? undefined,
@@ -206,6 +210,7 @@ export class AdminDataService {
     if (body.numberDirection !== undefined) {
       t.numberDirection = body.numberDirection === 'lte' ? 'lte' : 'gte';
     }
+    if (body.unit !== undefined) t.unit = body.unit?.trim() ? body.unit.trim() : null;
     if (body.isActive !== undefined) t.isActive = body.isActive;
     if (body.colorHex !== undefined) t.colorHex = body.colorHex ?? null;
     if (body.iconName !== undefined) t.iconName = body.iconName ?? null;
@@ -229,6 +234,7 @@ export class AdminDataService {
       categoryEn: t.categoryEn ?? undefined,
       goalType: t.goalType,
       numberDirection: t.numberDirection === 'lte' ? 'lte' : 'gte',
+      unit: t.unit ?? undefined,
       goalValue: t.goalValue ?? undefined,
       colorHex: t.colorHex ?? undefined,
       iconName: t.iconName ?? undefined,
@@ -264,6 +270,7 @@ export class AdminDataService {
           categoryEn: row.category ? reseedCategoryEn(row.category) : null,
           goalType,
           numberDirection,
+          unit: row.unit ?? null,
           goalValue,
           colorHex: row.colorHex ?? null,
           iconName: row.iconName ?? null,

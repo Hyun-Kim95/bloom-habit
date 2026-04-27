@@ -70,6 +70,7 @@ export class HabitsController {
         category: body.category,
         goalType: body.goalType ?? 'completion',
         numberDirection: body.numberDirection,
+        unit: body.unit,
         goalValue: body.goalValue,
         startDate: body.startDate!,
         colorHex: body.colorHex,

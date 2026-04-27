@@ -26,6 +26,9 @@ export class Habit {
   @Column({ default: 'gte' })
   numberDirection: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  unit: string | null;
+
   @Column({ type: 'int', nullable: true })
   goalValue: number | null;
 

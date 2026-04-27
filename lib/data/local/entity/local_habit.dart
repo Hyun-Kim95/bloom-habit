@@ -14,6 +14,7 @@ class LocalHabit {
   String? category;
   String? goalType;
   String? numberDirection;
+  String? unit;
   double? goalValue;
   DateTime? startDate;
   String? colorHex;

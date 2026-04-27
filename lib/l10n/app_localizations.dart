@@ -1241,7 +1241,7 @@ abstract class AppLocalizations {
   /// No description provided for @goalCountHint.
   ///
   /// In ko, this message translates to:
-  /// **'목표 횟수 (예: 3)'**
+  /// **'완료 횟수 (예: 3)'**
   String get goalCountHint;
 
   /// No description provided for @goalDurationHint.
@@ -1253,7 +1253,7 @@ abstract class AppLocalizations {
   /// No description provided for @goalNumberHint.
   ///
   /// In ko, this message translates to:
-  /// **'목표 수치'**
+  /// **'완료값'**
   String get goalNumberHint;
 
   /// No description provided for @startDate.
@@ -1427,7 +1427,7 @@ abstract class AppLocalizations {
   /// No description provided for @goalValue.
   ///
   /// In ko, this message translates to:
-  /// **'목표값'**
+  /// **'완료값'**
   String get goalValue;
 
   /// No description provided for @color.

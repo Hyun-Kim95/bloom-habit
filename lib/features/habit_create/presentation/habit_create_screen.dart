@@ -19,6 +19,8 @@ class HabitCreateScreen extends ConsumerStatefulWidget {
 
 /// Goal types (server `goalType`).
 const _goalTypes = ['completion', 'count', 'duration', 'number'];
+const _durationUnits = ['분', '시간'];
+const _numberUnits = ['개', 'kg', 'km', 'ml', '걸음', '점'];
 
 /// Color presets (hex without #).
 const _colorPresets = [
@@ -92,10 +94,25 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
   String? _selectedCategory;
   String _goalType = 'completion';
   String _numberDirection = 'gte';
+  String? _unit;
   double? _goalValue;
   DateTime _startDate = DateTime.now();
   String? _colorHex;
   String? _iconName;
+
+  List<String> _unitsForGoalType(String goalType) {
+    if (goalType == 'duration') return _durationUnits;
+    if (goalType == 'number') return _numberUnits;
+    return const [];
+  }
+
+  String? _normalizedUnitForGoalType(String goalType, String? unit) {
+    if (goalType == 'completion' || goalType == 'count') return null;
+    final units = _unitsForGoalType(goalType);
+    if (units.isEmpty) return null;
+    if (unit != null && units.contains(unit)) return unit;
+    return units.first;
+  }
 
   @override
   void initState() {
@@ -136,6 +153,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
       _selectedCategory = t.category;
       _goalType = _goalTypes.contains(t.goalType) ? t.goalType : 'completion';
       _numberDirection = (t.numberDirection == 'lte') ? 'lte' : 'gte';
+      _unit = _normalizedUnitForGoalType(_goalType, t.unit);
       _goalValue = _goalType == 'completion' ? null : t.goalValue;
       _colorHex = t.colorHex;
       _iconName = t.iconName;
@@ -179,6 +197,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                 : _selectedCategory,
             goalType: _goalType,
             numberDirection: _numberDirection,
+            unit: _normalizedUnitForGoalType(_goalType, _unit),
             goalValue: _goalValue,
             startDate: _startDate,
             colorHex: _colorHex,
@@ -286,7 +305,10 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                 ..._templates.map(
                   (t) => DropdownMenuItem<String?>(
                     value: t.id,
-                    child: Text(t.resolvedName(lang), style: GoogleFonts.dmSans()),
+                    child: Text(
+                      t.resolvedName(lang),
+                      style: GoogleFonts.dmSans(),
+                    ),
                   ),
                 ),
               ],
@@ -387,8 +409,46 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                     ),
                   )
                   .toList(),
-              onChanged: (v) => setState(() => _goalType = v ?? 'completion'),
+              onChanged: (v) => setState(() {
+                _goalType = v ?? 'completion';
+                if (_goalType == 'count') {
+                  _unit = null;
+                  _goalValue ??= 1;
+                } else if (_goalType == 'duration') {
+                  _unit = _normalizedUnitForGoalType(_goalType, _unit);
+                } else if (_goalType == 'number') {
+                  _unit = _normalizedUnitForGoalType(_goalType, _unit);
+                  _goalValue ??= 1;
+                } else {
+                  _unit = null;
+                }
+              }),
             ),
+            if (_goalType == 'duration' || _goalType == 'number') ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _normalizedUnitForGoalType(_goalType, _unit),
+                decoration: InputDecoration(
+                  labelText: '단위',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radius),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+                items: _unitsForGoalType(_goalType)
+                    .map(
+                      (e) => DropdownMenuItem<String>(
+                        value: e,
+                        child: Text(e, style: GoogleFonts.dmSans()),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) => setState(() => _unit = v),
+              ),
+            ],
             if (_goalType == 'number') ...[
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
@@ -413,13 +473,13 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
             if (_goalType != 'completion') ...[
               const SizedBox(height: 12),
               TextFormField(
-                initialValue: _goalValue?.toInt().toString(),
+                initialValue: (_goalValue ?? 1).toInt().toString(),
                 decoration: InputDecoration(
                   labelText: _goalType == 'count'
-                      ? l10n.goalCountHint
+                      ? '완료 횟수'
                       : _goalType == 'duration'
                       ? l10n.goalDurationHint
-                      : l10n.goalNumberHint,
+                      : '완료값',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radius),
                   ),
@@ -566,12 +626,11 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                     ),
                     subtitle: Text(
                       l10n.reminderNotificationSubtitle,
-                      style: GoogleFonts.dmSans(
-                        fontSize: 13,
-                        color: muted,
-                      ),
+                      style: GoogleFonts.dmSans(fontSize: 13, color: muted),
                     ),
-                    activeThumbColor: isDark ? AppColors.primaryDark : AppColors.primary,
+                    activeThumbColor: isDark
+                        ? AppColors.primaryDark
+                        : AppColors.primary,
                   ),
                   ListTile(
                     leading: Icon(
@@ -593,7 +652,9 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                       style: GoogleFonts.dmSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.primaryDark : AppColors.primary,
+                        color: isDark
+                            ? AppColors.primaryDark
+                            : AppColors.primary,
                       ),
                     ),
                     onTap: _reminderEnabled

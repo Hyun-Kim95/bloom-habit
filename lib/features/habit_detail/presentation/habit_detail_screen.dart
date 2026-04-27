@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/feedback/habit_completion_feedback.dart';
+import '../../../core/timer/duration_timer_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/completion_praise.dart';
 import '../../../core/router/app_providers.dart';
@@ -30,6 +31,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   bool _todayCompleted = false;
   double? _todayValue;
   bool _recording = false;
+  bool _durationRunning = false;
   bool _reminderEnabled = false;
   int _reminderHour = 9;
   int _reminderMinute = 0;
@@ -75,16 +77,39 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     final from = now.subtract(const Duration(days: 30));
     final list = await repo.getRecordHistory(sid, from: from, to: now);
     list.sort((a, b) => b.recordDate.compareTo(a.recordDate));
-    if (mounted) setState(() {
-      _recordHistory = list;
-      _historyLoading = false;
-    });
+    if (mounted)
+      setState(() {
+        _recordHistory = list;
+        _historyLoading = false;
+      });
   }
 
   Future<void> _recordToday() async {
     if (_recording) return;
     final goalType = (_habit.goalType ?? 'completion').toLowerCase().trim();
     if (goalType == 'completion' && _todayCompleted) return;
+    if (goalType == 'duration' && _durationRunning) {
+      setState(() {
+        _durationRunning = false;
+      });
+      try {
+        final repo = ref.read(habitRepositoryProvider);
+        final elapsedMs = await DurationTimerService.stop();
+        final minutes = ((elapsedMs ?? 0) / 60000.0);
+        if (minutes > 0) {
+          await repo.recordToday(_habit.serverId!, value: minutes);
+        }
+        if (!mounted) return;
+        ref.read(homeRefreshTriggerProvider.notifier).state++;
+        _loadStats();
+        _loadRecordHistory();
+      } catch (_) {
+        if (mounted) {
+          setState(() => _durationRunning = true);
+        }
+      }
+      return;
+    }
     setState(() => _recording = true);
     final settings = ref.read(appSettingsProvider).value;
     final feedbackPlayed = await HabitCompletionFeedback.trigger(
@@ -98,6 +123,13 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       final repo = ref.read(habitRepositoryProvider);
       if (goalType == 'completion') {
         await repo.recordToday(_habit.serverId!, completed: true);
+      } else if (goalType == 'duration') {
+        await DurationTimerService.start(habitName: _habit.name ?? 'Habit');
+        _durationRunning = true;
+        if (mounted) {
+          setState(() => _recording = false);
+        }
+        return;
       } else {
         final inputValue = await _askRecordValue(goalType);
         if (inputValue == null) {
@@ -133,16 +165,16 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     return showDialog<double>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(goalType == 'duration' ? l10n.goalDurationHint : l10n.goalValue),
+        title: Text(goalType == 'count' ? '완료 횟수' : '완료값'),
         content: TextField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
             hintText: goalType == 'count'
-                ? l10n.goalCountHint
+                ? '기본 1'
                 : goalType == 'duration'
-                    ? l10n.goalDurationHint
-                    : l10n.goalNumberHint,
+                ? l10n.goalDurationHint
+                : l10n.goalNumberHint,
           ),
         ),
         actions: [
@@ -152,7 +184,8 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
           ),
           FilledButton(
             onPressed: () {
-              final n = double.tryParse(controller.text.trim());
+              final raw = controller.text.trim();
+              final n = double.tryParse(raw.isEmpty ? '1' : raw);
               if (n == null || n <= 0) return;
               Navigator.pop(ctx, n);
             },
@@ -165,7 +198,11 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
 
   Future<void> _openEdit() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final result = await showHabitEditSheet(context, habit: _habit, isDark: isDark);
+    final result = await showHabitEditSheet(
+      context,
+      habit: _habit,
+      isDark: isDark,
+    );
     if (result == null || !mounted) return;
     try {
       final repo = ref.read(habitRepositoryProvider);
@@ -174,6 +211,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         name: result.name,
         goalType: result.goalType,
         numberDirection: result.numberDirection,
+        unit: result.unit,
         goalValue: result.goalValue,
         colorHex: result.colorHex,
         iconName: result.iconName,
@@ -186,7 +224,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.editFailedTryAgain)),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.editFailedTryAgain),
+          ),
         );
       }
     }
@@ -200,8 +240,14 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         title: Text(l10n.hideHabit),
         content: Text(l10n.hideHabitDescription),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.hide)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.hide),
+          ),
         ],
       ),
     );
@@ -213,9 +259,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       context.go(AppRoutes.home);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.hideFailed)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.hideFailed)));
       }
     }
   }
@@ -228,8 +274,14 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         title: Text(l10n.unhideHabit),
         content: Text(l10n.unhideHabitDescription),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.unhide)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.unhide),
+          ),
         ],
       ),
     );
@@ -241,9 +293,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       context.go(AppRoutes.habits);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.unhideFailed)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.unhideFailed)));
       }
     }
   }
@@ -260,10 +312,15 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         title: Text(l10n.deleteRecord),
         content: Text(l10n.deleteRecordForDate(r.recordDate)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.destructive),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.destructive,
+            ),
             child: Text(l10n.delete),
           ),
         ],
@@ -279,9 +336,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       _loadStats();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.processFailedTryAgain)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.processFailedTryAgain)));
       }
     }
   }
@@ -298,10 +355,15 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     String? progressText;
     if (goalType != 'completion' && goalValue != null) {
       final current = _todayValue ?? 0;
+      final unitSuffix = goalType == 'count'
+          ? '회'
+          : (h.unit != null ? ' ${h.unit}' : '');
       if (goalType == 'number' && h.numberDirection == 'lte') {
-        progressText = '${current.toStringAsFixed(0)} / <= ${goalValue.toStringAsFixed(0)}';
+        progressText =
+            '${current.toStringAsFixed(0)}$unitSuffix / <= ${goalValue.toStringAsFixed(0)}$unitSuffix';
       } else {
-        progressText = '${current.toStringAsFixed(0)} / ${goalValue.toStringAsFixed(0)}';
+        progressText =
+            '${current.toStringAsFixed(0)}$unitSuffix / ${goalValue.toStringAsFixed(0)}$unitSuffix';
       }
     }
 
@@ -315,20 +377,30 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) async {
-              if (value == 'edit') await _openEdit();
+              if (value == 'edit')
+                await _openEdit();
               else if (value == 'archive') {
                 if (isHidden) {
                   await _unarchive();
                 } else {
                   await _archive();
                 }
-              }
-              else if (value == 'delete') await _confirmDelete();
+              } else if (value == 'delete')
+                await _confirmDelete();
             },
             itemBuilder: (ctx) => [
               PopupMenuItem(value: 'edit', child: Text(l10n.edit)),
-              PopupMenuItem(value: 'archive', child: Text(isHidden ? l10n.unhide : l10n.hide)),
-              PopupMenuItem(value: 'delete', child: Text(l10n.delete, style: const TextStyle(color: AppColors.destructive))),
+              PopupMenuItem(
+                value: 'archive',
+                child: Text(isHidden ? l10n.unhide : l10n.hide),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Text(
+                  l10n.delete,
+                  style: const TextStyle(color: AppColors.destructive),
+                ),
+              ),
             ],
           ),
         ],
@@ -341,10 +413,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
             if (h.category != null && h.category!.isNotEmpty) ...[
               Text(
                 h.category!,
-                style: GoogleFonts.dmSans(
-                  fontSize: 14,
-                  color: muted,
-                ),
+                style: GoogleFonts.dmSans(fontSize: 14, color: muted),
               ),
               const SizedBox(height: 8),
             ],
@@ -371,7 +440,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                     style: GoogleFonts.lora(
                       fontSize: 28,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+                      color: isDark
+                          ? AppColors.foregroundDark
+                          : AppColors.foreground,
                     ),
                   ),
                 ),
@@ -391,7 +462,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.foregroundDark : AppColors.foreground,
+                      color: isDark
+                          ? AppColors.foregroundDark
+                          : AppColors.foreground,
                     ),
                   ),
                   subtitle: progressText != null ? Text(progressText) : null,
@@ -412,8 +485,15 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : Text(
-                          goalType == 'completion' ? l10n.completeToday : l10n.save,
-                          style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w600),
+                          goalType == 'completion'
+                              ? l10n.completeToday
+                              : goalType == 'duration'
+                              ? (_durationRunning ? '중지' : '시작')
+                              : l10n.save,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                 ),
               ),
@@ -430,7 +510,12 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
             ),
             const SizedBox(height: 12),
             if (_historyLoading)
-              const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(strokeWidth: 2)))
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
             else if (_recordHistory.isEmpty)
               Card(
                 child: Padding(
@@ -459,7 +544,11 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (r.completed)
-                            Icon(Icons.check_circle, color: habitColorFromHex(_habit.colorHex), size: 22)
+                            Icon(
+                              Icons.check_circle,
+                              color: habitColorFromHex(_habit.colorHex),
+                              size: 22,
+                            )
                           else
                             Icon(Icons.cancel_outlined, color: muted, size: 22),
                           if (r.recordId != null) ...[
@@ -470,7 +559,12 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                               itemBuilder: (ctx) => [
                                 PopupMenuItem(
                                   value: 'delete',
-                                  child: Text(AppLocalizations.of(context)!.delete, style: const TextStyle(color: AppColors.destructive)),
+                                  child: Text(
+                                    AppLocalizations.of(context)!.delete,
+                                    style: const TextStyle(
+                                      color: AppColors.destructive,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -495,10 +589,15 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         title: Text(l10n.deleteHabit),
         content: Text(l10n.deleteHabitDescription),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.destructive),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.destructive,
+            ),
             child: Text(l10n.delete),
           ),
         ],
@@ -513,7 +612,11 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     }
   }
 
-  Future<void> _saveReminder({required bool enabled, required int hour, required int minute}) async {
+  Future<void> _saveReminder({
+    required bool enabled,
+    required int hour,
+    required int minute,
+  }) async {
     final sid = _habit.serverId;
     if (sid == null) return;
     setState(() => _reminderSaving = true);
@@ -529,7 +632,10 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       await NotificationService().rescheduleFromHabits(habits);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.saved), duration: const Duration(seconds: 2)),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.saved),
+            duration: const Duration(seconds: 2),
+          ),
         );
       }
     } finally {
@@ -593,12 +699,20 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
             ),
             subtitle: Text(
               l10n.reminderNotificationSubtitle,
-              style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.mutedFg(isDark)),
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                color: AppColors.mutedFg(isDark),
+              ),
             ),
-            activeThumbColor: isDark ? AppColors.primaryDark : AppColors.primary,
+            activeThumbColor: isDark
+                ? AppColors.primaryDark
+                : AppColors.primary,
           ),
           ListTile(
-            leading: Icon(Icons.schedule, color: isDark ? AppColors.primaryDark : AppColors.primary),
+            leading: Icon(
+              Icons.schedule,
+              color: isDark ? AppColors.primaryDark : AppColors.primary,
+            ),
             title: Text(
               l10n.notificationTime,
               style: GoogleFonts.dmSans(
@@ -621,7 +735,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                       color: isDark ? AppColors.primaryDark : AppColors.primary,
                     ),
                   ),
-            onTap: _reminderEnabled && !_reminderSaving ? _pickReminderTime : null,
+            onTap: _reminderEnabled && !_reminderSaving
+                ? _pickReminderTime
+                : null,
           ),
         ],
       ),

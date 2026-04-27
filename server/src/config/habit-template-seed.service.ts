@@ -39,6 +39,7 @@ export class HabitTemplateSeedService implements OnModuleInit {
           categoryEn: row.category ? reseedCategoryEn(row.category) : null,
           goalType,
           numberDirection,
+          unit: row.unit ?? null,
           goalValue,
           colorHex: row.colorHex ?? null,
           iconName: row.iconName ?? null,

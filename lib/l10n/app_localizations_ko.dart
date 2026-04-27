@@ -617,13 +617,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get habitTemplateOptional => '템플릿 (선택)';
 
   @override
-  String get goalCountHint => '목표 횟수 (예: 3)';
+  String get goalCountHint => '완료 횟수 (예: 3)';
 
   @override
   String get goalDurationHint => '목표 분 (예: 30)';
 
   @override
-  String get goalNumberHint => '목표 수치';
+  String get goalNumberHint => '완료값';
 
   @override
   String get startDate => '시작일';
@@ -712,7 +712,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get editHabit => '습관 수정';
 
   @override
-  String get goalValue => '목표값';
+  String get goalValue => '완료값';
 
   @override
   String get color => '색상';

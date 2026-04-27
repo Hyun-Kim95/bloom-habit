@@ -15,6 +15,7 @@ export interface HabitDto {
   category?: string;
   goalType: string;
   numberDirection: 'gte' | 'lte';
+  unit?: string;
   goalValue?: number;
   startDate: string;
   colorHex?: string;
@@ -42,6 +43,7 @@ export interface HabitTemplateDto {
   categoryEn?: string;
   goalType: string;
   numberDirection: 'gte' | 'lte';
+  unit?: string;
   goalValue?: number;
   colorHex?: string;
   iconName?: string;
@@ -55,6 +57,7 @@ function toHabitDto(e: HabitEntity): HabitDto {
     category: e.category ?? undefined,
     goalType: e.goalType,
     numberDirection: e.numberDirection === 'lte' ? 'lte' : 'gte',
+    unit: e.unit ?? undefined,
     goalValue: e.goalValue ?? undefined,
     startDate: e.startDate,
     colorHex: e.colorHex ?? undefined,
@@ -101,6 +104,7 @@ export class HabitsService {
       categoryEn: t.categoryEn ?? undefined,
       goalType: t.goalType,
       numberDirection: t.numberDirection === 'lte' ? 'lte' : 'gte',
+      unit: t.unit ?? undefined,
       goalValue: t.goalValue ?? undefined,
       colorHex: t.colorHex ?? undefined,
       iconName: t.iconName ?? undefined,
@@ -133,6 +137,7 @@ export class HabitsService {
       category?: string;
       goalType: string;
       numberDirection?: 'gte' | 'lte';
+      unit?: string;
       goalValue?: number;
       startDate: string;
       colorHex?: string;
@@ -146,6 +151,7 @@ export class HabitsService {
       category: body.category,
       goalType: body.goalType ?? 'completion',
       numberDirection: this.normalizeNumberDirection(body.numberDirection),
+      unit: body.unit?.trim() || null,
       goalValue: body.goalValue,
       startDate: body.startDate,
       colorHex: body.colorHex,
@@ -159,13 +165,16 @@ export class HabitsService {
   async update(
     id: string,
     userId: string,
-    body: Partial<Pick<HabitDto, 'name' | 'category' | 'goalType' | 'numberDirection' | 'goalValue' | 'colorHex' | 'iconName'>>,
+    body: Partial<Pick<HabitDto, 'name' | 'category' | 'goalType' | 'numberDirection' | 'unit' | 'goalValue' | 'colorHex' | 'iconName'>>,
   ): Promise<HabitDto | undefined> {
     const h = await this.habitRepo.findOne({ where: { id, userId } });
     if (!h) return undefined;
     Object.assign(h, body);
     if (body.numberDirection !== undefined) {
       h.numberDirection = this.normalizeNumberDirection(body.numberDirection);
+    }
+    if (body.unit !== undefined) {
+      h.unit = body.unit?.trim() || null;
     }
     await this.habitRepo.save(h);
     return toHabitDto(h);

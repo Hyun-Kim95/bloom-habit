@@ -26,6 +26,7 @@ class HabitTemplateItem {
     this.categoryEn,
     required this.goalType,
     this.numberDirection,
+    this.unit,
     this.goalValue,
     this.colorHex,
     this.iconName,
@@ -38,6 +39,7 @@ class HabitTemplateItem {
   final String? categoryEn;
   final String goalType;
   final String? numberDirection;
+  final String? unit;
   final double? goalValue;
   final String? colorHex;
   final String? iconName;
@@ -86,6 +88,7 @@ class HabitRepository {
             ..category = map['category'] as String?
             ..goalType = map['goalType'] as String?
             ..numberDirection = map['numberDirection'] as String?
+            ..unit = map['unit'] as String?
             ..goalValue = (map['goalValue'] as num?)?.toDouble()
             ..startDate = _parseDate(map['startDate'])
             ..colorHex = map['colorHex'] as String?
@@ -157,6 +160,7 @@ class HabitRepository {
             categoryEn: m['categoryEn'] as String?,
             goalType: m['goalType'] as String? ?? 'completion',
             numberDirection: m['numberDirection'] as String?,
+            unit: m['unit'] as String?,
             goalValue: (m['goalValue'] as num?)?.toDouble(),
             colorHex: m['colorHex'] as String?,
             iconName: m['iconName'] as String?,
@@ -387,15 +391,18 @@ class HabitRepository {
     String? category,
     String goalType = 'completion',
     String numberDirection = 'gte',
+    String? unit,
     double? goalValue,
     required DateTime startDate,
     String? colorHex,
     String? iconName,
   }) async {
+    final normalizedUnit = _normalizeUnit(goalType: goalType, unit: unit);
     final body = <String, dynamic>{
       'name': name,
       'goalType': goalType,
       'numberDirection': numberDirection,
+      'unit': normalizedUnit,
       'startDate': _dateString(startDate),
     };
     if (category != null) body['category'] = category;
@@ -421,6 +428,7 @@ class HabitRepository {
     String? category,
     String? goalType,
     String? numberDirection,
+    String? unit,
     double? goalValue,
     String? colorHex,
     String? iconName,
@@ -430,6 +438,9 @@ class HabitRepository {
     if (category != null) body['category'] = category;
     if (goalType != null) body['goalType'] = goalType;
     if (numberDirection != null) body['numberDirection'] = numberDirection;
+    if (unit != null || goalType != null) {
+      body['unit'] = _normalizeUnit(goalType: goalType, unit: unit);
+    }
     if (goalValue != null) body['goalValue'] = goalValue;
     if (colorHex != null) body['colorHex'] = colorHex;
     if (iconName != null) body['iconName'] = iconName;
@@ -632,6 +643,16 @@ class HabitRepository {
   String _dateString(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
+  String? _normalizeUnit({String? goalType, String? unit}) {
+    final normalizedGoalType = (goalType ?? '').toLowerCase().trim();
+    if (normalizedGoalType == 'count' || normalizedGoalType == 'completion') {
+      return null;
+    }
+    final trimmed = unit?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    return trimmed;
+  }
+
   /// Today's numeric record value by habit id.
   Future<Map<String, double>> getTodayValueByHabit() async {
     final isar = await _isarFuture;
@@ -657,6 +678,7 @@ class HabitRepository {
     ..category = map['category'] as String?
     ..goalType = map['goalType'] as String?
     ..numberDirection = map['numberDirection'] as String?
+    ..unit = map['unit'] as String?
     ..goalValue = (map['goalValue'] as num?)?.toDouble()
     ..startDate = _parseDate(map['startDate'])
     ..colorHex = map['colorHex'] as String?

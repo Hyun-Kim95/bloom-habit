@@ -3,6 +3,7 @@ export type DefaultTemplateRow = {
   category: string;
   goalType: 'completion' | 'count' | 'duration' | 'number';
   numberDirection?: 'gte' | 'lte';
+  unit?: string;
   /** completion 이면 무시(null). 그 외 목표 수치(횟수·분·수치) */
   goalValue?: number | null;
   colorHex?: string;
@@ -78,14 +79,14 @@ export const DEFAULT_HABIT_TEMPLATES: ReadonlyArray<DefaultTemplateRow> = [
   { name: '침대 정리', category: '생활', goalType: 'completion', colorHex: 'EF4444', iconName: 'bedtime' },
   { name: '설거지하기', category: '생활', goalType: 'completion', colorHex: 'EF4444', iconName: 'volunteer_activism' },
   // 횟수
-  { name: '물 8잔 마시기', category: '건강', goalType: 'count', goalValue: 8, colorHex: '22C55E', iconName: 'local_drink' },
-  { name: '팔굽혀펴기', category: '운동', goalType: 'count', goalValue: 20, colorHex: '3B82F6', iconName: 'fitness_center' },
-  { name: '영단어 복습 카드', category: '학습', goalType: 'count', goalValue: 15, colorHex: '14B8A6', iconName: 'psychology' },
+  { name: '물 8잔 마시기', category: '건강', goalType: 'count', goalValue: 8, unit: '회', colorHex: '22C55E', iconName: 'local_drink' },
+  { name: '팔굽혀펴기', category: '운동', goalType: 'count', goalValue: 20, unit: '회', colorHex: '3B82F6', iconName: 'fitness_center' },
+  { name: '영단어 복습 카드', category: '학습', goalType: 'count', goalValue: 15, unit: '회', colorHex: '14B8A6', iconName: 'psychology' },
   // 시간(분)
-  { name: '집중 독서', category: '독서', goalType: 'duration', goalValue: 30, colorHex: '8B5CF6', iconName: 'menu_book' },
-  { name: '영어 팟캐스트 듣기', category: '학습', goalType: 'duration', goalValue: 15, colorHex: '14B8A6', iconName: 'work' },
-  { name: '유산소 운동', category: '운동', goalType: 'duration', goalValue: 20, colorHex: '3B82F6', iconName: 'fitness_center' },
+  { name: '집중 독서', category: '독서', goalType: 'duration', goalValue: 30, unit: '분', colorHex: '8B5CF6', iconName: 'menu_book' },
+  { name: '영어 팟캐스트 듣기', category: '학습', goalType: 'duration', goalValue: 15, unit: '분', colorHex: '14B8A6', iconName: 'work' },
+  { name: '유산소 운동', category: '운동', goalType: 'duration', goalValue: 20, unit: '분', colorHex: '3B82F6', iconName: 'fitness_center' },
   // 수치
-  { name: '하루 걸음 수', category: '건강', goalType: 'number', goalValue: 8000, colorHex: '22C55E', iconName: 'eco' },
-  { name: '공부·업무 집중 기록', category: '업무', goalType: 'number', goalValue: 1, colorHex: '6B7280', iconName: 'work' },
+  { name: '하루 걸음 수', category: '건강', goalType: 'number', goalValue: 8000, unit: '걸음', colorHex: '22C55E', iconName: 'eco' },
+  { name: '공부·업무 집중 기록', category: '업무', goalType: 'number', goalValue: 1, unit: '점', colorHex: '6B7280', iconName: 'work' },
 ];

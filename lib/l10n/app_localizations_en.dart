@@ -630,13 +630,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get habitTemplateOptional => 'Template (optional)';
 
   @override
-  String get goalCountHint => 'Target count (e.g. 3)';
+  String get goalCountHint => 'Completed count (e.g. 3)';
 
   @override
   String get goalDurationHint => 'Target minutes (e.g. 30)';
 
   @override
-  String get goalNumberHint => 'Target value';
+  String get goalNumberHint => 'Completed value';
 
   @override
   String get startDate => 'Start date';
@@ -737,7 +737,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editHabit => 'Edit habit';
 
   @override
-  String get goalValue => 'Goal value';
+  String get goalValue => 'Completed value';
 
   @override
   String get color => 'Color';

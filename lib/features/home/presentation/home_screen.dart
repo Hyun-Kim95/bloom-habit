@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-
 import '../../../core/feedback/habit_completion_feedback.dart';
+import '../../../core/timer/duration_timer_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
@@ -36,7 +36,9 @@ DateTime _heatmapMonthFromLinearIndex(int idx) {
   return DateTime(y, m, 1);
 }
 
-final int _kHeatmapEarliestLinearIdx = _linearHeatmapMonthIndex(DateTime(2020, 1, 1));
+final int _kHeatmapEarliestLinearIdx = _linearHeatmapMonthIndex(
+  DateTime(2020, 1, 1),
+);
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -51,11 +53,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   List<LocalHabit> _habits = [];
   Map<String, bool> _todayCompleted = {};
   Map<String, double> _todayValues = {};
+  final Set<String> _durationRunningHabits = <String>{};
+
   /// 히트맵 월별 완료 수 (선형 월 인덱스 → 날짜키 → 횟수).
   final Map<int, Map<String, int>> _heatmapCache = {};
   late final PageController _heatmapPageController;
+
   /// PageView와 동기화된 표시 중인 달 (1일).
-  DateTime _heatmapMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  DateTime _heatmapMonth = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    1,
+  );
   bool _loading = true;
   String? _error;
 
@@ -142,14 +151,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         });
         _prefetchAdjacentHeatmapMonths(curIdx);
         _rescheduleRemindersOnce(habits);
-        final completedCount = _completedCountForActiveHabits(habits, completed);
-        updateHomeWidget(todayCompleted: completedCount, totalHabits: habits.length);
+        final completedCount = _completedCountForActiveHabits(
+          habits,
+          completed,
+        );
+        updateHomeWidget(
+          todayCompleted: completedCount,
+          totalHabits: habits.length,
+        );
         await authRepo.registerFcmToken();
       }
     } catch (e) {
       if (mounted) {
         final msg = e.toString();
-        final isConnectionError = msg.contains('connection timeout') ||
+        final isConnectionError =
+            msg.contains('connection timeout') ||
             msg.contains('connection error') ||
             msg.contains('Connection refused') ||
             msg.contains('ConnectionTimeout') ||
@@ -174,7 +190,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _ensureHeatmapMonthLoaded(int linearIdx) async {
     if (_heatmapCache.containsKey(linearIdx)) return;
-    if (linearIdx < _kHeatmapEarliestLinearIdx || linearIdx > _heatmapMaxLinearIdx()) {
+    if (linearIdx < _kHeatmapEarliestLinearIdx ||
+        linearIdx > _heatmapMaxLinearIdx()) {
       return;
     }
     final m = _heatmapMonthFromLinearIndex(linearIdx);
@@ -196,7 +213,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _heatmapGoPrevPage() {
-    final p = _heatmapPageController.page?.round() ?? _heatmapPageController.initialPage;
+    final p =
+        _heatmapPageController.page?.round() ??
+        _heatmapPageController.initialPage;
     if (p <= 0) return;
     _heatmapPageController.animateToPage(
       p - 1,
@@ -208,7 +227,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _heatmapGoNextPage() {
     if (!_canGoNextHeatmap) return;
     final maxPage = _heatmapMaxLinearIdx() - _kHeatmapEarliestLinearIdx;
-    final p = _heatmapPageController.page?.round() ?? _heatmapPageController.initialPage;
+    final p =
+        _heatmapPageController.page?.round() ??
+        _heatmapPageController.initialPage;
     if (p >= maxPage) return;
     _heatmapPageController.animateToPage(
       p + 1,
@@ -228,12 +249,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final bg = isDark ? AppColors.backgroundDark : _DashboardColors.background;
     final primary = isDark ? AppColors.primaryDark : _DashboardColors.primary;
     final text = isDark ? AppColors.foregroundDark : _DashboardColors.text;
-    final textMuted = isDark ? AppColors.mutedForegroundDark : _DashboardColors.textMuted;
+    final textMuted = isDark
+        ? AppColors.mutedForegroundDark
+        : _DashboardColors.textMuted;
     final cardColor = isDark ? AppColors.cardDark : _DashboardColors.card;
     final border = isDark ? AppColors.borderDark : _DashboardColors.border;
-    final progressTrack = isDark ? AppColors.mutedDark : _DashboardColors.progressTrack;
+    final progressTrack = isDark
+        ? AppColors.mutedDark
+        : _DashboardColors.progressTrack;
     final iconBg = isDark ? AppColors.mutedDark : _DashboardColors.iconBg;
-    final completedTodayCount = _completedCountForActiveHabits(_habits, _todayCompleted);
+    final completedTodayCount = _completedCountForActiveHabits(
+      _habits,
+      _todayCompleted,
+    );
 
     return Scaffold(
       backgroundColor: bg,
@@ -246,63 +274,68 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 color: primary,
                 child: _loading
                     ? const Center(
-                        child: CircularProgressIndicator(color: AppColors.primary),
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
                       )
                     : _error != null
-                        ? _ErrorBody(error: _error!, onRetry: _load, l10n: l10n)
-                        : ListView(
-                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-                            children: [
-                              _TodayProgressCard(
-                                completedToday: completedTodayCount,
-                                totalHabits: _habits.length,
-                                l10n: l10n,
-                                cardColor: cardColor,
-                                border: border,
-                                primary: primary,
-                                text: text,
-                                textMuted: textMuted,
-                                progressTrack: progressTrack,
-                                iconBg: iconBg,
-                              ),
-                              const SizedBox(height: 24),
-                              _TodaySection(
-                                habits: _habits,
-                                todayCompleted: _todayCompleted,
-                                l10n: l10n,
-                                onAddNew: () => context.push(AppRoutes.habitCreate),
-                                onTapHabit: (h) => context.push(
-                                  '${AppRoutes.habitDetail}/${h.serverId}',
-                                  extra: h,
-                                ),
-                                onRecord: (h) => _recordHabit(h),
-                                todayValues: _todayValues,
-                                cardColor: cardColor,
-                                border: border,
-                                primary: primary,
-                                text: text,
-                                textMuted: textMuted,
-                                iconBg: iconBg,
-                              ),
-                              const SizedBox(height: 24),
-                              _HeatmapSection(
-                                pageController: _heatmapPageController,
-                                minLinearIdx: _kHeatmapEarliestLinearIdx,
-                                maxLinearIdx: _heatmapMaxLinearIdx(),
-                                cache: _heatmapCache,
-                                onPageChanged: _onHeatmapPageChanged,
-                                onPrevPage: _heatmapGoPrevPage,
-                                onNextPage: _canGoNextHeatmap ? _heatmapGoNextPage : null,
-                                l10n: l10n,
-                                cardColor: cardColor,
-                                border: border,
-                                primary: primary,
-                                text: text,
-                                textMuted: textMuted,
-                                progressTrack: progressTrack,
-                              ),
-                            ],
+                    ? _ErrorBody(error: _error!, onRetry: _load, l10n: l10n)
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+                        children: [
+                          _TodayProgressCard(
+                            completedToday: completedTodayCount,
+                            totalHabits: _habits.length,
+                            l10n: l10n,
+                            cardColor: cardColor,
+                            border: border,
+                            primary: primary,
+                            text: text,
+                            textMuted: textMuted,
+                            progressTrack: progressTrack,
+                            iconBg: iconBg,
                           ),
+                          const SizedBox(height: 24),
+                          _TodaySection(
+                            habits: _habits,
+                            todayCompleted: _todayCompleted,
+                            durationRunningHabits: _durationRunningHabits,
+                            l10n: l10n,
+                            onAddNew: () => context.push(AppRoutes.habitCreate),
+                            onTapHabit: (h) => context.push(
+                              '${AppRoutes.habitDetail}/${h.serverId}',
+                              extra: h,
+                            ),
+                            onRecord: (h) => _recordHabit(h),
+                            todayValues: _todayValues,
+                            cardColor: cardColor,
+                            border: border,
+                            primary: primary,
+                            text: text,
+                            textMuted: textMuted,
+                            iconBg: iconBg,
+                          ),
+                          const SizedBox(height: 24),
+                          _HeatmapSection(
+                            pageController: _heatmapPageController,
+                            minLinearIdx: _kHeatmapEarliestLinearIdx,
+                            maxLinearIdx: _heatmapMaxLinearIdx(),
+                            cache: _heatmapCache,
+                            onPageChanged: _onHeatmapPageChanged,
+                            onPrevPage: _heatmapGoPrevPage,
+                            onNextPage: _canGoNextHeatmap
+                                ? _heatmapGoNextPage
+                                : null,
+                            l10n: l10n,
+                            cardColor: cardColor,
+                            border: border,
+                            primary: primary,
+                            text: text,
+                            textMuted: textMuted,
+                            progressTrack: progressTrack,
+                          ),
+                        ],
+                      ),
               ),
             ),
           ],
@@ -328,6 +361,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final repo = ref.read(habitRepositoryProvider);
       if (goalType == 'completion') {
         await repo.recordToday(sid, completed: true);
+      } else if (goalType == 'duration') {
+        if (_durationRunningHabits.contains(sid)) {
+          if (mounted) {
+            setState(() {
+              _durationRunningHabits.remove(sid);
+            });
+          }
+          try {
+            final elapsedMs = await DurationTimerService.stop();
+            final minutes = ((elapsedMs ?? 0) / 60000.0);
+            if (minutes > 0) {
+              await repo.recordToday(sid, value: minutes);
+            }
+          } catch (_) {
+            if (mounted) {
+              setState(() {
+                _durationRunningHabits.add(sid);
+              });
+            }
+            rethrow;
+          }
+        } else {
+          await DurationTimerService.start(habitName: h.name ?? 'Habit');
+          if (mounted) {
+            setState(() {
+              _durationRunningHabits.add(sid);
+            });
+          }
+          return;
+        }
       } else {
         final input = await _askRecordValue(goalType);
         if (input == null) return;
@@ -355,23 +418,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return showDialog<double>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(goalType == 'duration' ? l10n.goalDurationHint : l10n.goalValue),
+        title: Text(goalType == 'count' ? '완료 횟수' : '완료값'),
         content: TextField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
             hintText: goalType == 'count'
-                ? l10n.goalCountHint
+                ? '기본 1'
                 : goalType == 'duration'
-                    ? l10n.goalDurationHint
-                    : l10n.goalNumberHint,
+                ? l10n.goalDurationHint
+                : l10n.goalNumberHint,
           ),
+          onSubmitted: (_) {},
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
           FilledButton(
             onPressed: () {
-              final n = double.tryParse(controller.text.trim());
+              final raw = controller.text.trim();
+              final n = double.tryParse(raw.isEmpty ? '1' : raw);
               if (n == null || n <= 0) return;
               Navigator.pop(ctx, n);
             },
@@ -381,7 +449,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
-
 }
 
 class _TodayProgressCard extends StatelessWidget {
@@ -434,7 +501,11 @@ class _TodayProgressCard extends StatelessWidget {
                   color: iconBg,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.local_florist_outlined, size: 32, color: primary),
+                child: Icon(
+                  Icons.local_florist_outlined,
+                  size: 32,
+                  color: primary,
+                ),
               ),
               const SizedBox(width: 20),
               Expanded(
@@ -453,10 +524,7 @@ class _TodayProgressCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       l10n.todayProgressDescription,
-                      style: GoogleFonts.dmSans(
-                        fontSize: 14,
-                        color: textMuted,
-                      ),
+                      style: GoogleFonts.dmSans(fontSize: 14, color: textMuted),
                     ),
                   ],
                 ),
@@ -514,6 +582,7 @@ class _TodaySection extends StatelessWidget {
   const _TodaySection({
     required this.habits,
     required this.todayCompleted,
+    required this.durationRunningHabits,
     required this.todayValues,
     required this.l10n,
     required this.onAddNew,
@@ -529,6 +598,7 @@ class _TodaySection extends StatelessWidget {
 
   final List<LocalHabit> habits;
   final Map<String, bool> todayCompleted;
+  final Set<String> durationRunningHabits;
   final Map<String, double> todayValues;
   final AppLocalizations l10n;
   final VoidCallback onAddNew;
@@ -595,6 +665,9 @@ class _TodaySection extends StatelessWidget {
               onTap: () => onTapHabit(h),
               onRecord: () => onRecord(h),
               todayValue: todayValues[h.serverId],
+              durationRunning:
+                  h.serverId != null &&
+                  durationRunningHabits.contains(h.serverId),
               cardColor: cardColor,
               border: border,
               primary: primary,
@@ -615,6 +688,7 @@ class _DashboardHabitCard extends StatelessWidget {
     required this.onTap,
     required this.onRecord,
     this.todayValue,
+    this.durationRunning = false,
     required this.cardColor,
     required this.border,
     required this.primary,
@@ -628,6 +702,7 @@ class _DashboardHabitCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onRecord;
   final double? todayValue;
+  final bool durationRunning;
   final Color cardColor;
   final Color border;
   final Color primary;
@@ -660,7 +735,10 @@ class _DashboardHabitCard extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: habitColorFromHex(habit.colorHex, fallback: iconBg).withValues(alpha: 0.25),
+                    color: habitColorFromHex(
+                      habit.colorHex,
+                      fallback: iconBg,
+                    ).withValues(alpha: 0.25),
                     borderRadius: BorderRadius.circular(AppTheme.radius),
                   ),
                   alignment: Alignment.center,
@@ -683,7 +761,8 @@ class _DashboardHabitCard extends StatelessWidget {
                           color: text,
                         ),
                       ),
-                      if (habit.category != null && habit.category!.isNotEmpty) ...[
+                      if (habit.category != null &&
+                          habit.category!.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(
                           habit.category!,
@@ -697,7 +776,10 @@ class _DashboardHabitCard extends StatelessWidget {
                           habit.goalValue != null) ...[
                         const SizedBox(height: 4),
                         Text(
-                          '${(todayValue ?? 0).toStringAsFixed(0)} / ${habit.goalValue!.toStringAsFixed(0)}',
+                          '${(todayValue ?? 0).toStringAsFixed(0)}'
+                          '${(habit.goalType ?? 'completion').toLowerCase().trim() == 'count' ? '회' : (habit.unit != null ? ' ${habit.unit}' : '')}'
+                          ' / ${habit.goalValue!.toStringAsFixed(0)}'
+                          '${(habit.goalType ?? 'completion').toLowerCase().trim() == 'count' ? '회' : (habit.unit != null ? ' ${habit.unit}' : '')}',
                           style: GoogleFonts.dmSans(
                             fontSize: 12,
                             color: textMuted,
@@ -714,7 +796,17 @@ class _DashboardHabitCard extends StatelessWidget {
                     padding: const EdgeInsets.all(4),
                     child: completed
                         ? Icon(Icons.check_circle, size: 32, color: primary)
-                        : Icon(Icons.check_circle_outline, size: 32, color: border),
+                        : (habit.goalType == 'duration' && durationRunning)
+                        ? Icon(
+                            Icons.pause_circle_filled,
+                            size: 32,
+                            color: primary,
+                          )
+                        : Icon(
+                            Icons.check_circle_outline,
+                            size: 32,
+                            color: border,
+                          ),
                   ),
                 ),
               ],
@@ -894,7 +986,10 @@ class _HeatmapSection extends StatelessWidget {
         const SizedBox(height: 16),
         LayoutBuilder(
           builder: (context, constraints) {
-            final innerW = (constraints.maxWidth - 40).clamp(0.0, double.infinity);
+            final innerW = (constraints.maxWidth - 40).clamp(
+              0.0,
+              double.infinity,
+            );
             final pageH = _pageHeightForInnerWidth(innerW);
             return SizedBox(
               height: pageH,
@@ -904,7 +999,9 @@ class _HeatmapSection extends StatelessWidget {
                 onPageChanged: onPageChanged,
                 itemBuilder: (context, page) {
                   final linearIdx = minLinearIdx + page;
-                  final displayMonthStart = _heatmapMonthFromLinearIndex(linearIdx);
+                  final displayMonthStart = _heatmapMonthFromLinearIndex(
+                    linearIdx,
+                  );
                   final y = displayMonthStart.year;
                   final m = displayMonthStart.month;
                   final completedCounts = cache[linearIdx];
@@ -945,7 +1042,9 @@ class _HeatmapSection extends StatelessWidget {
                               icon: const Icon(Icons.chevron_left),
                               color: page > 0 ? primary : textMuted,
                               style: IconButton.styleFrom(
-                                backgroundColor: primary.withValues(alpha: page > 0 ? 0.12 : 0.04),
+                                backgroundColor: primary.withValues(
+                                  alpha: page > 0 ? 0.12 : 0.04,
+                                ),
                               ),
                             ),
                             Expanded(
@@ -960,12 +1059,20 @@ class _HeatmapSection extends StatelessWidget {
                               ),
                             ),
                             IconButton(
-                              onPressed: onNextPage != null && page < itemCount - 1 ? onNextPage : null,
+                              onPressed:
+                                  onNextPage != null && page < itemCount - 1
+                                  ? onNextPage
+                                  : null,
                               icon: const Icon(Icons.chevron_right),
-                              color: onNextPage != null && page < itemCount - 1 ? primary : textMuted,
+                              color: onNextPage != null && page < itemCount - 1
+                                  ? primary
+                                  : textMuted,
                               style: IconButton.styleFrom(
                                 backgroundColor: primary.withValues(
-                                  alpha: onNextPage != null && page < itemCount - 1 ? 0.12 : 0.04,
+                                  alpha:
+                                      onNextPage != null && page < itemCount - 1
+                                      ? 0.12
+                                      : 0.04,
                                 ),
                               ),
                             ),
@@ -1006,12 +1113,13 @@ class _HeatmapSection extends StatelessWidget {
                           Expanded(
                             child: GridView.builder(
                               physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 7,
-                                mainAxisSpacing: 6,
-                                crossAxisSpacing: 6,
-                                childAspectRatio: 1,
-                              ),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 7,
+                                    mainAxisSpacing: 6,
+                                    crossAxisSpacing: 6,
+                                    childAspectRatio: 1,
+                                  ),
                               itemCount: paddedCells,
                               itemBuilder: (context, i) {
                                 if (i < leading || i >= leading + daysInMonth) {
@@ -1019,8 +1127,13 @@ class _HeatmapSection extends StatelessWidget {
                                 }
                                 final dayNum = i - leading + 1;
                                 final d = DateTime(y, m, dayNum);
-                                final isFuture = _isFutureCalendarDay(d, todayCal);
-                                final count = isFuture ? 0 : (completedCounts[_dateKey(d)] ?? 0);
+                                final isFuture = _isFutureCalendarDay(
+                                  d,
+                                  todayCal,
+                                );
+                                final count = isFuture
+                                    ? 0
+                                    : (completedCounts[_dateKey(d)] ?? 0);
                                 final cellColor = isFuture
                                     ? progressTrack.withValues(alpha: 0.45)
                                     : _colorForCount(count, maxCount);
@@ -1106,7 +1219,11 @@ class _HeatmapSection extends StatelessWidget {
 }
 
 class _ErrorBody extends StatelessWidget {
-  const _ErrorBody({required this.error, required this.onRetry, required this.l10n});
+  const _ErrorBody({
+    required this.error,
+    required this.onRetry,
+    required this.l10n,
+  });
 
   final String error;
   final VoidCallback onRetry;
@@ -1129,10 +1246,7 @@ class _ErrorBody extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: onRetry,
-              child: Text(l10n.retry),
-            ),
+            FilledButton(onPressed: onRetry, child: Text(l10n.retry)),
           ],
         ),
       ),

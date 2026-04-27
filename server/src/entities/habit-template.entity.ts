@@ -31,6 +31,9 @@ export class HabitTemplate {
   @Column({ default: 'gte' })
   numberDirection: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  unit: string | null;
+
   @Column({ type: 'double precision', nullable: true })
   goalValue: number | null;
 
