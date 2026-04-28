@@ -125,6 +125,8 @@
       }
     }
   },
+  "inquiryDeleteConfirm": "Delete this inquiry?",
+  "inquiryDeleteRetentionNotice": "Deleted inquiries are kept on the server for up to one year (365 days), then permanently removed. Legal retention periods may apply separately.",
   "noContent": "(No content)",
   "untitled": "(Untitled)",
   "noNotices": "No announcements available."

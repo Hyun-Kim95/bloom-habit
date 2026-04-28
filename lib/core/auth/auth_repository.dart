@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:dio/dio.dart';
@@ -78,6 +79,7 @@ class AuthRepository {
   final ApiClient _api;
   final TokenStorage _storage;
   final GoogleSignIn _googleSignIn;
+  StreamSubscription<String>? _fcmTokenRefreshSub;
 
   /// Google login: fetch ID token and exchange for app token.
   Future<AuthResult> signInWithGoogle() async {
@@ -284,13 +286,16 @@ class AuthRepository {
     required int fileSize,
     String? contentType,
   }) async {
+    final presignBody = <String, dynamic>{
+      'fileName': fileName,
+      'fileSize': fileSize,
+    };
+    if (contentType != null) {
+      presignBody['contentType'] = contentType;
+    }
     final res = await _api.dio.post<Map<String, dynamic>>(
       ApiEndpoints.meAvatarPresign,
-      data: {
-        'fileName': fileName,
-        'fileSize': fileSize,
-        if (contentType != null) 'contentType': contentType,
-      },
+      data: presignBody,
     );
     final data = res.data ?? const <String, dynamic>{};
     final uploadUrl = _resolveApiUrl(data['uploadUrl']?.toString() ?? '');
@@ -391,6 +396,30 @@ class AuthRepository {
     } catch (_) {
       return true;
     }
+  }
+
+  /// Subscribe to FCM token rotation and PATCH `/me` when logged in.
+  void attachFcmTokenRefreshListener() {
+    _fcmTokenRefreshSub?.cancel();
+    _fcmTokenRefreshSub = FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+      final t = newToken.trim();
+      if (t.isEmpty) return;
+      try {
+        await _api.dio.patch<Map<String, dynamic>>(
+          ApiEndpoints.me,
+          data: {'fcmToken': t},
+        );
+        debugPrint(
+          'FCM token refreshed on server: ${t.length >= 6 ? t.substring(0, 6) : t}',
+        );
+      } on DioException catch (e) {
+        final code = e.response?.statusCode ?? 0;
+        if (code == 401 || code == 403) return;
+        debugPrint('[AuthRepository] FCM token refresh PATCH failed: $e');
+      } catch (e) {
+        debugPrint('[AuthRepository] FCM token refresh failed: $e');
+      }
+    });
   }
 
   /// Register FCM token for push notifications.

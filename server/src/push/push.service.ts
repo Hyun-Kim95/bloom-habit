@@ -63,7 +63,20 @@ export class PushService {
         token: user.fcmToken,
         notification: { title, body },
         data: { type: 'inquiry_reply', subject: inquirySubject },
-        android: { priority: 'high' as const },
+        android: {
+          priority: 'high' as const,
+          notification: {
+            // Must match Flutter [NotificationService] channel id for local/FCM display.
+            channelId: 'bloom_habit_inquiry_reply',
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: 'default',
+            },
+          },
+        },
       });
     } catch (e: unknown) {
       // eslint-disable-next-line no-console

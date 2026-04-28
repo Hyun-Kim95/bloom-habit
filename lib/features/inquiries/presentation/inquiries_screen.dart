@@ -47,15 +47,19 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
     try {
       final repo = ref.read(inquiryRepositoryProvider);
       final list = await repo.getMyInquiries();
-      if (mounted) setState(() {
-        _list = list;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _list = list;
+          _loading = false;
+        });
+      }
     } catch (e) {
-      if (mounted) setState(() {
-        _loading = false;
-        _error = e.toString().split('\n').first;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = e.toString().split('\n').first;
+        });
+      }
     }
   }
 
@@ -88,10 +92,12 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
         );
       }
     } catch (e) {
-      if (mounted) setState(() {
-        _submitting = false;
-        _error = e.toString().split('\n').first;
-      });
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+          _error = e.toString().split('\n').first;
+        });
+      }
     }
   }
 
@@ -189,15 +195,22 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
 
   Future<void> _deleteInquiry(InquiryItem item) async {
     final l10n = AppLocalizations.of(context)!;
-    final lang = Localizations.localeOf(context).languageCode.toLowerCase();
-    final confirmText = lang.startsWith('en')
-        ? 'Delete this inquiry?'
-        : '문의를 삭제하시겠어요?';
     final ok = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
             title: Text(l10n.inquiry),
-            content: Text(confirmText),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.inquiryDeleteConfirm),
+                const SizedBox(height: 12),
+                Text(
+                  l10n.inquiryDeleteRetentionNotice,
+                  style: Theme.of(ctx).textTheme.bodySmall,
+                ),
+              ],
+            ),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
               FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.delete)),
@@ -454,42 +467,30 @@ class _InquiryCard extends StatelessWidget {
                           item.adminReply!,
                           style: GoogleFonts.dmSans(fontSize: 14, color: fg, height: 1.4),
                         ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            if (onEdit != null)
-                              TextButton(onPressed: onEdit, child: Text(l10n.edit)),
-                            const SizedBox(width: 8),
-                            TextButton(
-                              onPressed: onDelete,
-                              child: Text(
-                                l10n.delete,
-                                style: GoogleFonts.dmSans(color: AppColors.destructive),
-                              ),
-                            ),
-                          ],
-                        ),
                       ],
                     ),
                   ),
                 ],
-                if (item.adminReply == null || item.adminReply!.isEmpty)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (onEdit != null) TextButton(onPressed: onEdit, child: Text(l10n.edit)),
-                        TextButton(
-                          onPressed: onDelete,
-                          child: Text(
-                            l10n.delete,
-                            style: GoogleFonts.dmSans(color: AppColors.destructive),
-                          ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    alignment: WrapAlignment.end,
+                    children: [
+                      if (onEdit != null)
+                        TextButton(onPressed: onEdit, child: Text(l10n.edit)),
+                      TextButton(
+                        onPressed: onDelete,
+                        child: Text(
+                          l10n.delete,
+                          style: GoogleFonts.dmSans(color: AppColors.destructive),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                ),
               ],
             ),
           ),

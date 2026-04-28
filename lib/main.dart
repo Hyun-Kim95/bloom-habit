@@ -61,6 +61,7 @@ class _BloomHabitAppState extends ConsumerState<BloomHabitApp> {
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(monetizationProvider.notifier).bootstrap();
+      ref.read(authRepositoryProvider).attachFcmTokenRefreshListener();
     });
   }
 

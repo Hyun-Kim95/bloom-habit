@@ -302,6 +302,13 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get inquiryDeleteConfirm => '문의를 삭제하시겠어요?';
+
+  @override
+  String get inquiryDeleteRetentionNotice =>
+      '삭제한 문의는 서버에 최대 1년(365일)간 보관된 뒤 복구 없이 삭제됩니다. 법령에 따라 보관이 필요한 경우 별도 기간이 적용될 수 있습니다.';
+
+  @override
   String get noContent => '(내용 없음)';
 
   @override

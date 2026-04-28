@@ -869,21 +869,23 @@ export default function HabitTemplates() {
                     '-'
                   )}
                 </td>
-                <td className="p-3 text-right space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => startEdit(row)}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    {t('common.edit')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => remove(row.id)}
-                    className="text-destructive hover:underline"
-                  >
-                    {t('common.delete')}
-                  </button>
+                <td className="p-3 text-right">
+                  <div className="inline-flex flex-wrap justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(row)}
+                      className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground hover:bg-accent"
+                    >
+                      {t('common.edit')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => remove(row.id)}
+                      className="rounded-md border border-destructive px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
+                    >
+                      {t('common.delete')}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

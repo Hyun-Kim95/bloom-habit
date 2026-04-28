@@ -376,18 +376,18 @@ export default function Notices() {
                 {displayNoticeBody(n, lang)}
               </p>
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex flex-wrap gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => startEdit(n)}
-                className="text-muted-foreground hover:text-foreground text-sm"
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground hover:bg-accent"
               >
                 {t('common.edit')}
               </button>
               <button
                 type="button"
                 onClick={() => remove(n.id)}
-                className="text-destructive hover:underline text-sm"
+                className="rounded-md border border-destructive px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
               >
                 {t('common.delete')}
               </button>

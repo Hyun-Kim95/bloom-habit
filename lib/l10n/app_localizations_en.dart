@@ -308,6 +308,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get inquiryDeleteConfirm => 'Delete this inquiry?';
+
+  @override
+  String get inquiryDeleteRetentionNotice =>
+      'Deleted inquiries are kept on the server for up to one year (365 days), then permanently removed. Legal retention periods may apply separately.';
+
+  @override
   String get noContent => '(No content)';
 
   @override

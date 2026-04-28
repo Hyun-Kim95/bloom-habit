@@ -662,6 +662,18 @@ abstract class AppLocalizations {
   /// **'답변 시간: {date}'**
   String replyTime(String date);
 
+  /// No description provided for @inquiryDeleteConfirm.
+  ///
+  /// In ko, this message translates to:
+  /// **'문의를 삭제하시겠어요?'**
+  String get inquiryDeleteConfirm;
+
+  /// No description provided for @inquiryDeleteRetentionNotice.
+  ///
+  /// In ko, this message translates to:
+  /// **'삭제한 문의는 서버에 최대 1년(365일)간 보관된 뒤 복구 없이 삭제됩니다. 법령에 따라 보관이 필요한 경우 별도 기간이 적용될 수 있습니다.'**
+  String get inquiryDeleteRetentionNotice;
+
   /// No description provided for @noContent.
   ///
   /// In ko, this message translates to:
