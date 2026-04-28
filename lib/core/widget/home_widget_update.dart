@@ -14,7 +14,7 @@ Future<void> updateHomeWidget({
     await HomeWidget.saveWidgetData<int>('total_habits', totalHabits);
     await HomeWidget.updateWidget(
       qualifiedAndroidName: Platform.isAndroid
-          ? 'com.example.bloom_habit.glance.BloomHabitWidgetProvider'
+          ? 'com.khyun.bloom_habit.glance.BloomHabitWidgetProvider'
           : null,
       androidName: 'BloomHabitWidgetProvider',
       iOSName: 'BloomHabitWidget',

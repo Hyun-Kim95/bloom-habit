@@ -7,7 +7,7 @@ if (-not (Test-Path $keystore)) {
     exit 1
 }
 
-Write-Host "Package name: com.example.bloom_habit" -ForegroundColor Cyan
+Write-Host "Package name: com.khyun.bloom_habit" -ForegroundColor Cyan
 Write-Host "SHA-1 (copy to Google Cloud Console):" -ForegroundColor Cyan
 $out = keytool -list -v -keystore $keystore -alias androiddebugkey -storepass android -keypass android 2>$null
 $sha1 = ($out | Select-String "^\s+SHA1:\s+(.+)").Matches.Groups[1].Value

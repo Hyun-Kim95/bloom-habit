@@ -188,14 +188,14 @@ export default function Inquiries() {
                     {t('inquiries.lastReply', { date: formatDate(selected.repliedAt) })}
                   </p>
                 )}
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="self-start px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {saving ? t('inquiries.saving') : t('inquiries.save')}
-                </button>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 items-center">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {saving ? t('inquiries.saving') : t('inquiries.save')}
+                  </button>
                   <button
                     type="button"
                     disabled={saving || deleting || !selected.adminReply}

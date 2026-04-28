@@ -1,4 +1,4 @@
-package com.example.bloom_habit
+package com.khyun.bloom_habit
 
 import android.content.Intent
 import android.content.SharedPreferences
@@ -6,7 +6,7 @@ import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import androidx.core.content.ContextCompat
-import com.example.bloom_habit.BuildConfig
+import com.khyun.bloom_habit.BuildConfig
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel

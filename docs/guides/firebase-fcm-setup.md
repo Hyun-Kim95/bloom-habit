@@ -12,7 +12,7 @@ Firebase 프로젝트를 생성한 후, 아래 순서대로 진행하세요.
 2. **프로젝트 개요** 옆 톱니바퀴 → **프로젝트 설정**
 3. **일반** 탭에서 **앱** 섹션 → **Android 앱** 아이콘(로봇) 클릭
 4. **Android 패키지 이름** 입력  
-   - 이 프로젝트: `com.example.bloom_habit` (또는 `android/app/build.gradle.kts`의 `applicationId`와 동일하게)
+   - 이 프로젝트: `com.khyun.bloom_habit` (또는 `android/app/build.gradle.kts`의 `applicationId`와 동일하게)
 5. **앱 등록** 클릭
 6. **google-services.json** 다운로드 버튼 클릭 → 파일 저장
 
@@ -37,7 +37,7 @@ Firebase 프로젝트를 생성한 후, 아래 순서대로 진행하세요.
 iOS도 푸시를 쓰려면:
 
 1. Firebase Console **프로젝트 설정** → **iOS 앱** 추가
-2. **번들 ID** 입력 (Xcode에서 확인, 예: `com.example.bloomHabit`)
+2. **번들 ID** 입력 (Xcode에서 확인, 예: `com.khyun.bloomHabit`)
 3. **GoogleService-Info.plist** 다운로드
 4. Flutter 프로젝트에서:
    ```
@@ -119,6 +119,7 @@ iOS도 푸시를 쓰려면:
 |------|------------|
 | 앱 실행 시 Firebase 관련 에러 | `android/app/google-services.json` 존재 여부, 패키지명/번들ID가 Firebase에 등록한 것과 같은지 |
 | 푸시가 안 옴 | 1) 서버 `.env`에 FIREBASE_SERVICE_ACCOUNT_PATH 또는 JSON 설정했는지 2) 한 번 로그인 후 홈까지 들어와서 토큰이 등록됐는지 3) 관리자에서 **답변 내용을 입력하고 저장**했는지 |
+| **문의 답변** 푸시만 안 옴 | 답변 **내용이 이전과 달라져야** 전송됨(동일 문구 재저장은 스킵). 서버 로그에 `inquiry_reply skipped: missing fcm token` / `firebase not initialized` / `send failed` 있는지 확인. 앱·서버가 **동일 Firebase 프로젝트**인지, iOS는 **APNs** 등록 여부 확인. |
 | 에뮬레이터에서 푸시 안 옴 | Google Play 서비스 있는 에뮬레이터 사용 또는 실제 기기에서 테스트 |
 
 ---

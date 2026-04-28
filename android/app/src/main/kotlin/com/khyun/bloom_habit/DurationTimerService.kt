@@ -1,4 +1,4 @@
-package com.example.bloom_habit
+package com.khyun.bloom_habit
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -108,4 +108,3 @@ class DurationTimerService : Service() {
         manager.createNotificationChannel(channel)
     }
 }
-

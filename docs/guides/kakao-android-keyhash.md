@@ -8,7 +8,7 @@
 ## 등록 위치
 
 1. [카카오 개발자 콘솔](https://developers.kakao.com/console/app) → 내 앱 → **앱 설정** → **플랫폼**
-2. **Android** 플랫폼에 패키지명이 `com.example.bloom_habit`(또는 실제 `applicationId`)로 등록돼 있는지 확인
+2. **Android** 플랫폼에 패키지명이 `com.khyun.bloom_habit`(또는 실제 `applicationId`)로 등록돼 있는지 확인
 3. 같은 화면의 **키 해시**에 아래에서 구한 값을 **추가** 후 저장
 
 ## 디버그 빌드 키 해시 구하기 (Windows / 기본 debug.keystore)

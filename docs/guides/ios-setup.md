@@ -2,7 +2,7 @@
 
 ## 1. Bundle ID (번들 ID)
 
-- **현재 값**: `com.example.bloomHabit`
+- **현재 값**: `com.khyun.bloomHabit`
 - **위치**: Xcode에서 **Runner** 타깃 → **General** → **Bundle Identifier**
 - **또는**: `ios/Runner.xcodeproj/project.pbxproj` 에서 `PRODUCT_BUNDLE_IDENTIFIER` 검색 후 수정
 - **변경 시**: 나중에 배포할 때 Apple Developer / App Store Connect에 등록하는 Bundle ID와 동일해야 합니다. 테스트만 할 때는 그대로 둬도 됩니다.
@@ -38,7 +38,7 @@
 
 | 항목        | 현재/설정 방법                    |
 |------------|-----------------------------------|
-| Bundle ID  | `com.example.bloomHabit` (필요 시 수정) |
+| Bundle ID  | `com.khyun.bloomHabit` (필요 시 수정) |
 | Team ID    | Apple Developer → Membership에서 확인 후 Xcode **Signing & Capabilities** → Team 에서 선택 |
 | App Store ID | 앱 출시 전이면 비워 두거나 0        |
 

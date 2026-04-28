@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react'
+import DatePicker, { registerLocale } from 'react-datepicker'
+import { ko } from 'date-fns/locale'
+import 'react-datepicker/dist/react-datepicker.css'
 import { api } from '../api'
 import { useI18n } from '../i18n/I18nContext'
 import { displayNoticeBody, displayNoticeTitle } from '../i18n/dataDisplay'
+
+registerLocale('ko', ko)
 
 type Notice = {
   id: string
@@ -16,6 +21,79 @@ type Notice = {
   displayEndAt?: string
 }
 
+function YesNoRadios(props: {
+  legend: string
+  name: string
+  value: boolean
+  onChange: (v: boolean) => void
+  legendClass: string
+}) {
+  const { legend, name, value, onChange, legendClass } = props
+  return (
+    <fieldset>
+      <legend className={legendClass}>{legend}</legend>
+      <div className="mt-2 flex flex-wrap gap-6">
+        <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+          <input type="radio" name={name} checked={value} onChange={() => onChange(true)} />
+          예
+        </label>
+        <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+          <input type="radio" name={name} checked={!value} onChange={() => onChange(false)} />
+          아니오
+        </label>
+      </div>
+    </fieldset>
+  )
+}
+
+function NoticeDatePickers(props: {
+  startLabel: string
+  endLabel: string
+  start: Date | null
+  end: Date | null
+  onStartChange: (d: Date | null) => void
+  onEndChange: (d: Date | null) => void
+  labelClass: string
+}) {
+  const { startLabel, endLabel, start, end, onStartChange, onEndChange, labelClass } = props
+  const inputClass =
+    'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground'
+  return (
+    <>
+      <div>
+        <label className={`block ${labelClass}`}>{startLabel}</label>
+        <DatePicker
+          selected={start}
+          onChange={(d: Date | null) => onStartChange(d)}
+          showTimeSelect
+          timeIntervals={15}
+          dateFormat="yyyy-MM-dd HH:mm"
+          locale="ko"
+          isClearable
+          placeholderText="선택 안 함"
+          className={`mt-1 ${inputClass}`}
+          wrapperClassName="mt-1 block w-full"
+        />
+      </div>
+      <div>
+        <label className={`block ${labelClass}`}>{endLabel}</label>
+        <DatePicker
+          selected={end}
+          onChange={(d: Date | null) => onEndChange(d)}
+          showTimeSelect
+          timeIntervals={15}
+          dateFormat="yyyy-MM-dd HH:mm"
+          locale="ko"
+          isClearable
+          placeholderText="선택 안 함"
+          className={`mt-1 ${inputClass}`}
+          wrapperClassName="mt-1 block w-full"
+        />
+      </div>
+    </>
+  )
+}
+
 export default function Notices() {
   const { t, lang } = useI18n()
   const [list, setList] = useState<Notice[]>([])
@@ -27,8 +105,8 @@ export default function Notices() {
   const [loading, setLoading] = useState(false)
   const [isNotice, setIsNotice] = useState(true)
   const [isPublic, setIsPublic] = useState(true)
-  const [displayStartAt, setDisplayStartAt] = useState('')
-  const [displayEndAt, setDisplayEndAt] = useState('')
+  const [displayStartAt, setDisplayStartAt] = useState<Date | null>(null)
+  const [displayEndAt, setDisplayEndAt] = useState<Date | null>(null)
   const [editing, setEditing] = useState<Notice | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [editBody, setEditBody] = useState('')
@@ -37,8 +115,8 @@ export default function Notices() {
   const [editSaving, setEditSaving] = useState(false)
   const [editIsNotice, setEditIsNotice] = useState(true)
   const [editIsPublic, setEditIsPublic] = useState(false)
-  const [editDisplayStartAt, setEditDisplayStartAt] = useState('')
-  const [editDisplayEndAt, setEditDisplayEndAt] = useState('')
+  const [editDisplayStartAt, setEditDisplayStartAt] = useState<Date | null>(null)
+  const [editDisplayEndAt, setEditDisplayEndAt] = useState<Date | null>(null)
 
   const load = () => api.getNotices().then(setList).catch((e) => setError(e.message))
 
@@ -58,8 +136,8 @@ export default function Notices() {
         bodyEn: bodyEn.trim() || undefined,
         isNotice,
         isPublic,
-        displayStartAt: displayStartAt || undefined,
-        displayEndAt: displayEndAt || undefined,
+        displayStartAt: displayStartAt ? displayStartAt.toISOString() : undefined,
+        displayEndAt: displayEndAt ? displayEndAt.toISOString() : undefined,
       })
       setTitle('')
       setBody('')
@@ -67,8 +145,8 @@ export default function Notices() {
       setBodyEn('')
       setIsNotice(true)
       setIsPublic(true)
-      setDisplayStartAt('')
-      setDisplayEndAt('')
+      setDisplayStartAt(null)
+      setDisplayEndAt(null)
       load()
     } catch (e) {
       setError(e instanceof Error ? e.message : t('notices.createFail'))
@@ -85,8 +163,8 @@ export default function Notices() {
     setEditBodyEn(n.bodyEn ?? '')
     setEditIsNotice(n.isNotice ?? true)
     setEditIsPublic(n.isPublic ?? false)
-    setEditDisplayStartAt(n.displayStartAt ? n.displayStartAt.slice(0, 16) : '')
-    setEditDisplayEndAt(n.displayEndAt ? n.displayEndAt.slice(0, 16) : '')
+    setEditDisplayStartAt(n.displayStartAt ? new Date(n.displayStartAt) : null)
+    setEditDisplayEndAt(n.displayEndAt ? new Date(n.displayEndAt) : null)
   }
 
   const saveEdit = async (e: React.FormEvent) => {
@@ -101,8 +179,8 @@ export default function Notices() {
         bodyEn: editBodyEn.trim(),
         isNotice: editIsNotice,
         isPublic: editIsPublic,
-        displayStartAt: editDisplayStartAt || null,
-        displayEndAt: editDisplayEndAt || null,
+        displayStartAt: editDisplayStartAt ? editDisplayStartAt.toISOString() : null,
+        displayEndAt: editDisplayEndAt ? editDisplayEndAt.toISOString() : null,
       })
       setEditing(null)
       load()
@@ -125,6 +203,9 @@ export default function Notices() {
 
   if (error && list.length === 0) return <p className="text-destructive">{error}</p>
 
+  const legendCreate = 'block text-sm font-medium text-foreground'
+  const legendEdit = 'block text-xs text-muted-foreground'
+
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold text-foreground">{t('notices.title')}</h2>
@@ -141,60 +222,20 @@ export default function Notices() {
           />
         </div>
         <div>
+          <label className="block text-sm font-medium text-foreground">{t('notices.titleEn')}</label>
+          <input
+            value={titleEn}
+            onChange={(e) => setTitleEn(e.target.value)}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
+          />
+        </div>
+        <div>
           <label className="block text-sm font-medium text-foreground">{t('notices.body')}</label>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
             rows={3}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-foreground">공지여부</label>
-          <select
-            value={isNotice ? 'Y' : 'N'}
-            onChange={(e) => setIsNotice(e.target.value === 'Y')}
-            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
-          >
-            <option value="Y">Y</option>
-            <option value="N">N</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-foreground">공개여부</label>
-          <select
-            value={isPublic ? 'Y' : 'N'}
-            onChange={(e) => setIsPublic(e.target.value === 'Y')}
-            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
-          >
-            <option value="Y">Y</option>
-            <option value="N">N</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-foreground">개시 시작</label>
-          <input
-            type="datetime-local"
-            value={displayStartAt}
-            onChange={(e) => setDisplayStartAt(e.target.value)}
-            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-foreground">개시 종료</label>
-          <input
-            type="datetime-local"
-            value={displayEndAt}
-            onChange={(e) => setDisplayEndAt(e.target.value)}
-            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-foreground">{t('notices.titleEn')}</label>
-          <input
-            value={titleEn}
-            onChange={(e) => setTitleEn(e.target.value)}
-            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
           />
         </div>
         <div>
@@ -206,6 +247,29 @@ export default function Notices() {
             rows={3}
           />
         </div>
+        <YesNoRadios
+          legend="공지여부"
+          name="notice-create-isNotice"
+          value={isNotice}
+          onChange={setIsNotice}
+          legendClass={legendCreate}
+        />
+        <YesNoRadios
+          legend="공개여부"
+          name="notice-create-isPublic"
+          value={isPublic}
+          onChange={setIsPublic}
+          legendClass={legendCreate}
+        />
+        <NoticeDatePickers
+          startLabel="개시 시작"
+          endLabel="개시 종료"
+          start={displayStartAt}
+          end={displayEndAt}
+          onStartChange={setDisplayStartAt}
+          onEndChange={setDisplayEndAt}
+          labelClass="text-sm font-medium text-foreground"
+        />
         <button
           type="submit"
           disabled={loading}
@@ -222,7 +286,7 @@ export default function Notices() {
         >
           <h3 className="text-sm font-medium text-foreground">{t('notices.editTitle')}</h3>
           <div>
-            <label className="block text-xs text-muted-foreground">{t('notices.titleLabel')}</label>
+            <label className={legendEdit}>{t('notices.titleLabel')}</label>
             <input
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
@@ -230,7 +294,15 @@ export default function Notices() {
             />
           </div>
           <div>
-            <label className="block text-xs text-muted-foreground">{t('notices.body')}</label>
+            <label className={legendEdit}>{t('notices.titleEn')}</label>
+            <input
+              value={editTitleEn}
+              onChange={(e) => setEditTitleEn(e.target.value)}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
+            />
+          </div>
+          <div>
+            <label className={legendEdit}>{t('notices.body')}</label>
             <textarea
               value={editBody}
               onChange={(e) => setEditBody(e.target.value)}
@@ -239,55 +311,7 @@ export default function Notices() {
             />
           </div>
           <div>
-            <label className="block text-xs text-muted-foreground">공지여부</label>
-            <select
-              value={editIsNotice ? 'Y' : 'N'}
-              onChange={(e) => setEditIsNotice(e.target.value === 'Y')}
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
-            >
-              <option value="Y">Y</option>
-              <option value="N">N</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-muted-foreground">공개여부</label>
-            <select
-              value={editIsPublic ? 'Y' : 'N'}
-              onChange={(e) => setEditIsPublic(e.target.value === 'Y')}
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
-            >
-              <option value="Y">Y</option>
-              <option value="N">N</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-muted-foreground">개시 시작</label>
-            <input
-              type="datetime-local"
-              value={editDisplayStartAt}
-              onChange={(e) => setEditDisplayStartAt(e.target.value)}
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-muted-foreground">개시 종료</label>
-            <input
-              type="datetime-local"
-              value={editDisplayEndAt}
-              onChange={(e) => setEditDisplayEndAt(e.target.value)}
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-muted-foreground">{t('notices.titleEn')}</label>
-            <input
-              value={editTitleEn}
-              onChange={(e) => setEditTitleEn(e.target.value)}
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-muted-foreground">{t('notices.bodyEn')}</label>
+            <label className={legendEdit}>{t('notices.bodyEn')}</label>
             <textarea
               value={editBodyEn}
               onChange={(e) => setEditBodyEn(e.target.value)}
@@ -295,6 +319,29 @@ export default function Notices() {
               rows={3}
             />
           </div>
+          <YesNoRadios
+            legend="공지여부"
+            name="notice-edit-isNotice"
+            value={editIsNotice}
+            onChange={setEditIsNotice}
+            legendClass={legendEdit}
+          />
+          <YesNoRadios
+            legend="공개여부"
+            name="notice-edit-isPublic"
+            value={editIsPublic}
+            onChange={setEditIsPublic}
+            legendClass={legendEdit}
+          />
+          <NoticeDatePickers
+            startLabel="개시 시작"
+            endLabel="개시 종료"
+            start={editDisplayStartAt}
+            end={editDisplayEndAt}
+            onStartChange={setEditDisplayStartAt}
+            onEndChange={setEditDisplayEndAt}
+            labelClass="text-xs text-muted-foreground"
+          />
           <div className="flex gap-2">
             <button
               type="submit"
@@ -323,7 +370,7 @@ export default function Notices() {
             <div>
               <h3 className="font-medium text-foreground">{displayNoticeTitle(n, lang)}</h3>
               <p className="text-xs text-muted-foreground mt-1">
-                공지:{n.isNotice ? 'Y' : 'N'} / 공개:{n.isPublic ? 'Y' : 'N'}
+                공지:{n.isNotice ? '예' : '아니오'} / 공개:{n.isPublic ? '예' : '아니오'}
               </p>
               <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
                 {displayNoticeBody(n, lang)}

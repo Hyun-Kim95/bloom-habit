@@ -12,7 +12,7 @@
 
 ## 1. 앱 정보 확인
 
-- **패키지명**: `com.example.bloom_habit`  
+- **패키지명**: `com.khyun.bloom_habit`  
   (변경했다면 `android/app/build.gradle.kts`의 `applicationId` 확인)
 
 - **디버그 SHA-1** (에뮬레이터/디버그 빌드용):  
@@ -43,7 +43,7 @@ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -sto
 3. **애플리케이션 유형**: **Android** 선택.
 4. 입력:
    - **이름**: 예) Bloom Habit Android
-   - **패키지 이름**: `com.example.bloom_habit`
+   - **패키지 이름**: `com.khyun.bloom_habit`
    - **SHA-1 인증서 지문**: 위에서 복사한 SHA-1 (콜론 포함, 한 줄)
 5. **만들기** 클릭.
 

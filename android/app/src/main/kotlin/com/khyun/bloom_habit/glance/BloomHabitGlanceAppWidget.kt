@@ -1,4 +1,4 @@
-package com.example.bloom_habit.glance
+package com.khyun.bloom_habit.glance
 
 import android.content.Context
 import android.content.Intent
@@ -20,9 +20,9 @@ import androidx.glance.layout.padding
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import com.khyun.bloom_habit.MainActivity
 import es.antonborri.home_widget.HomeWidgetGlanceState
 import es.antonborri.home_widget.HomeWidgetGlanceStateDefinition
-import com.example.bloom_habit.MainActivity
 
 /**
  * 홈 위젯 UI: 오늘 완료한 습관 수 / 전체 습관 수 표시.
