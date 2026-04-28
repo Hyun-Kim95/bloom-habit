@@ -16,6 +16,12 @@ export class PublicNoticesController {
     private readonly noticeReadRepo: Repository<NoticeRead>,
   ) {}
 
+  private isVisibleNotice(n: Notice, now: Date): boolean {
+    const started = n.displayStartAt == null || n.displayStartAt.getTime() <= now.getTime();
+    const notEnded = n.displayEndAt == null || n.displayEndAt.getTime() >= now.getTime();
+    return Boolean(n.isNotice) && Boolean(n.isPublic) && started && notEnded;
+  }
+
   /** 게시된 공지만 (publishedAt 있음·현재 시각 이전) */
   @Get()
   async listPublished(@Query('locale') locale?: string) {
@@ -23,11 +29,13 @@ export class PublicNoticesController {
     const now = new Date();
     const list = await this.noticeRepo
       .createQueryBuilder('n')
-      .where('n.publishedAt IS NOT NULL')
+      .where('n.isNotice = true')
+      .andWhere('n.publishedAt IS NOT NULL')
       .andWhere('n.publishedAt <= :now', { now })
-      .orderBy('n.publishedAt', 'DESC')
+      .orderBy('COALESCE(n.displayStartAt, n.publishedAt)', 'DESC')
       .getMany();
-    return list.map((n) => {
+    const visible = list.filter((n) => this.isVisibleNotice(n, now));
+    return visible.map((n) => {
       const titleEn = n.titleEn?.trim();
       const bodyEn = n.bodyEn?.trim();
       return {
@@ -36,6 +44,10 @@ export class PublicNoticesController {
         body: preferEn && bodyEn ? bodyEn : n.body,
         titleEn: n.titleEn ?? undefined,
         bodyEn: n.bodyEn ?? undefined,
+        isNotice: n.isNotice,
+        isPublic: n.isPublic,
+        displayStartAt: n.displayStartAt?.toISOString() ?? undefined,
+        displayEndAt: n.displayEndAt?.toISOString() ?? undefined,
         publishedAt: n.publishedAt!.toISOString(),
       };
     });
@@ -69,6 +81,10 @@ export class PublicNoticesController {
       .select('COUNT(1)', 'count')
       .where('n.publishedAt IS NOT NULL')
       .andWhere('n.publishedAt <= :now', { now })
+      .andWhere('n.isNotice = true')
+      .andWhere('n.isPublic = true')
+      .andWhere('(n.displayStartAt IS NULL OR n.displayStartAt <= :now)', { now })
+      .andWhere('(n.displayEndAt IS NULL OR n.displayEndAt >= :now)', { now })
       .andWhere('nr.id IS NULL')
       .getRawOne<{ count: string }>();
     return { unreadCount: Number(row?.count ?? 0) };

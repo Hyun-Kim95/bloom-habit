@@ -240,3 +240,36 @@
 | 버전 | 일자 | 변경 내용 |
 |------|------|-----------|
 | 0.1 | 2026-03-17 | 초안 작성 |
+| 0.2 | 2026-04-27 | 문의 소프트삭제/답변취소, 공지 공개정책 필드, 관련 API 반영 |
+
+---
+
+## 4. 2026-04 문의/공지 확장
+
+### 4.1 Inquiry 확장 컬럼
+
+- `deleted_at` (timestamptz, nullable): 사용자/관리자 소프트 삭제 시각
+- 기존 `status`, `admin_reply`, `replied_at`, `user_read_at`와 함께 문의 수명주기 관리
+
+### 4.2 Notice 확장 컬럼
+
+- `is_notice` (boolean): 공지 여부
+- `is_public` (boolean): 공개 여부
+- `display_start_at` (timestamptz, nullable): 노출 시작
+- `display_end_at` (timestamptz, nullable): 노출 종료
+
+### 4.3 Inquiry API 변경
+
+- `PATCH /inquiries/:id` : 사용자 본인 문의 수정(미답변 `pending`만 허용)
+- `DELETE /inquiries/:id` : 사용자 본인 문의 소프트 삭제
+- `DELETE /admin/inquiries/:id` : 관리자 문의 소프트 삭제
+- `PATCH /admin/inquiries/:id` : 답변 등록/수정 및 빈 답변 전달 시 답변취소(상태 `pending` 복원)
+
+### 4.4 Notice 공개 정책
+
+- 앱 공개 API(`GET /notices`)는 아래를 모두 만족할 때만 노출:
+  - `is_notice = true`
+  - `is_public = true`
+  - `published_at <= now`
+  - `display_start_at`가 있으면 `display_start_at <= now`
+  - `display_end_at`가 있으면 `display_end_at >= now`

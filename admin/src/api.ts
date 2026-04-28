@@ -160,10 +160,31 @@ export const api = {
   reseedHabitTemplates: () =>
     request<{ inserted: number }>('/admin/habit-templates/reseed', { method: 'POST' }),
   getNotices: () =>
-    request<{ id: string; title: string; body: string; titleEn?: string; bodyEn?: string; publishedAt?: string }[]>(
+    request<{
+      id: string
+      title: string
+      body: string
+      titleEn?: string
+      bodyEn?: string
+      publishedAt?: string
+      isNotice?: boolean
+      isPublic?: boolean
+      displayStartAt?: string
+      displayEndAt?: string
+    }[]>(
       '/admin/notices',
     ),
-  createNotice: (body: { title: string; body: string; titleEn?: string; bodyEn?: string }) =>
+  createNotice: (body: {
+    title: string
+    body: string
+    titleEn?: string
+    bodyEn?: string
+    publishedAt?: string
+    isNotice?: boolean
+    isPublic?: boolean
+    displayStartAt?: string
+    displayEndAt?: string
+  }) =>
     request('/admin/notices', { method: 'POST', body: JSON.stringify(body) }),
   updateNotice: (id: string, body: object) =>
     request(`/admin/notices/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
@@ -184,6 +205,7 @@ export const api = {
       status: string
       adminReply: string | null
       repliedAt: string | null
+      userReadAt: string | null
       createdAt: string
       updatedAt: string
     }[]>('/admin/inquiries'),
@@ -198,9 +220,12 @@ export const api = {
       status: string
       adminReply: string | null
       repliedAt: string | null
+      userReadAt: string | null
       createdAt: string
       updatedAt: string
     }>(`/admin/inquiries/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteInquiry: (id: string) =>
+    request<{ ok: true }>(`/admin/inquiries/${id}`, { method: 'DELETE' }),
 
   getLegalDocuments: (type?: 'terms' | 'privacy', locale?: 'ko' | 'en' | 'all') => {
     const params = new URLSearchParams()

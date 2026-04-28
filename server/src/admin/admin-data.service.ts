@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import {
   Habit as HabitEntity,
@@ -59,6 +59,10 @@ export interface NoticeDto {
   titleEn?: string;
   bodyEn?: string;
   publishedAt?: string;
+  isNotice?: boolean;
+  isPublic?: boolean;
+  displayStartAt?: string;
+  displayEndAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -469,14 +473,23 @@ export class AdminDataService {
   }
 
   async listNotices(): Promise<NoticeDto[]> {
+    const nowMs = Date.now();
     const list = await this.noticeRepo.find({ order: { createdAt: 'DESC' } });
     return list.map((n) => ({
+      // 기간 밖이면 공개여부를 자동 N으로 표시한다.
+      isPublic:
+        n.isPublic &&
+        (n.displayStartAt == null || n.displayStartAt.getTime() <= nowMs) &&
+        (n.displayEndAt == null || n.displayEndAt.getTime() >= nowMs),
       id: n.id,
       title: n.title,
       body: n.body,
       titleEn: n.titleEn ?? undefined,
       bodyEn: n.bodyEn ?? undefined,
       publishedAt: n.publishedAt?.toISOString(),
+      isNotice: n.isNotice,
+      displayStartAt: n.displayStartAt?.toISOString(),
+      displayEndAt: n.displayEndAt?.toISOString(),
       createdAt: n.createdAt.toISOString(),
       updatedAt: n.updatedAt.toISOString(),
     }));
@@ -488,14 +501,27 @@ export class AdminDataService {
     titleEn?: string;
     bodyEn?: string;
     publishedAt?: string;
+    isNotice?: boolean;
+    isPublic?: boolean;
+    displayStartAt?: string;
+    displayEndAt?: string;
   }): Promise<NoticeDto> {
+    const displayStartAt = body.displayStartAt ? new Date(body.displayStartAt) : null;
+    const displayEndAt = body.displayEndAt ? new Date(body.displayEndAt) : null;
+    if (displayStartAt && displayEndAt && displayStartAt.getTime() > displayEndAt.getTime()) {
+      throw new BadRequestException('displayStartAt must be before displayEndAt');
+    }
     const n = this.noticeRepo.create({
       id: `n-${uuidv4()}`,
       title: body.title,
       body: body.body,
       titleEn: typeof body.titleEn === 'string' ? body.titleEn.trim() || null : null,
       bodyEn: typeof body.bodyEn === 'string' ? body.bodyEn.trim() || null : null,
-      publishedAt: body.publishedAt ? new Date(body.publishedAt) : null,
+      publishedAt: body.publishedAt ? new Date(body.publishedAt) : body.isPublic ? new Date() : null,
+      isNotice: body.isNotice ?? true,
+      isPublic: body.isPublic ?? false,
+      displayStartAt,
+      displayEndAt,
     });
     await this.noticeRepo.save(n);
     return {
@@ -505,6 +531,10 @@ export class AdminDataService {
       titleEn: n.titleEn ?? undefined,
       bodyEn: n.bodyEn ?? undefined,
       publishedAt: n.publishedAt?.toISOString(),
+      isNotice: n.isNotice,
+      isPublic: n.isPublic,
+      displayStartAt: n.displayStartAt?.toISOString(),
+      displayEndAt: n.displayEndAt?.toISOString(),
       createdAt: n.createdAt.toISOString(),
       updatedAt: n.updatedAt.toISOString(),
     };
@@ -517,7 +547,27 @@ export class AdminDataService {
     if (body.body != null) n.body = body.body;
     if (body.titleEn !== undefined) n.titleEn = body.titleEn?.trim() ? body.titleEn.trim() : null;
     if (body.bodyEn !== undefined) n.bodyEn = body.bodyEn?.trim() ? body.bodyEn.trim() : null;
-    if (body.publishedAt != null) n.publishedAt = new Date(body.publishedAt);
+    if (body.publishedAt !== undefined) {
+      n.publishedAt = body.publishedAt ? new Date(body.publishedAt) : null;
+    }
+    if (body.isNotice !== undefined) n.isNotice = Boolean(body.isNotice);
+    if (body.isPublic !== undefined) n.isPublic = Boolean(body.isPublic);
+    if (body.displayStartAt !== undefined) {
+      n.displayStartAt = body.displayStartAt ? new Date(body.displayStartAt) : null;
+    }
+    if (body.displayEndAt !== undefined) {
+      n.displayEndAt = body.displayEndAt ? new Date(body.displayEndAt) : null;
+    }
+    if (
+      n.displayStartAt &&
+      n.displayEndAt &&
+      n.displayStartAt.getTime() > n.displayEndAt.getTime()
+    ) {
+      throw new BadRequestException('displayStartAt must be before displayEndAt');
+    }
+    if (n.isPublic && n.publishedAt == null) {
+      n.publishedAt = new Date();
+    }
     await this.noticeRepo.save(n);
     return {
       id: n.id,
@@ -526,6 +576,10 @@ export class AdminDataService {
       titleEn: n.titleEn ?? undefined,
       bodyEn: n.bodyEn ?? undefined,
       publishedAt: n.publishedAt?.toISOString(),
+      isNotice: n.isNotice,
+      isPublic: n.isPublic,
+      displayStartAt: n.displayStartAt?.toISOString(),
+      displayEndAt: n.displayEndAt?.toISOString(),
       createdAt: n.createdAt.toISOString(),
       updatedAt: n.updatedAt.toISOString(),
     };
@@ -566,6 +620,7 @@ export class AdminDataService {
 
   async listInquiries(): Promise<InquiryAdminDto[]> {
     const list = await this.inquiryRepo.find({
+      where: { deletedAt: IsNull() },
       order: { createdAt: 'DESC' },
     });
     const userIds = [...new Set(list.map((i) => i.userId))];
@@ -596,7 +651,7 @@ export class AdminDataService {
     id: string,
     body: { adminReply?: string; status?: string },
   ): Promise<InquiryAdminDto | undefined> {
-    const i = await this.inquiryRepo.findOne({ where: { id } });
+    const i = await this.inquiryRepo.findOne({ where: { id, deletedAt: IsNull() } });
     if (!i) return undefined;
     const prevReply = i.adminReply?.trim() ?? '';
     const nextReply = body.adminReply != null ? body.adminReply.trim() : prevReply;
@@ -604,16 +659,37 @@ export class AdminDataService {
     const shouldNotify = nextReply !== '' && hasReplyChanged;
     if (body.adminReply != null) {
       i.adminReply = body.adminReply;
-      i.repliedAt = new Date();
       if ((body.adminReply as string).trim() !== '') {
+        i.repliedAt = new Date();
         i.status = 'answered';
+        i.userReadAt = null;
+      } else {
+        i.status = 'pending';
+        i.repliedAt = null;
         i.userReadAt = null;
       }
     }
     if (body.status != null) i.status = body.status;
     await this.inquiryRepo.save(i);
     if (shouldNotify) {
-      this.pushService.sendInquiryReplyNotification(i.userId, i.subject).catch(() => {});
+      this.pushService.sendInquiryReplyNotification(i.userId, i.subject).catch((e: unknown) => {
+        // eslint-disable-next-line no-console
+        console.log('[AdminDataService] inquiry_reply push failed (1st)', {
+          inquiryId: i.id,
+          userId: i.userId,
+          err: e instanceof Error ? e.message : String(e),
+        });
+        setTimeout(() => {
+          this.pushService.sendInquiryReplyNotification(i.userId, i.subject).catch((e2: unknown) => {
+            // eslint-disable-next-line no-console
+            console.log('[AdminDataService] inquiry_reply push failed (retry)', {
+              inquiryId: i.id,
+              userId: i.userId,
+              err: e2 instanceof Error ? e2.message : String(e2),
+            });
+          });
+        }, 1500);
+      });
     }
     const u = await this.userRepo.findOne({ where: { id: i.userId } });
     return {
@@ -630,6 +706,14 @@ export class AdminDataService {
       createdAt: i.createdAt.toISOString(),
       updatedAt: i.updatedAt.toISOString(),
     };
+  }
+
+  async softDeleteInquiry(id: string): Promise<boolean> {
+    const i = await this.inquiryRepo.findOne({ where: { id, deletedAt: IsNull() } });
+    if (!i) return false;
+    i.deletedAt = new Date();
+    await this.inquiryRepo.save(i);
+    return true;
   }
 
   private toLegalDto(d: LegalDocumentEntity): LegalDocumentDto {

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Patch, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtGuard } from '../auth/jwt.guard';
 import { InquiriesService } from './inquiries.service';
@@ -25,6 +25,24 @@ export class InquiriesController {
   @Get()
   async list(@Req() req: ReqWithUser) {
     return this.inquiries.listByUser(req.userId);
+  }
+
+  @Patch(':id')
+  async updateOwn(
+    @Req() req: ReqWithUser,
+    @Param('id') id: string,
+    @Body() body: { subject?: string; body?: string },
+  ) {
+    const updated = await this.inquiries.updateOwnInquiry(req.userId, id, body);
+    if (!updated) return { statusCode: 404, message: 'Not found' };
+    return updated;
+  }
+
+  @Delete(':id')
+  async deleteOwn(@Req() req: ReqWithUser, @Param('id') id: string) {
+    const ok = await this.inquiries.softDeleteOwnInquiry(req.userId, id);
+    if (!ok) return { statusCode: 404, message: 'Not found' };
+    return { ok: true };
   }
 
   @Patch(':id/read')

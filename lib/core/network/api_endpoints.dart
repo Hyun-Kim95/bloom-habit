@@ -22,6 +22,7 @@ abstract class ApiEndpoints {
   static const String sync = '/sync';
   static const String syncPush = '/sync/push';
   static const String inquiries = '/inquiries';
+  static String inquiry(String inquiryId) => '/inquiries/$inquiryId';
   static String inquiryRead(String inquiryId) => '/inquiries/$inquiryId/read';
   static const String legalTerms = '/legal/terms';
   static const String legalPrivacy = '/legal/privacy';

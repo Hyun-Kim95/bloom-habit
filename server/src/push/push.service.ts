@@ -46,8 +46,16 @@ export class PushService {
   /** 문의 답변 시 해당 사용자에게 푸시 알림 */
   async sendInquiryReplyNotification(userId: string, inquirySubject: string): Promise<void> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user?.fcmToken?.trim()) return;
-    if (!this.messaging) return;
+    if (!user?.fcmToken?.trim()) {
+      // eslint-disable-next-line no-console
+      console.log('[PushService] inquiry_reply skipped: missing fcm token', { userId });
+      return;
+    }
+    if (!this.messaging) {
+      // eslint-disable-next-line no-console
+      console.log('[PushService] inquiry_reply skipped: firebase not initialized', { userId });
+      return;
+    }
     const title = '문의에 답변이 등록되었습니다';
     const body = inquirySubject.length > 30 ? `${inquirySubject.slice(0, 30)}…` : inquirySubject;
     try {
@@ -57,8 +65,12 @@ export class PushService {
         data: { type: 'inquiry_reply', subject: inquirySubject },
         android: { priority: 'high' as const },
       });
-    } catch {
-      // 토큰 만료 등 시 무시
+    } catch (e: unknown) {
+      // eslint-disable-next-line no-console
+      console.log('[PushService] inquiry_reply send failed', {
+        userId,
+        err: e instanceof Error ? e.message : String(e),
+      });
     }
   }
 

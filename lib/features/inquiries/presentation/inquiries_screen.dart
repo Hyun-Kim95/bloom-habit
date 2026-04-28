@@ -22,6 +22,9 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
   bool _submitting = false;
   String? _error;
   final Set<String> _readInquiryIds = <String>{};
+  String? _editingInquiryId;
+  bool _editing = false;
+  bool _deleting = false;
 
   @override
   void initState() {
@@ -119,7 +122,104 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
       return;
     }
     ref.invalidate(unreadSummaryProvider);
-    await _load();
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    if (!mounted) return;
+    setState(() {
+      _list = _list
+          .map(
+            (e) => e.id == item.id
+                ? InquiryItem(
+                    id: e.id,
+                    subject: e.subject,
+                    body: e.body,
+                    status: e.status,
+                    adminReply: e.adminReply,
+                    repliedAt: e.repliedAt,
+                    userReadAt: nowIso,
+                    createdAt: e.createdAt,
+                  )
+                : e,
+          )
+          .toList();
+    });
+  }
+
+  Future<void> _startEdit(InquiryItem item) async {
+    _subjectController.text = item.subject;
+    _bodyController.text = item.body;
+    setState(() {
+      _editingInquiryId = item.id;
+      _error = null;
+    });
+  }
+
+  Future<void> _cancelEdit() async {
+    _subjectController.clear();
+    _bodyController.clear();
+    setState(() {
+      _editingInquiryId = null;
+      _error = null;
+    });
+  }
+
+  Future<void> _saveEdit() async {
+    final id = _editingInquiryId;
+    if (id == null) return;
+    final subject = _subjectController.text.trim();
+    final body = _bodyController.text.trim();
+    if (subject.isEmpty || body.isEmpty) return;
+    setState(() => _editing = true);
+    try {
+      final repo = ref.read(inquiryRepositoryProvider);
+      final updated = await repo.updateInquiry(inquiryId: id, subject: subject, body: body);
+      if (!mounted) return;
+      setState(() {
+        _list = _list.map((e) => e.id == id ? updated : e).toList();
+        _editingInquiryId = null;
+        _subjectController.clear();
+        _bodyController.clear();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString().split('\n').first);
+    } finally {
+      if (mounted) setState(() => _editing = false);
+    }
+  }
+
+  Future<void> _deleteInquiry(InquiryItem item) async {
+    final l10n = AppLocalizations.of(context)!;
+    final lang = Localizations.localeOf(context).languageCode.toLowerCase();
+    final confirmText = lang.startsWith('en')
+        ? 'Delete this inquiry?'
+        : '문의를 삭제하시겠어요?';
+    final ok = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(l10n.inquiry),
+            content: Text(confirmText),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.delete)),
+            ],
+          ),
+        ) ??
+        false;
+    if (!ok) return;
+    setState(() => _deleting = true);
+    try {
+      await ref.read(inquiryRepositoryProvider).deleteInquiry(item.id);
+      if (!mounted) return;
+      setState(() {
+        _list = _list.where((e) => e.id != item.id).toList();
+      });
+      ref.invalidate(unreadSummaryProvider);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString().split('\n').first);
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
   }
 
   @override
@@ -178,7 +278,9 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
             ],
             const SizedBox(height: 12),
             FilledButton(
-              onPressed: _submitting ? null : _submit,
+              onPressed: _submitting || _editing || _deleting
+                  ? null
+                  : (_editingInquiryId == null ? _submit : _saveEdit),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: AppColors.primaryForeground,
@@ -187,8 +289,18 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
               ),
               child: _submitting
                   ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text(l10n.submitInquiry, style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w600)),
+                  : Text(
+                      _editingInquiryId == null ? l10n.submitInquiry : l10n.save,
+                      style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
             ),
+            if (_editingInquiryId != null) ...[
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: _editing ? null : _cancelEdit,
+                child: Text(l10n.cancel),
+              ),
+            ],
             const SizedBox(height: 32),
             Text(
               l10n.myInquiries,
@@ -215,6 +327,8 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
                   l10n: l10n,
                   isUnreadReply: _isUnreadReply(item),
                   onOpenReply: () => _markInquiryReadIfNeeded(item),
+                  onEdit: item.status == 'pending' ? () => _startEdit(item) : null,
+                  onDelete: () => _deleteInquiry(item),
                 ),
               ),
           ],
@@ -231,6 +345,8 @@ class _InquiryCard extends StatelessWidget {
     required this.l10n,
     required this.isUnreadReply,
     required this.onOpenReply,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   final InquiryItem item;
@@ -238,6 +354,8 @@ class _InquiryCard extends StatelessWidget {
   final AppLocalizations l10n;
   final bool isUnreadReply;
   final VoidCallback onOpenReply;
+  final VoidCallback? onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -336,10 +454,42 @@ class _InquiryCard extends StatelessWidget {
                           item.adminReply!,
                           style: GoogleFonts.dmSans(fontSize: 14, color: fg, height: 1.4),
                         ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            if (onEdit != null)
+                              TextButton(onPressed: onEdit, child: Text(l10n.edit)),
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: onDelete,
+                              child: Text(
+                                l10n.delete,
+                                style: GoogleFonts.dmSans(color: AppColors.destructive),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
                 ],
+                if (item.adminReply == null || item.adminReply!.isEmpty)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (onEdit != null) TextButton(onPressed: onEdit, child: Text(l10n.edit)),
+                        TextButton(
+                          onPressed: onDelete,
+                          child: Text(
+                            l10n.delete,
+                            style: GoogleFonts.dmSans(color: AppColors.destructive),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),

@@ -32,6 +32,9 @@ export class Inquiry {
   @Column({ type: 'timestamptz', nullable: true })
   userReadAt: Date | null;
 
+  @Column({ type: 'timestamptz', nullable: true })
+  deletedAt: Date | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 

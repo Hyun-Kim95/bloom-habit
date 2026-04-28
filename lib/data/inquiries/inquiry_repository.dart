@@ -78,4 +78,30 @@ class InquiryRepository {
   Future<void> markInquiryRead(String inquiryId) async {
     await _dio.patch<void>(ApiEndpoints.inquiryRead(inquiryId));
   }
+
+  Future<InquiryItem> updateInquiry({
+    required String inquiryId,
+    required String subject,
+    required String body,
+  }) async {
+    final res = await _dio.patch<Map<String, dynamic>>(
+      ApiEndpoints.inquiry(inquiryId),
+      data: {'subject': subject, 'body': body},
+    );
+    final m = res.data ?? const <String, dynamic>{};
+    return InquiryItem(
+      id: m['id'] as String? ?? '',
+      subject: m['subject'] as String? ?? '',
+      body: m['body'] as String? ?? '',
+      status: m['status'] as String? ?? 'pending',
+      adminReply: m['adminReply'] as String?,
+      repliedAt: m['repliedAt'] as String?,
+      userReadAt: m['userReadAt'] as String?,
+      createdAt: m['createdAt'] as String? ?? '',
+    );
+  }
+
+  Future<void> deleteInquiry(String inquiryId) async {
+    await _dio.delete<void>(ApiEndpoints.inquiry(inquiryId));
+  }
 }

@@ -12,6 +12,7 @@ type Inquiry = {
   status: string
   adminReply: string | null
   repliedAt: string | null
+  userReadAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -23,6 +24,7 @@ export default function Inquiries() {
   const [selected, setSelected] = useState<Inquiry | null>(null)
   const [adminReply, setAdminReply] = useState('')
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const load = () => api.getInquiries().then(setList).catch((e) => setError(e.message))
 
@@ -52,6 +54,36 @@ export default function Inquiries() {
       setError(e instanceof Error ? e.message : t('inquiries.saveFail'))
     } finally {
       setSaving(false)
+    }
+  }
+
+  const cancelReply = async () => {
+    if (!selected) return
+    if (!confirm('답변을 취소하시겠습니까?')) return
+    setSaving(true)
+    try {
+      const updated = await api.updateInquiryReply(selected.id, { adminReply: '' })
+      setSelected(updated)
+      setList((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('inquiries.saveFail'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deleteInquiry = async () => {
+    if (!selected) return
+    if (!confirm('문의를 삭제하시겠습니까?')) return
+    setDeleting(true)
+    try {
+      await api.deleteInquiry(selected.id)
+      setList((prev) => prev.filter((i) => i.id !== selected.id))
+      setSelected(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('inquiries.saveFail'))
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -163,6 +195,24 @@ export default function Inquiries() {
                 >
                   {saving ? t('inquiries.saving') : t('inquiries.save')}
                 </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={saving || deleting || !selected.adminReply}
+                    onClick={cancelReply}
+                    className="px-3 py-2 rounded-md border border-border text-sm disabled:opacity-50"
+                  >
+                    답변취소
+                  </button>
+                  <button
+                    type="button"
+                    disabled={saving || deleting}
+                    onClick={deleteInquiry}
+                    className="px-3 py-2 rounded-md border border-destructive text-destructive text-sm disabled:opacity-50"
+                  >
+                    {deleting ? '삭제중...' : '문의삭제'}
+                  </button>
+                </div>
               </form>
             </>
           )}

@@ -10,6 +10,10 @@ type Notice = {
   titleEn?: string
   bodyEn?: string
   publishedAt?: string
+  isNotice?: boolean
+  isPublic?: boolean
+  displayStartAt?: string
+  displayEndAt?: string
 }
 
 export default function Notices() {
@@ -21,12 +25,20 @@ export default function Notices() {
   const [titleEn, setTitleEn] = useState('')
   const [bodyEn, setBodyEn] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isNotice, setIsNotice] = useState(true)
+  const [isPublic, setIsPublic] = useState(true)
+  const [displayStartAt, setDisplayStartAt] = useState('')
+  const [displayEndAt, setDisplayEndAt] = useState('')
   const [editing, setEditing] = useState<Notice | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [editBody, setEditBody] = useState('')
   const [editTitleEn, setEditTitleEn] = useState('')
   const [editBodyEn, setEditBodyEn] = useState('')
   const [editSaving, setEditSaving] = useState(false)
+  const [editIsNotice, setEditIsNotice] = useState(true)
+  const [editIsPublic, setEditIsPublic] = useState(false)
+  const [editDisplayStartAt, setEditDisplayStartAt] = useState('')
+  const [editDisplayEndAt, setEditDisplayEndAt] = useState('')
 
   const load = () => api.getNotices().then(setList).catch((e) => setError(e.message))
 
@@ -44,11 +56,19 @@ export default function Notices() {
         body: body.trim(),
         titleEn: titleEn.trim() || undefined,
         bodyEn: bodyEn.trim() || undefined,
+        isNotice,
+        isPublic,
+        displayStartAt: displayStartAt || undefined,
+        displayEndAt: displayEndAt || undefined,
       })
       setTitle('')
       setBody('')
       setTitleEn('')
       setBodyEn('')
+      setIsNotice(true)
+      setIsPublic(true)
+      setDisplayStartAt('')
+      setDisplayEndAt('')
       load()
     } catch (e) {
       setError(e instanceof Error ? e.message : t('notices.createFail'))
@@ -63,6 +83,10 @@ export default function Notices() {
     setEditBody(n.body)
     setEditTitleEn(n.titleEn ?? '')
     setEditBodyEn(n.bodyEn ?? '')
+    setEditIsNotice(n.isNotice ?? true)
+    setEditIsPublic(n.isPublic ?? false)
+    setEditDisplayStartAt(n.displayStartAt ? n.displayStartAt.slice(0, 16) : '')
+    setEditDisplayEndAt(n.displayEndAt ? n.displayEndAt.slice(0, 16) : '')
   }
 
   const saveEdit = async (e: React.FormEvent) => {
@@ -75,6 +99,10 @@ export default function Notices() {
         body: editBody.trim(),
         titleEn: editTitleEn.trim(),
         bodyEn: editBodyEn.trim(),
+        isNotice: editIsNotice,
+        isPublic: editIsPublic,
+        displayStartAt: editDisplayStartAt || null,
+        displayEndAt: editDisplayEndAt || null,
       })
       setEditing(null)
       load()
@@ -119,6 +147,46 @@ export default function Notices() {
             onChange={(e) => setBody(e.target.value)}
             className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
             rows={3}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-foreground">공지여부</label>
+          <select
+            value={isNotice ? 'Y' : 'N'}
+            onChange={(e) => setIsNotice(e.target.value === 'Y')}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
+          >
+            <option value="Y">Y</option>
+            <option value="N">N</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-foreground">공개여부</label>
+          <select
+            value={isPublic ? 'Y' : 'N'}
+            onChange={(e) => setIsPublic(e.target.value === 'Y')}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
+          >
+            <option value="Y">Y</option>
+            <option value="N">N</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-foreground">개시 시작</label>
+          <input
+            type="datetime-local"
+            value={displayStartAt}
+            onChange={(e) => setDisplayStartAt(e.target.value)}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-foreground">개시 종료</label>
+          <input
+            type="datetime-local"
+            value={displayEndAt}
+            onChange={(e) => setDisplayEndAt(e.target.value)}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
           />
         </div>
         <div>
@@ -171,6 +239,46 @@ export default function Notices() {
             />
           </div>
           <div>
+            <label className="block text-xs text-muted-foreground">공지여부</label>
+            <select
+              value={editIsNotice ? 'Y' : 'N'}
+              onChange={(e) => setEditIsNotice(e.target.value === 'Y')}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
+            >
+              <option value="Y">Y</option>
+              <option value="N">N</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-muted-foreground">공개여부</label>
+            <select
+              value={editIsPublic ? 'Y' : 'N'}
+              onChange={(e) => setEditIsPublic(e.target.value === 'Y')}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
+            >
+              <option value="Y">Y</option>
+              <option value="N">N</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-muted-foreground">개시 시작</label>
+            <input
+              type="datetime-local"
+              value={editDisplayStartAt}
+              onChange={(e) => setEditDisplayStartAt(e.target.value)}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-muted-foreground">개시 종료</label>
+            <input
+              type="datetime-local"
+              value={editDisplayEndAt}
+              onChange={(e) => setEditDisplayEndAt(e.target.value)}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
+            />
+          </div>
+          <div>
             <label className="block text-xs text-muted-foreground">{t('notices.titleEn')}</label>
             <input
               value={editTitleEn}
@@ -214,6 +322,9 @@ export default function Notices() {
           >
             <div>
               <h3 className="font-medium text-foreground">{displayNoticeTitle(n, lang)}</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                공지:{n.isNotice ? 'Y' : 'N'} / 공개:{n.isPublic ? 'Y' : 'N'}
+              </p>
               <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
                 {displayNoticeBody(n, lang)}
               </p>

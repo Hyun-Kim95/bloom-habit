@@ -46,6 +46,7 @@ export class InactiveUserPurgeScheduler {
 
   /**
    * 비활성화된 지 retentionDays 이상 지난 사용자: 습관·기록·푸시 로그·문의·user 행 삭제.
+   * 또한 soft-delete된 문의(deletedAt)는 retentionDays 경과 시 영구 삭제.
    */
   async runOnce(): Promise<{ purgedUsers: number }> {
     const days = retentionDays();
@@ -57,6 +58,14 @@ export class InactiveUserPurgeScheduler {
     );
 
     const result = await this.dataSource.transaction(async (em) => {
+      await em
+        .createQueryBuilder()
+        .delete()
+        .from(Inquiry)
+        .where('deletedAt IS NOT NULL')
+        .andWhere('deletedAt < :cutoff', { cutoff })
+        .execute();
+
       const users = await em
         .createQueryBuilder(User, 'u')
         .select(['u.id'])

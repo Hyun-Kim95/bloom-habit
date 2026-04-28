@@ -157,7 +157,18 @@ export class AdminController {
   @Post('notices')
   @UseGuards(AdminGuard)
   async createNotice(
-    @Body() body: { title: string; body: string; titleEn?: string; bodyEn?: string; publishedAt?: string },
+    @Body()
+    body: {
+      title: string;
+      body: string;
+      titleEn?: string;
+      bodyEn?: string;
+      publishedAt?: string;
+      isNotice?: boolean;
+      isPublic?: boolean;
+      displayStartAt?: string;
+      displayEndAt?: string;
+    },
   ) {
     return this.adminData.createNotice(body);
   }
@@ -206,6 +217,14 @@ export class AdminController {
     const r = await this.adminData.updateInquiryReply(id, body);
     if (!r) return { statusCode: 404, message: 'Not found' };
     return r;
+  }
+
+  @Delete('inquiries/:id')
+  @UseGuards(AdminGuard)
+  async deleteInquiry(@Param('id') id: string) {
+    const ok = await this.adminData.softDeleteInquiry(id);
+    if (!ok) return { statusCode: 404, message: 'Not found' };
+    return { ok: true };
   }
 
   @Get('legal-documents')

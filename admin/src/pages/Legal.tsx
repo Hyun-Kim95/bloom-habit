@@ -135,6 +135,9 @@ export default function Legal() {
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold text-foreground">{t('legal.title')}</h2>
+      <p className="text-sm text-muted-foreground">
+        안내 문구에 문의/탈퇴 데이터는 삭제 또는 비활성화 시점부터 최대 1년 보관 후 영구 삭제된다는 정책을 포함해 주세요.
+      </p>
 
       {error && list.length > 0 && <p className="text-sm text-destructive">{error}</p>}
 

@@ -27,6 +27,18 @@ export class Notice {
   @Column({ type: 'timestamptz', nullable: true })
   publishedAt: Date | null;
 
+  @Column({ default: true })
+  isNotice: boolean;
+
+  @Column({ default: false })
+  isPublic: boolean;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  displayStartAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  displayEndAt: Date | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 

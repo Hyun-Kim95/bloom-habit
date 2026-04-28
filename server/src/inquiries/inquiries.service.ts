@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { Inquiry } from '../entities';
 
@@ -38,17 +38,21 @@ export class InquiriesService {
   }
 
   async listByUser(userId: string): Promise<InquiryDto[]> {
-    const list = await this.repo.find({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    });
+    const list = await this.repo
+      .createQueryBuilder('i')
+      .where('i.userId = :userId', { userId })
+      .andWhere('i.deletedAt IS NULL')
+      .orderBy('i.createdAt', 'DESC')
+      .getMany();
     return list.map((e) => this.toDto(e));
   }
 
   async listAll(): Promise<(InquiryDto & { userEmail?: string; userDisplayName?: string })[]> {
-    const list = await this.repo.find({
-      order: { createdAt: 'DESC' },
-    });
+    const list = await this.repo
+      .createQueryBuilder('i')
+      .where('i.deletedAt IS NULL')
+      .orderBy('i.createdAt', 'DESC')
+      .getMany();
     return list.map((e) => this.toDto(e));
   }
 
@@ -78,7 +82,9 @@ export class InquiriesService {
   }
 
   async markAsRead(userId: string, inquiryId: string): Promise<boolean> {
-    const inquiry = await this.repo.findOne({ where: { id: inquiryId, userId } });
+    const inquiry = await this.repo.findOne({
+      where: { id: inquiryId, userId, deletedAt: IsNull() },
+    });
     if (!inquiry) return false;
     inquiry.userReadAt = new Date();
     await this.repo.save(inquiry);
@@ -90,12 +96,39 @@ export class InquiriesService {
       .createQueryBuilder('i')
       .select('COUNT(1)', 'count')
       .where('i.userId = :userId', { userId })
+      .andWhere('i.deletedAt IS NULL')
       .andWhere("i.status = 'answered'")
       .andWhere(
         '(i.userReadAt IS NULL OR (i.repliedAt IS NOT NULL AND i.userReadAt < i.repliedAt))',
       )
       .getRawOne<{ count: string }>();
     return Number(row?.count ?? 0);
+  }
+
+  async updateOwnInquiry(
+    userId: string,
+    inquiryId: string,
+    body: { subject?: string; body?: string },
+  ): Promise<InquiryDto | undefined> {
+    const inquiry = await this.repo.findOne({
+      where: { id: inquiryId, userId, deletedAt: IsNull() },
+    });
+    if (!inquiry) return undefined;
+    if (inquiry.status !== 'pending') return undefined;
+    if (body.subject !== undefined) inquiry.subject = body.subject.trim();
+    if (body.body !== undefined) inquiry.body = body.body.trim();
+    await this.repo.save(inquiry);
+    return this.toDto(inquiry);
+  }
+
+  async softDeleteOwnInquiry(userId: string, inquiryId: string): Promise<boolean> {
+    const inquiry = await this.repo.findOne({
+      where: { id: inquiryId, userId, deletedAt: IsNull() },
+    });
+    if (!inquiry) return false;
+    inquiry.deletedAt = new Date();
+    await this.repo.save(inquiry);
+    return true;
   }
 
   private toDto(e: Inquiry): InquiryDto {
