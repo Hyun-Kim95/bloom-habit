@@ -19,20 +19,20 @@ export class PublicNoticesController {
   private isVisibleNotice(n: Notice, now: Date): boolean {
     const started = n.displayStartAt == null || n.displayStartAt.getTime() <= now.getTime();
     const notEnded = n.displayEndAt == null || n.displayEndAt.getTime() >= now.getTime();
-    return Boolean(n.isNotice) && Boolean(n.isPublic) && started && notEnded;
+    return Boolean(n.isPublic) && started && notEnded;
   }
 
-  /** 게시된 공지만 (publishedAt 있음·현재 시각 이전) */
+  /** 게시된 공지/게시물 (상단고정 우선 정렬) */
   @Get()
   async listPublished(@Query('locale') locale?: string) {
     const preferEn = locale === 'en';
     const now = new Date();
     const list = await this.noticeRepo
       .createQueryBuilder('n')
-      .where('n.isNotice = true')
-      .andWhere('n.publishedAt IS NOT NULL')
+      .where('n.publishedAt IS NOT NULL')
       .andWhere('n.publishedAt <= :now', { now })
-      .orderBy('COALESCE(n.displayStartAt, n.publishedAt)', 'DESC')
+      .orderBy('n.isNotice', 'DESC')
+      .addOrderBy('COALESCE(n.displayStartAt, n.publishedAt)', 'DESC')
       .getMany();
     const visible = list.filter((n) => this.isVisibleNotice(n, now));
     return visible.map((n) => {
@@ -81,7 +81,6 @@ export class PublicNoticesController {
       .select('COUNT(1)', 'count')
       .where('n.publishedAt IS NOT NULL')
       .andWhere('n.publishedAt <= :now', { now })
-      .andWhere('n.isNotice = true')
       .andWhere('n.isPublic = true')
       .andWhere('(n.displayStartAt IS NULL OR n.displayStartAt <= :now)', { now })
       .andWhere('(n.displayEndAt IS NULL OR n.displayEndAt >= :now)', { now })
@@ -90,3 +89,4 @@ export class PublicNoticesController {
     return { unreadCount: Number(row?.count ?? 0) };
   }
 }
+

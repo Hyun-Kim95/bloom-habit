@@ -248,7 +248,7 @@ export default function Notices() {
           />
         </div>
         <YesNoRadios
-          legend="공지여부"
+          legend="상단고정"
           name="notice-create-isNotice"
           value={isNotice}
           onChange={setIsNotice}
@@ -320,7 +320,7 @@ export default function Notices() {
             />
           </div>
           <YesNoRadios
-            legend="공지여부"
+            legend="상단고정"
             name="notice-edit-isNotice"
             value={editIsNotice}
             onChange={setEditIsNotice}
@@ -370,7 +370,7 @@ export default function Notices() {
             <div>
               <h3 className="font-medium text-foreground">{displayNoticeTitle(n, lang)}</h3>
               <p className="text-xs text-muted-foreground mt-1">
-                공지:{n.isNotice ? '예' : '아니오'} / 공개:{n.isPublic ? '예' : '아니오'}
+                상단고정:{n.isNotice ? '예' : '아니오'} / 공개:{n.isPublic ? '예' : '아니오'}
               </p>
               <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
                 {displayNoticeBody(n, lang)}
@@ -399,3 +399,4 @@ export default function Notices() {
     </div>
   )
 }
+

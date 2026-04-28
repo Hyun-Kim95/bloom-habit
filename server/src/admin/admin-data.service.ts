@@ -474,7 +474,7 @@ export class AdminDataService {
 
   async listNotices(): Promise<NoticeDto[]> {
     const nowMs = Date.now();
-    const list = await this.noticeRepo.find({ order: { createdAt: 'DESC' } });
+    const list = await this.noticeRepo.find({ order: { isNotice: 'DESC', createdAt: 'DESC' } });
     return list.map((n) => ({
       // 기간 밖이면 공개여부를 자동 N으로 표시한다.
       isPublic:
@@ -900,3 +900,4 @@ export class AdminDataService {
     return this.toLegalDto(doc);
   }
 }
+

@@ -75,7 +75,6 @@ export class MeController {
       .select('COUNT(1)', 'count')
       .where('n.publishedAt IS NOT NULL')
       .andWhere('n.publishedAt <= :now', { now })
-      .andWhere('n.isNotice = true')
       .andWhere('n.isPublic = true')
       .andWhere('(n.displayStartAt IS NULL OR n.displayStartAt <= :now)', { now })
       .andWhere('(n.displayEndAt IS NULL OR n.displayEndAt >= :now)', { now })
@@ -135,3 +134,4 @@ export class MeController {
     return { ok: true };
   }
 }
+
