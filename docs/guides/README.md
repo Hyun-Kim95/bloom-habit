@@ -13,6 +13,7 @@
 - Google 로그인 설정: `docs/guides/google-signin-setup.md`
 - Kakao Android Key Hash: `docs/guides/kakao-android-keyhash.md`
 - iOS 설정: `docs/guides/ios-setup.md`
+- Play Console 법률 URL 운영: `docs/guides/play-console-legal-url.md`
 
 ## 데이터베이스 운영
 

@@ -26,6 +26,8 @@ abstract class ApiEndpoints {
   static String inquiryRead(String inquiryId) => '/inquiries/$inquiryId/read';
   static const String legalTerms = '/legal/terms';
   static const String legalPrivacy = '/legal/privacy';
+  static const String legalTermsPage = '/legal/terms-page';
+  static const String legalPrivacyPage = '/legal/privacy-page';
   static const String notices = '/notices';
   static String noticeRead(String noticeId) => '/notices/$noticeId/read';
 }

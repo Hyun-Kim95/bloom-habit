@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:habit_fable/l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/network/api_endpoints.dart';
+import '../../../core/network/api_config_stub.dart'
+    if (dart.library.io) '../../../core/network/api_config_io.dart'
+    as api_config;
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../data/legal/legal_repository.dart';
@@ -59,6 +64,26 @@ class _LegalViewScreenState extends ConsumerState<LegalViewScreen> {
     }
   }
 
+  Future<void> _openPublicPage() async {
+    final locale = Localizations.localeOf(context).languageCode == 'en' ? 'en' : 'ko';
+    final baseUri = Uri.parse(api_config.getApiBaseUrl());
+    final pagePath = widget.type == 'privacy'
+        ? ApiEndpoints.legalPrivacyPage
+        : ApiEndpoints.legalTermsPage;
+    final uri = baseUri.replace(
+      path: pagePath,
+      queryParameters: {'locale': locale},
+    );
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      final l10n = AppLocalizations.of(context)!;
+      final openFail = locale == 'en' ? 'Could not open URL.' : 'URL을 열 수 없어요.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.processFailed(openFail))),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -73,6 +98,15 @@ class _LegalViewScreenState extends ConsumerState<LegalViewScreen> {
           widget.type == 'privacy' ? l10n.privacyPolicy : l10n.terms,
           style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w600, color: textColor),
         ),
+        actions: [
+          IconButton(
+            onPressed: _openPublicPage,
+            tooltip: Localizations.localeOf(context).languageCode == 'en'
+                ? 'Open in browser'
+                : '브라우저에서 보기',
+            icon: const Icon(Icons.open_in_new),
+          ),
+        ],
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
