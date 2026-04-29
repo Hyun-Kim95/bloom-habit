@@ -1,11 +1,11 @@
 {
-    "name": "Bloom Habit",
-    "short_name": "Bloom Habit",
+    "name": "HabitFable",
+    "short_name": "HabitFable",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "HabitFable — 습관 기록·알림·통계.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,4 +1,4 @@
-import 'package:bloom_habit/l10n/app_localizations.dart';
+import 'package:habit_fable/l10n/app_localizations.dart';
 
 import '../../data/local/entity/local_habit.dart';
 

@@ -120,7 +120,7 @@ iOS도 푸시를 쓰려면:
 | 앱 실행 시 Firebase 관련 에러 | `android/app/google-services.json` 존재 여부, 패키지명/번들ID가 Firebase에 등록한 것과 같은지 |
 | 푸시가 안 옴 | 1) 서버 `.env`에 FIREBASE_SERVICE_ACCOUNT_PATH 또는 JSON 설정했는지 2) 한 번 로그인 후 홈까지 들어와서 토큰이 등록됐는지 3) 관리자에서 **답변 내용을 입력하고 저장**했는지 |
 | **문의 답변** 푸시만 안 옴 | 답변 **내용이 이전과 달라져야** 전송됨(동일 문구 재저장은 스킵). 서버 로그에 `inquiry_reply skipped: missing fcm token` / `firebase not initialized` / `send failed` 있는지 확인. 앱·서버가 **동일 Firebase 프로젝트**인지, iOS는 **APNs** 등록 여부 확인. |
-| Android에서 문의 푸시가 안 보임 | 서버 FCM의 `android.notification.channelId`는 앱 `lib/core/notifications/notification_service.dart`의 `_fcmChannelId` 값(`bloom_habit_inquiry_reply`)과 **반드시 동일**해야 합니다. |
+| Android에서 문의 푸시가 안 보임 | 서버 FCM의 `android.notification.channelId`는 앱 `lib/core/notifications/notification_service.dart`의 `_fcmChannelId` 값(`habit_fable_inquiry_reply`)과 **반드시 동일**해야 합니다. |
 | 에뮬레이터에서 푸시 안 옴 | Google Play 서비스 있는 에뮬레이터 사용 또는 실제 기기에서 테스트 |
 
 ---

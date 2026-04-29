@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 
 class DurationTimerService {
   static const MethodChannel _channel = MethodChannel(
-    'bloom_habit/native_config',
+    'habit_fable/native_config',
   );
 
   static bool get supported => Platform.isAndroid;

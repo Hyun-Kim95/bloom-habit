@@ -1,4 +1,4 @@
-# Bloom Habit PRD vs 현재 구현 차이 (Gap 분석)
+# HabitFable PRD vs 현재 구현 차이 (Gap 분석)
 
 문서 기준: PRD Draft v2.0 (2026-03-17)  
 작성일: 2026-03-18

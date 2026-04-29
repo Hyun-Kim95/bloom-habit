@@ -11,7 +11,7 @@ import Users from './pages/Users'
 import UserDetail from './pages/UserDetail'
 
 function getToken(): string | null {
-  return localStorage.getItem('bloom_admin_token')
+  return localStorage.getItem('habit_fable_admin_token')
 }
 
 function Protected({ children }: { children: React.ReactNode }) {

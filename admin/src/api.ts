@@ -1,15 +1,15 @@
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:3000';
 
 function getToken(): string | null {
-  return localStorage.getItem('bloom_admin_token');
+  return localStorage.getItem('habit_fable_admin_token');
 }
 
 export function setAdminToken(token: string) {
-  localStorage.setItem('bloom_admin_token', token);
+  localStorage.setItem('habit_fable_admin_token', token);
 }
 
 export function clearAdminToken() {
-  localStorage.removeItem('bloom_admin_token');
+  localStorage.removeItem('habit_fable_admin_token');
 }
 
 export async function adminLogin(email: string, password: string): Promise<{ accessToken: string }> {

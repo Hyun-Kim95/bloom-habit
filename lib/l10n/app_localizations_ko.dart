@@ -9,7 +9,7 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
-  String get appTitle => 'Bloom Habit';
+  String get appTitle => 'HabitFable';
 
   @override
   String get navHome => '홈';

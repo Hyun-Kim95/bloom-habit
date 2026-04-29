@@ -2,7 +2,7 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:bloom_habit/l10n/app_localizations.dart';
+import 'package:habit_fable/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -147,7 +147,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Icon(Icons.eco, size: 56, color: isDark ? AppColors.primaryDark : AppColors.primary),
                   const SizedBox(height: 16),
                   Text(
-                    'Bloom Habit',
+                    'HabitFable',
                     style: GoogleFonts.lora(
                       fontSize: 28,
                       fontWeight: FontWeight.w600,

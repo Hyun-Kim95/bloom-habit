@@ -28,7 +28,7 @@ import es.antonborri.home_widget.HomeWidgetGlanceStateDefinition
  * 홈 위젯 UI: 오늘 완료한 습관 수 / 전체 습관 수 표시.
  * 탭 시 앱(MainActivity) 실행.
  */
-class BloomHabitGlanceAppWidget : GlanceAppWidget() {
+class HabitFableGlanceAppWidget : GlanceAppWidget() {
 
     override val stateDefinition = HomeWidgetGlanceStateDefinition()
 
@@ -39,7 +39,7 @@ class BloomHabitGlanceAppWidget : GlanceAppWidget() {
             val todayCompleted = prefs.getInt("today_completed", 0)
             val totalHabits = prefs.getInt("total_habits", 0)
 
-            BloomHabitContent(
+            HabitFableWidgetContent(
                 context = context,
                 todayCompleted = todayCompleted,
                 totalHabits = totalHabits,
@@ -49,7 +49,7 @@ class BloomHabitGlanceAppWidget : GlanceAppWidget() {
 }
 
 @androidx.compose.runtime.Composable
-private fun BloomHabitContent(
+private fun HabitFableWidgetContent(
     context: Context,
     todayCompleted: Int,
     totalHabits: Int,
@@ -64,7 +64,7 @@ private fun BloomHabitContent(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Bloom Habit",
+            text = "HabitFable",
             style = TextStyle(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,

@@ -1,4 +1,4 @@
-# Bloom Habit API Server (NestJS)
+# HabitFable API Server (NestJS)
 
 ## 실행
 
@@ -70,7 +70,7 @@ npm run start:dev
 - `GET/POST/PATCH/DELETE /admin/notices` — 공지
 - `GET/PATCH /admin/system-config` — 시스템 설정 (예: ai_fallback_messages)
 
-관리자 JWT는 `ADMIN_JWT_SECRET` 환경 변수로 서명 (기본값: bloom-habit-admin-secret).
+관리자 JWT는 `ADMIN_JWT_SECRET` 환경 변수로 서명 (기본값: habit-fable-admin-secret).
 
 ## AI 코멘트
 

@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:kakao_flutter_sdk_common/kakao_flutter_sdk_common.dart';
 
-const MethodChannel _configChannel = MethodChannel('bloom_habit/native_config');
+const MethodChannel _configChannel = MethodChannel('habit_fable/native_config');
 
 /// Loads keys from `android/local.properties` (via [BuildConfig] + MethodChannel)
 /// so Kakao/Naver work without `--dart-define`. Still supports dart-define overrides.

@@ -1,4 +1,4 @@
-# Bloom Habit PRD 갭 작업 TODO 리스트
+# HabitFable PRD 갭 작업 TODO 리스트
 
 갭 분석(09-prd-vs-current-gap.md) 기준 작업 목록. 우선순위 P1 → P2 → P3 순.
 
@@ -35,7 +35,7 @@
 
 ### 위젯
 - [x] **앱**: Android 홈 화면 위젯 1종 (Glance, 오늘 n/m 완료) + 데이터 갱신·탭 시 앱 진입
-- [ ] **앱**: iOS 홈 화면 위젯 1종 (동일 컨셉) — Xcode에서 Widget Extension 추가 후 `iOSName: 'BloomHabitWidget'` 연동 필요
+- [ ] **앱**: iOS 홈 화면 위젯 1종 (동일 컨셉) — Xcode에서 Widget Extension 추가 후 `iOSName: 'HabitFableWidget'` 연동 필요
 
 ### 수익화
 - [x] **앱**: AdMob **적응형 배너** + Google Play 인앱 결제(`remove_ads` 비소모, `donation_small` / `donation_medium` 소모) — 설정 → 후원 및 광고 제거 (`docs/spec/11-monetization-admob-iap.md`)

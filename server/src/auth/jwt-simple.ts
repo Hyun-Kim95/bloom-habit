@@ -1,6 +1,6 @@
 import * as crypto from 'crypto';
 
-const defaultSecret = process.env.JWT_SECRET ?? 'bloom-habit-dev-secret';
+const defaultSecret = process.env.JWT_SECRET ?? 'habit-fable-dev-secret';
 
 function signWithSecret(
   payload: object,

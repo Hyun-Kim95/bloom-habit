@@ -7,7 +7,7 @@ import { sign as signJwt, verify as verifyJwt } from '../auth/jwt-simple';
 import { AdminUser } from '../entities';
 import { v4 as uuidv4 } from 'uuid';
 
-const ADMIN_SECRET = process.env.ADMIN_JWT_SECRET ?? 'bloom-habit-admin-secret';
+const ADMIN_SECRET = process.env.ADMIN_JWT_SECRET ?? 'habit-fable-admin-secret';
 
 function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');

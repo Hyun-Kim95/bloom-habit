@@ -490,7 +490,7 @@ export class AuthService {
   }
 
   private uploadHmac(value: string): string {
-    const secret = process.env.APP_UPLOAD_TOKEN_SECRET || process.env.JWT_SECRET || 'bloom-habit-avatar-upload-secret';
+    const secret = process.env.APP_UPLOAD_TOKEN_SECRET || process.env.JWT_SECRET || 'habit-fable-avatar-upload-secret';
     return createHmac('sha256', secret).update(value).digest('base64url');
   }
 

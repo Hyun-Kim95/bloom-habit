@@ -40,7 +40,7 @@ class MainActivity : FlutterFragmentActivity() {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "bloom_habit/native_config",
+            "habit_fable/native_config",
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "getSocialKeys" -> {

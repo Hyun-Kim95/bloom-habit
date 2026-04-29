@@ -19,6 +19,7 @@ import {
   reseedTemplateNameEn,
 } from '../config/default-habit-templates';
 import { PushService } from '../push/push.service';
+import { formatLegalEffectiveFrom } from '../legal/format-effective-from';
 
 export interface InquiryAdminDto {
   id: string;
@@ -724,7 +725,7 @@ export class AdminDataService {
       version: d.version,
       title: d.title,
       content: d.content,
-      effectiveFrom: d.effectiveFrom?.toISOString().slice(0, 10) ?? null,
+      effectiveFrom: formatLegalEffectiveFrom(d.effectiveFrom),
       createdAt: d.createdAt.toISOString(),
       updatedAt: d.updatedAt.toISOString(),
     };

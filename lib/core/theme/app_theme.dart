@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Bloom Habit design tokens aligned with admin CSS palette.
+/// HabitFable design tokens aligned with admin CSS palette.
 class AppColors {
   // Light (approximate hex values based on oklch palette)
   static const Color background = Color(0xFFF5F6FB);

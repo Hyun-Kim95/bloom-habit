@@ -67,7 +67,7 @@ export class PushService {
           priority: 'high' as const,
           notification: {
             // Must match Flutter [NotificationService] channel id for local/FCM display.
-            channelId: 'bloom_habit_inquiry_reply',
+            channelId: 'habit_fable_inquiry_reply',
           },
         },
         apns: {

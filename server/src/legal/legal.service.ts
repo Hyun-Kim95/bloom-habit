@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LegalDocument } from '../entities';
 import type { LegalDocumentType } from '../entities/legal-document.entity';
+import { formatLegalEffectiveFrom } from './format-effective-from';
 
 export interface LegalDocumentPublicDto {
   id: string;
@@ -37,7 +38,7 @@ export class LegalService {
       version: doc.version,
       title: doc.title,
       content: doc.content,
-      effectiveFrom: doc.effectiveFrom?.toISOString().slice(0, 10) ?? null,
+      effectiveFrom: formatLegalEffectiveFrom(doc.effectiveFrom),
       updatedAt: doc.updatedAt.toISOString(),
     };
   }

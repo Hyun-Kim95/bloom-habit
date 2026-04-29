@@ -8,11 +8,11 @@ void main() {
       const ProviderScope(
         child: MaterialApp(
           home: Scaffold(
-            body: Center(child: Text('Bloom Habit test')),
+            body: Center(child: Text('HabitFable test')),
           ),
         ),
       ),
     );
-    expect(find.text('Bloom Habit test'), findsOneWidget);
+    expect(find.text('HabitFable test'), findsOneWidget);
   });
 }

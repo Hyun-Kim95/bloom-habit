@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:bloom_habit/l10n/app_localizations.dart';
+import 'package:habit_fable/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -80,7 +80,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       color: primary,
                       backgroundColor: primary.withValues(alpha: 0.12),
                     ),
-                    title: 'Bloom Habit',
+                    title: 'HabitFable',
                     subtitle: l10n.onboardingSubtitle1,
                     body: l10n.onboardingBody1,
                     isDark: isDark,

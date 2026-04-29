@@ -42,7 +42,7 @@ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -sto
 2. **API 및 서비스** → **사용자 인증 정보** → **+ 사용자 인증 정보 만들기** → **OAuth 클라이언트 ID**.
 3. **애플리케이션 유형**: **Android** 선택.
 4. 입력:
-   - **이름**: 예) Bloom Habit Android
+   - **이름**: 예) HabitFable Android
    - **패키지 이름**: `com.khyun.bloom_habit`
    - **SHA-1 인증서 지문**: 위에서 복사한 SHA-1 (콜론 포함, 한 줄)
 5. **만들기** 클릭.
@@ -53,7 +53,7 @@ Android에서 **idToken**을 받아 서버로 보내려면, 같은 프로젝트�
 
 1. **사용자 인증 정보** → **+ 사용자 인증 정보 만들기** → **OAuth 클라이언트 ID**.
 2. **애플리케이션 유형**: **웹 애플리케이션** 선택.
-3. **이름**: 예) Bloom Habit Web
+3. **이름**: 예) HabitFable Web
 4. **만들기** 클릭 후 나온 **클라이언트 ID** (예: `123456789-xxx.apps.googleusercontent.com`) 복사.
 5. 앱 코드에 넣기: `lib/core/router/app_providers.dart` 에서  
    `kGoogleServerClientId` 값을 위에서 복사한 **클라이언트 ID**로 바꿉니다.  

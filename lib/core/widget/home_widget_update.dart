@@ -14,10 +14,10 @@ Future<void> updateHomeWidget({
     await HomeWidget.saveWidgetData<int>('total_habits', totalHabits);
     await HomeWidget.updateWidget(
       qualifiedAndroidName: Platform.isAndroid
-          ? 'com.khyun.bloom_habit.glance.BloomHabitWidgetProvider'
+          ? 'com.khyun.bloom_habit.glance.HabitFableWidgetProvider'
           : null,
-      androidName: 'BloomHabitWidgetProvider',
-      iOSName: 'BloomHabitWidget',
+      androidName: 'HabitFableWidgetProvider',
+      iOSName: 'HabitFableWidget',
     );
   } catch (_) {
     // Ignore when widget integration is not configured.

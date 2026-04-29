@@ -1,5 +1,5 @@
-name: bloom_habit
-description: "A new Flutter project."
+name: habit_fable
+description: "HabitFable — 습관 기록·알림·통계 앱."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

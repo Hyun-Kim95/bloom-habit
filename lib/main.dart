@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:bloom_habit/l10n/app_localizations.dart';
+import 'package:habit_fable/l10n/app_localizations.dart';
 import 'dart:async';
 
 import 'core/notifications/notification_service.dart';
@@ -32,21 +32,21 @@ void main() async {
   await notif.init();
   await FcmNotificationListener.init(notif);
   runApp(
-    ProviderScope(child: BloomHabitApp(initialLocaleCode: initialLocaleCode)),
+    ProviderScope(child: HabitFableApp(initialLocaleCode: initialLocaleCode)),
   );
 }
 
-class BloomHabitApp extends ConsumerStatefulWidget {
-  const BloomHabitApp({super.key, required this.initialLocaleCode});
+class HabitFableApp extends ConsumerStatefulWidget {
+  const HabitFableApp({super.key, required this.initialLocaleCode});
 
   /// Locale from SharedPreferences before [appSettingsProvider] resolves (avoids a `ko` first frame).
   final String initialLocaleCode;
 
   @override
-  ConsumerState<BloomHabitApp> createState() => _BloomHabitAppState();
+  ConsumerState<HabitFableApp> createState() => _HabitFableAppState();
 }
 
-class _BloomHabitAppState extends ConsumerState<BloomHabitApp> {
+class _HabitFableAppState extends ConsumerState<HabitFableApp> {
   late final GoRouter _router;
   StreamSubscription<String>? _fcmTypeSub;
 
@@ -83,7 +83,7 @@ class _BloomHabitAppState extends ConsumerState<BloomHabitApp> {
     final localeCode = settings?.localeCode ?? widget.initialLocaleCode;
     AppStrings.localeCode = localeCode;
     return MaterialApp.router(
-      title: 'Bloom Habit',
+      title: 'HabitFable',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,

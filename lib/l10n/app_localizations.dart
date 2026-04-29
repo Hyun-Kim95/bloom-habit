@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In ko, this message translates to:
-  /// **'Bloom Habit'**
+  /// **'HabitFable'**
   String get appTitle;
 
   /// No description provided for @navHome.

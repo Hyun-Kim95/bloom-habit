@@ -52,14 +52,14 @@ const SAMPLE_NOTICES: {
     publishedAt: new Date('2026-02-15T08:00:00.000Z'),
   },
   {
-    title: 'Bloom Habit 이용 안내',
+    title: 'HabitFable 이용 안내',
     body:
-      'Bloom Habit은 작은 습관을 매일 기록하고 통계로 확인할 수 있는 서비스입니다.\n' +
+      'HabitFable은 작은 습관을 매일 기록하고 통계로 확인할 수 있는 서비스입니다.\n' +
       'Google·카카오·네이버 계정으로 간편하게 시작할 수 있어요.\n' +
       '문의는 앱 내 문의하기를 이용해 주세요.',
-    titleEn: 'Welcome to Bloom Habit',
+    titleEn: 'Welcome to HabitFable',
     bodyEn:
-      'Bloom Habit helps you log small daily habits and review them with stats.\n' +
+      'HabitFable helps you log small daily habits and review them with stats.\n' +
       'Sign in easily with Google, Kakao, or Naver.\n' +
       'For questions, use In-app contact.',
     publishedAt: new Date('2026-02-01T10:00:00.000Z'),

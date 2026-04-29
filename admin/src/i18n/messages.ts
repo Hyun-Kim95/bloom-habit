@@ -1,6 +1,6 @@
 export type AdminLang = 'ko' | 'en'
 
-export const STORAGE_KEY = 'bloom_admin_lang'
+export const STORAGE_KEY = 'habit_fable_admin_lang'
 
 /** Flat keys — use with t('key') */
 export const messages: Record<AdminLang, Record<string, string>> = {
@@ -13,7 +13,7 @@ export const messages: Record<AdminLang, Record<string, string>> = {
     'common.delete': '삭제',
     'common.edit': '수정',
 
-    'layout.brand': 'Bloom Habit',
+    'layout.brand': 'HabitFable',
     'layout.subtitle': '관리자',
     'layout.nav.dashboard': '대시보드',
     'layout.nav.users': '회원 관리',
@@ -26,7 +26,7 @@ export const messages: Record<AdminLang, Record<string, string>> = {
     'layout.themeSuffix': ' 모드',
     'layout.logout': '로그아웃',
 
-    'login.title': 'Bloom Habit 관리자',
+    'login.title': 'HabitFable 관리자',
     'login.subtitle': '로그인',
     'login.email': '이메일',
     'login.password': '비밀번호',
@@ -241,7 +241,7 @@ export const messages: Record<AdminLang, Record<string, string>> = {
     'common.delete': 'Delete',
     'common.edit': 'Edit',
 
-    'layout.brand': 'Bloom Habit',
+    'layout.brand': 'HabitFable',
     'layout.subtitle': 'Admin',
     'layout.nav.dashboard': 'Dashboard',
     'layout.nav.users': 'Users',
@@ -254,7 +254,7 @@ export const messages: Record<AdminLang, Record<string, string>> = {
     'layout.themeSuffix': ' mode',
     'layout.logout': 'Log out',
 
-    'login.title': 'Bloom Habit Admin',
+    'login.title': 'HabitFable Admin',
     'login.subtitle': 'Sign in',
     'login.email': 'Email',
     'login.password': 'Password',

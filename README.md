@@ -1,6 +1,6 @@
-# Bloom Habit
+# HabitFable
 
-`Bloom Habit`은 사용자의 습관 생성, 기록, 통계를 지원하는 서비스입니다.
+`HabitFable`은 사용자의 습관 생성, 기록, 통계를 지원하는 서비스입니다.
 프로젝트는 Flutter 앱, NestJS API 서버, React 기반 관리자 웹으로 구성되어 있습니다.
 
 ## 구성

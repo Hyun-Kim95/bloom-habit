@@ -1,6 +1,6 @@
-# Bloom Habit 로컬 실행 가이드
+# HabitFable 로컬 실행 가이드
 
-이 문서는 로컬 개발 환경에서 Bloom Habit 프로젝트를 실행하는 기본 절차를 정리합니다.
+이 문서는 로컬 개발 환경에서 HabitFable 프로젝트를 실행하는 기본 절차를 정리합니다.
 
 ## 1) API 서버 실행
 
@@ -17,7 +17,7 @@ npm run start:dev
 
 ## 2) Flutter 앱 실행
 
-프로젝트 루트(`bloom_habit`)에서 실행합니다.
+저장소 루트(Flutter `pubspec.yaml`이 있는 디렉터리)에서 실행합니다.
 
 ```bash
 flutter pub get

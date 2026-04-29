@@ -16,9 +16,9 @@ class NotificationService {
   static final NotificationService _instance = NotificationService._();
   factory NotificationService() => _instance;
 
-  static const _channelId = 'bloom_habit_reminder';
+  static const _channelId = 'habit_fable_reminder';
   static String get _channelName => AppStrings.notifChannelHabit;
-  static const _fcmChannelId = 'bloom_habit_inquiry_reply';
+  static const _fcmChannelId = 'habit_fable_inquiry_reply';
   static String get _fcmChannelName => AppStrings.notifChannelInquiry;
 
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
