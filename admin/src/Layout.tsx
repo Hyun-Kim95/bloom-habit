@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { clearAdminToken } from './api'
 import { useI18n } from './i18n/I18nContext'
@@ -13,8 +13,15 @@ const navPaths = [
   { path: '/legal', key: 'layout.nav.legal' },
 ] as const
 
+const THEME_STORAGE_KEY = 'habit_fable_admin_theme'
+
+const readStoredTheme = () => {
+  if (typeof window === 'undefined') return 'light'
+  return window.localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light'
+}
+
 export default function Layout() {
-  const [dark, setDark] = useState(false)
+  const [dark, setDark] = useState(() => readStoredTheme() === 'dark')
   const location = useLocation()
   const navigate = useNavigate()
   const { t, lang, setLang } = useI18n()
@@ -24,10 +31,14 @@ export default function Layout() {
     [t],
   )
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    document.documentElement.classList.toggle('dark', dark)
+    window.localStorage.setItem(THEME_STORAGE_KEY, dark ? 'dark' : 'light')
+  }, [dark])
+
   const toggleDark = () => {
-    const next = !dark
-    setDark(next)
-    document.documentElement.classList.toggle('dark', next)
+    setDark((prev) => !prev)
   }
 
   const handleLogout = () => {
