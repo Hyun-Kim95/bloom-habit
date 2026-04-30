@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:habit_fable/l10n/app_localizations.dart';
@@ -34,6 +36,8 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   double? _todayValue;
   bool _recording = false;
   bool _durationRunning = false;
+  int _runningElapsedMs = 0;
+  Timer? _durationTicker;
   bool _reminderEnabled = false;
   int _reminderHour = 9;
   int _reminderMinute = 0;
@@ -47,6 +51,42 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     _habit = widget.habit;
     _loadStats();
     _loadRecordHistory();
+  }
+
+  @override
+  void dispose() {
+    _durationTicker?.cancel();
+    super.dispose();
+  }
+
+  void _setRunningTimerState(DurationTimerState timerState) {
+    if (!(timerState.running && timerState.habitId == _habit.serverId)) {
+      _durationTicker?.cancel();
+      _durationTicker = null;
+      _durationRunning = false;
+      _runningElapsedMs = 0;
+      return;
+    }
+    final baseElapsed = timerState.elapsedMs ?? 0;
+    final startedAtMs = timerState.startedAtMs;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final derived = startedAtMs != null ? (nowMs - startedAtMs).clamp(0, 1 << 31) : 0;
+    _durationRunning = true;
+    _runningElapsedMs = baseElapsed > 0 ? baseElapsed : derived;
+    _durationTicker?.cancel();
+    _durationTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || !_durationRunning) return;
+      setState(() {
+        _runningElapsedMs += 1000;
+      });
+    });
+  }
+
+  String _formatRunningDuration(int elapsedMs) {
+    final totalSec = (elapsedMs ~/ 1000).clamp(0, 359999);
+    final mm = (totalSec ~/ 60).toString().padLeft(2, '0');
+    final ss = (totalSec % 60).toString().padLeft(2, '0');
+    return '$mm:$ss';
   }
 
   Future<void> _loadStats() async {
@@ -71,6 +111,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
             timerState.running &&
             timerState.habitId != null &&
             timerState.habitId == _habit.serverId;
+        _setRunningTimerState(timerState);
       });
     }
   }
@@ -99,7 +140,10 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     if (goalType == 'duration' && _durationRunning) {
       setState(() {
         _durationRunning = false;
+        _runningElapsedMs = 0;
       });
+      _durationTicker?.cancel();
+      _durationTicker = null;
       try {
         final repo = ref.read(habitRepositoryProvider);
         final elapsedMs = await DurationTimerService.stop();
@@ -161,9 +205,17 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         if (mounted) {
           setState(() {
             _durationRunning = true;
+            _runningElapsedMs = 0;
             _recording = false;
           });
         }
+        _durationTicker?.cancel();
+        _durationTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+          if (!mounted || !_durationRunning) return;
+          setState(() {
+            _runningElapsedMs += 1000;
+          });
+        });
         try {
           await DurationTimerService.start(
             habitName: _habit.name ?? 'Habit',
@@ -173,8 +225,11 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
           if (mounted) {
             setState(() {
               _durationRunning = false;
+              _runningElapsedMs = 0;
             });
           }
+          _durationTicker?.cancel();
+          _durationTicker = null;
         }
         return;
       } else {
@@ -437,7 +492,8 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     final goalValue = h.goalValue;
     String? progressText;
     if (goalType != 'completion' && goalValue != null) {
-      final current = _todayValue ?? 0;
+      final runningMinutes = _durationRunning ? (_runningElapsedMs ~/ 60000).toDouble() : null;
+      final current = runningMinutes ?? (_todayValue ?? 0);
       final unitSuffix = goalType == 'count'
           ? (languageCode == 'en' ? ' times' : '회')
           : (h.unit != null
@@ -583,6 +639,15 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                         ),
                 ),
               ),
+            if (goalType == 'duration' && _durationRunning) ...[
+              const SizedBox(height: 8),
+              Text(
+                languageCode == 'en'
+                    ? 'Running ${_formatRunningDuration(_runningElapsedMs)}'
+                    : '진행중 ${_formatRunningDuration(_runningElapsedMs)}',
+                style: GoogleFonts.dmSans(fontSize: 13, color: muted),
+              ),
+            ],
             const SizedBox(height: 32),
             _buildReminderSection(isDark),
             const SizedBox(height: 24),

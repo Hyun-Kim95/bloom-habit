@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:habit_fable/l10n/app_localizations.dart';
@@ -56,6 +58,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Map<String, bool> _todayCompleted = {};
   Map<String, double> _todayValues = {};
   final Set<String> _durationRunningHabits = <String>{};
+  String? _runningDurationHabitId;
+  int _runningElapsedMs = 0;
+  Timer? _durationTicker;
 
   /// 히트맵 월별 완료 수 (선형 월 인덱스 → 날짜키 → 횟수).
   final Map<int, Map<String, int>> _heatmapCache = {};
@@ -114,8 +119,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   void dispose() {
+    _durationTicker?.cancel();
     _heatmapPageController.dispose();
     super.dispose();
+  }
+
+  void _syncRunningDuration(DurationTimerState timerState) {
+    if (!(timerState.running && timerState.habitId != null)) {
+      _durationTicker?.cancel();
+      _durationTicker = null;
+      _runningDurationHabitId = null;
+      _runningElapsedMs = 0;
+      return;
+    }
+    final sid = timerState.habitId!;
+    final baseElapsed = timerState.elapsedMs ?? 0;
+    final startedAtMs = timerState.startedAtMs;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final derived = startedAtMs != null ? (nowMs - startedAtMs).clamp(0, 1 << 31) : 0;
+    _runningDurationHabitId = sid;
+    _runningElapsedMs = baseElapsed > 0 ? baseElapsed : derived;
+    _durationTicker?.cancel();
+    _durationTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _runningDurationHabitId == null) return;
+      setState(() {
+        _runningElapsedMs += 1000;
+      });
+    });
+  }
+
+  String _formatRunningDuration(int elapsedMs) {
+    final totalSec = (elapsedMs ~/ 1000).clamp(0, 359999);
+    final mm = (totalSec ~/ 60).toString().padLeft(2, '0');
+    final ss = (totalSec % 60).toString().padLeft(2, '0');
+    return '$mm:$ss';
   }
 
   Future<void> _load() async {
@@ -148,6 +185,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ? <String>{timerState.habitId!}
                   : <String>{},
             );
+          _syncRunningDuration(timerState);
           _heatmapCache
             ..clear()
             ..[curIdx] = heatmapCounts;
@@ -318,6 +356,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ),
                             onRecord: (h) => _recordHabit(h),
                             todayValues: _todayValues,
+                            runningDurationHabitId: _runningDurationHabitId,
+                            runningElapsedMs: _runningElapsedMs,
+                            runningDurationLabel: _formatRunningDuration(_runningElapsedMs),
                             cardColor: cardColor,
                             border: border,
                             primary: primary,
@@ -370,6 +411,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           if (mounted) {
             setState(() {
               _durationRunningHabits.remove(sid);
+              _runningDurationHabitId = null;
+              _runningElapsedMs = 0;
             });
           }
           int? elapsedMs;
@@ -417,6 +460,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           if (mounted) {
             setState(() {
               _durationRunningHabits.add(sid);
+              _runningDurationHabitId = sid;
+              _runningElapsedMs = 0;
             });
           }
           try {
@@ -663,6 +708,9 @@ class _TodaySection extends StatelessWidget {
     required this.todayCompleted,
     required this.durationRunningHabits,
     required this.todayValues,
+    required this.runningDurationHabitId,
+    required this.runningElapsedMs,
+    required this.runningDurationLabel,
     required this.l10n,
     required this.onAddNew,
     required this.onTapHabit,
@@ -679,6 +727,9 @@ class _TodaySection extends StatelessWidget {
   final Map<String, bool> todayCompleted;
   final Set<String> durationRunningHabits;
   final Map<String, double> todayValues;
+  final String? runningDurationHabitId;
+  final int runningElapsedMs;
+  final String runningDurationLabel;
   final AppLocalizations l10n;
   final VoidCallback onAddNew;
   final void Function(LocalHabit) onTapHabit;
@@ -747,6 +798,11 @@ class _TodaySection extends StatelessWidget {
               durationRunning:
                   h.serverId != null &&
                   durationRunningHabits.contains(h.serverId),
+              runningElapsedMs:
+                  h.serverId != null && h.serverId == runningDurationHabitId
+                  ? runningElapsedMs
+                  : null,
+              runningDurationLabel: runningDurationLabel,
               cardColor: cardColor,
               border: border,
               primary: primary,
@@ -768,6 +824,8 @@ class _DashboardHabitCard extends StatelessWidget {
     required this.onRecord,
     this.todayValue,
     this.durationRunning = false,
+    this.runningElapsedMs,
+    this.runningDurationLabel,
     required this.cardColor,
     required this.border,
     required this.primary,
@@ -782,6 +840,8 @@ class _DashboardHabitCard extends StatelessWidget {
   final VoidCallback onRecord;
   final double? todayValue;
   final bool durationRunning;
+  final int? runningElapsedMs;
+  final String? runningDurationLabel;
   final Color cardColor;
   final Color border;
   final Color primary;
@@ -854,16 +914,44 @@ class _DashboardHabitCard extends StatelessWidget {
                       ],
                       if ((habit.goalType ?? 'completion') != 'completion' &&
                           habit.goalValue != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          '${(todayValue ?? 0).toStringAsFixed(0)}'
-                          '${(habit.goalType ?? 'completion').toLowerCase().trim() == 'count' ? (languageCode == 'en' ? ' times' : '회') : (habit.unit != null ? ' ${localizeHabitUnit(habit.unit!, languageCode)}' : '')}'
-                          ' / ${habit.goalValue!.toStringAsFixed(0)}'
-                          '${(habit.goalType ?? 'completion').toLowerCase().trim() == 'count' ? (languageCode == 'en' ? ' times' : '회') : (habit.unit != null ? ' ${localizeHabitUnit(habit.unit!, languageCode)}' : '')}',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 12,
-                            color: textMuted,
-                          ),
+                        Builder(
+                          builder: (_) {
+                            final isDurationRunning =
+                                (habit.goalType == 'duration') &&
+                                durationRunning &&
+                                runningElapsedMs != null;
+                            final currentValue = isDurationRunning
+                                ? (runningElapsedMs! ~/ 60000).toDouble()
+                                : (todayValue ?? 0);
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${currentValue.toStringAsFixed(0)}'
+                                  '${(habit.goalType ?? 'completion').toLowerCase().trim() == 'count' ? (languageCode == 'en' ? ' times' : '회') : (habit.unit != null ? ' ${localizeHabitUnit(habit.unit!, languageCode)}' : '')}'
+                                  ' / ${habit.goalValue!.toStringAsFixed(0)}'
+                                  '${(habit.goalType ?? 'completion').toLowerCase().trim() == 'count' ? (languageCode == 'en' ? ' times' : '회') : (habit.unit != null ? ' ${localizeHabitUnit(habit.unit!, languageCode)}' : '')}',
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 12,
+                                    color: textMuted,
+                                  ),
+                                ),
+                                if (isDurationRunning) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    languageCode == 'en'
+                                        ? 'Running ${runningDurationLabel ?? ''}'
+                                        : '진행중 ${runningDurationLabel ?? ''}',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 11,
+                                      color: textMuted,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            );
+                          },
                         ),
                       ],
                     ],

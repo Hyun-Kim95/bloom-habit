@@ -140,6 +140,18 @@ class AuthRepository {
     return s.split('\n').first;
   }
 
+  bool _isUserCancelledSocialLogin(Object e) {
+    final message = e.toString().toLowerCase();
+    return message.contains('access_denied') ||
+        message.contains('canceled by user') ||
+        message.contains('cancelled by user') ||
+        message.contains('user canceled') ||
+        message.contains('user cancelled') ||
+        message.contains('login canceled') ||
+        message.contains('login cancelled') ||
+        message.contains('취소');
+  }
+
   Future<AuthResult> signInWithKakao() async {
     if (!kIsWeb && Platform.isAndroid) {
       await initAndroidSocialSdks();
@@ -173,6 +185,9 @@ class AuthRepository {
           : null;
       return AuthResult.fail(msg ?? e.message ?? AppStrings.authNetworkError);
     } catch (e) {
+      if (_isUserCancelledSocialLogin(e)) {
+        return AuthResult.cancelled();
+      }
       return AuthResult.fail(_kakaoLoginErrorMessage(e));
     }
   }

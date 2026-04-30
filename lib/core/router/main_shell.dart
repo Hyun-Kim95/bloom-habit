@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:habit_fable/l10n/app_localizations.dart';
 
+import '../config/app_flags.dart';
 import '../monetization/adaptive_banner_ad_slot.dart';
 import '../theme/app_theme.dart';
 import 'app_providers.dart';
@@ -94,7 +95,7 @@ class _MainShellState extends ConsumerState<MainShell> {
       body: Column(
         children: [
           Expanded(child: widget.navigationShell),
-          const AdaptiveBannerAdSlot(),
+          if (!kScreenshotMode) const AdaptiveBannerAdSlot(),
         ],
       ),
       bottomNavigationBar: Container(

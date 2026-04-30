@@ -76,6 +76,17 @@ class HabitRepository {
     final res = await _dio.get<Map<String, dynamic>>(ApiEndpoints.sync);
     if (res.data == null) return;
     final isar = await _isarFuture;
+    final existingHabits = await isar.localHabits.where().findAll();
+    final reminderSnapshot = <String, ({bool? enabled, int? hour, int? minute})>{};
+    for (final habit in existingHabits) {
+      final sid = habit.serverId;
+      if (sid == null || sid.isEmpty) continue;
+      reminderSnapshot[sid] = (
+        enabled: habit.reminderEnabled,
+        hour: habit.reminderHour,
+        minute: habit.reminderMinute,
+      );
+    }
     await isar.writeTxn(() async {
       // Account switch safety: rebuild local snapshot from server payload.
       await isar.localHabits.clear();
@@ -99,6 +110,15 @@ class HabitRepository {
             ..archivedAt = _parseDateTime(map['archivedAt'])
             ..createdAt = _parseDateTime(map['createdAt'])
             ..updatedAt = _parseDateTime(map['updatedAt']);
+          final sid = local.serverId;
+          if (sid != null) {
+            final reminder = reminderSnapshot[sid];
+            if (reminder != null) {
+              local.reminderEnabled = reminder.enabled;
+              local.reminderHour = reminder.hour;
+              local.reminderMinute = reminder.minute;
+            }
+          }
           if (local.serverId != null) {
             await isar.localHabits.put(local);
           }

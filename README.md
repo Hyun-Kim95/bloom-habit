@@ -19,6 +19,12 @@
 - 계정/보관 정책: `docs/spec/04-account-policy.md`
 - 변경 이력: `docs/CHANGELOG.md`
 
+## 스크린샷 모드
+
+- UI 캡처 시 디버그 배너와 하단 광고 배너를 숨기려면 아래처럼 실행합니다.
+  - `flutter run --dart-define=SCREENSHOT_MODE=true`
+- 플래그 미지정 시 기존 동작(디버그 배너/광고 정책)을 유지합니다.
+
 ## 관리자 공지 운영 정책
 
 - 공지 생성/수정 시 아래 필드를 함께 설정합니다.

@@ -14,6 +14,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/social/android_social_sdk_init.dart';
 import 'core/settings/app_settings.dart';
+import 'core/config/app_flags.dart';
 import 'l10n/app_strings.dart';
 
 void main() async {
@@ -83,6 +84,7 @@ class _HabitFableAppState extends ConsumerState<HabitFableApp> {
     final localeCode = settings?.localeCode ?? widget.initialLocaleCode;
     AppStrings.localeCode = localeCode;
     return MaterialApp.router(
+      debugShowCheckedModeBanner: !kScreenshotMode,
       title: 'HabitFable',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
