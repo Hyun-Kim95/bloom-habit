@@ -76,3 +76,7 @@ windows/flutter/generated_plugins.cmake
 .env
 .env.local
 .env.*.local
+
+# Screenshots / local capture artifacts
+screenshot/
+*Screenshots*.zip
