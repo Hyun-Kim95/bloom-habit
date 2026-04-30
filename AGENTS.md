@@ -17,9 +17,13 @@
 - 공통 작업 원칙(계획/출력/커밋 안전/완료 보고)은 User-level 규칙을 기본으로 적용한다.
 - 이 파일은 오케스트레이션, 역할 분담, 우선순위, 직접 처리 예외 목록 같은 **프로젝트 로컬 SSOT**만 다룬다.
 - 실행 계획 상세 형식과 재계획 트리거는 User-level 규칙을 따른다.
+- UI가 포함된 신규 기능은 디자인 산출물(화면/상태/반응형/다크모드) 승인 전 코드 구현 또는 병렬구현을 시작하지 않는다.
+- 사용자가 "다음 작업"을 물었을 때 UI 변경 범위의 디자인 산출물이 없으면 구현보다 디자인 작업을 우선 제안한다.
+- 이중 디자인안을 요구하는 범위에서는 안 A(로컬 목업)와 안 B(Stitch 또는 동등 도구)를 준비하고, 비교표와 선택 사유를 기록한 뒤에만 구현으로 넘어간다.
+- 이중 디자인안 범위의 기본 순서는 **A/B 병렬 동시 작성 → 동시 제시·비교 → HUMAN 선택/승인**이며, 승인 전 구현으로 넘어가지 않는다.
 - `start-feature`·`plan-feature`·`parallel-delivery`·`verify-change`·`document-change`·`bugfix-flow`·`release-check`는 User-level skills를 우선 사용한다.
 - 고객 프로젝트형 게이트/승인 흐름은 `.cursor/rules/60-delivery-gates.mdc`, `.cursor/rules/70-client-lifecycle-default.mdc`를 따른다.
-- 작업 중 규칙 후보 수집/승인 훅은 팀이 합의해 활성화한 경우에만 운영하며, 미합의 상태에서는 참고용 로그로만 취급한다(자동 SSOT 반영 금지).
+- UI 병렬구현은 디자인 승인 + API 계약 고정이 완료된 뒤에만 허용한다.
 - 같은 내용을 Rules, Skills, Agents 파일에 중복 정의하지 않는다.
 - 규칙이 많을 때의 초점 맞추기·한 줄 요약은 `docs/agent/rules-context-notes.md`를 참고한다.
 - 규칙 파일을 고칠 때의 정합 점검은 `docs/agent/rules-maintenance-checklist.md`를 참고한다.
@@ -65,7 +69,6 @@
 
 ## 기본 진입 규칙
 
-- 본 저장소는 기본적으로 운영 중 제품의 연속 개발 단계(이미 Gate 1 이후 가능 상태)로 간주한다. 따라서 일반적인 유지보수·기능 확장·버그 수정 요청은 `start-feature`/`bugfix-flow` 중심으로 처리하고, `client-project-lifecycle`은 사용자가 신규 고객사 E2E 흐름을 명시적으로 요청한 경우에만 우선 적용한다.
 - 고객사 **전체 프로젝트(엔드투엔드)** 대화는 사용자가 스킬 이름을 말하지 않아도 `.cursor/rules/70-client-lifecycle-default.mdc`에 따라 `client-project-lifecycle`을 따른다(PRD·디자인 등 HUMAN 구간에서 멈춤). 단, **디자인 승인 완료 시점은 구현 착수 승인으로 간주**하며 구현 시작에 대한 중복 승인을 추가로 요구하지 않는다. 구현 이후 **다축 검증·리뷰어 GATE**는 해당 스킬 **단계 4B~4D(선택)** 및 `docs/qa/reviewer-gate-rubric.md`를 참고한다.
 - 고객사 신규 프로젝트를 **요구 붙여넣기 → PRD 승인 → 이중 목업 → 디자인 승인(=구현 착수 승인) → 병렬 구현 → 테스트·성능** 순으로 끝까지 진행하려면 `client-project-lifecycle`을 우선 고려한다.
 - 신규 기능 요청이면 `start-feature`를 우선 고려한다. (Gate 1 통과 후; UI+API 병렬이면 Gate 2 후 `parallel-delivery` 병행)
