@@ -19,12 +19,20 @@ export class LegalController {
       .replaceAll("'", '&#39;');
   }
 
+  /** 공개 HTML 페이지 상단·브라우저 탭에 쓰는 문서 유형명(DB title과 무관). */
+  private documentDisplayName(type: 'terms' | 'privacy', locale: 'ko' | 'en'): string {
+    if (type === 'privacy') {
+      return locale === 'en' ? 'Privacy Policy' : '개인정보처리방침';
+    }
+    return locale === 'en' ? 'Terms of Service' : '이용약관';
+  }
+
   private renderLegalHtml(
-    title: string,
+    type: 'terms' | 'privacy',
     content: string,
     locale: 'ko' | 'en',
   ): string {
-    const pageTitle = title.trim().length > 0 ? title : locale === 'en' ? 'Legal document' : '법률 문서';
+    const heading = this.documentDisplayName(type, locale);
     const bodyContent = content.trim().length > 0
       ? this.escapeHtml(content)
       : this.escapeHtml(
@@ -37,7 +45,7 @@ export class LegalController {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${this.escapeHtml(pageTitle)} | HabitFable</title>
+    <title>${this.escapeHtml(heading)} | HabitFable</title>
     <style>
       body { margin: 0; background: #f8fafc; color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; }
       main { max-width: 900px; margin: 0 auto; padding: 24px 16px 48px; }
@@ -47,7 +55,7 @@ export class LegalController {
   </head>
   <body>
     <main>
-      <h1>${this.escapeHtml(pageTitle)}</h1>
+      <h1>${this.escapeHtml(heading)}</h1>
       <pre>${bodyContent}</pre>
     </main>
   </body>
@@ -81,7 +89,7 @@ export class LegalController {
   ): Promise<void> {
     const loc = this.resolveLocale(locale);
     const doc = await this.legal.getLatest('terms', loc);
-    const html = this.renderLegalHtml(doc?.title ?? '', doc?.content ?? '', loc);
+    const html = this.renderLegalHtml('terms', doc?.content ?? '', loc);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.status(200).send(html);
   }
@@ -93,7 +101,7 @@ export class LegalController {
   ): Promise<void> {
     const loc = this.resolveLocale(locale);
     const doc = await this.legal.getLatest('privacy', loc);
-    const html = this.renderLegalHtml(doc?.title ?? '', doc?.content ?? '', loc);
+    const html = this.renderLegalHtml('privacy', doc?.content ?? '', loc);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.status(200).send(html);
   }
