@@ -217,7 +217,17 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
           final habits = await ref
               .read(habitRepositoryProvider)
               .getActiveHabits();
-          await NotificationService().rescheduleFromHabits(habits);
+          final completedByHabit = await ref
+              .read(habitRepositoryProvider)
+              .getTodayCompletedByHabit();
+          final excludeIds = completedByHabit.entries
+              .where((e) => e.value)
+              .map((e) => e.key)
+              .toSet();
+          await NotificationService().rescheduleFromHabits(
+            habits,
+            excludeCompletedHabitIds: excludeIds,
+          );
         }
         ref.read(homeRefreshTriggerProvider.notifier).state++;
         context.go(AppRoutes.home);

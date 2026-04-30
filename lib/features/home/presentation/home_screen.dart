@@ -97,7 +97,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _rescheduleRemindersOnce(List<LocalHabit> habits) async {
     if (_remindersRescheduled) return;
     _remindersRescheduled = true;
-    await NotificationService().rescheduleFromHabits(habits);
+    final completedByHabit = await ref.read(habitRepositoryProvider).getTodayCompletedByHabit();
+    final excludeIds = completedByHabit.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toSet();
+    await NotificationService().rescheduleFromHabits(
+      habits,
+      excludeCompletedHabitIds: excludeIds,
+    );
   }
 
   int _heatmapMaxLinearIdx() {

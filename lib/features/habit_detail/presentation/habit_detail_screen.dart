@@ -780,7 +780,15 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         minute: minute,
       );
       final habits = await repo.getActiveHabits();
-      await NotificationService().rescheduleFromHabits(habits);
+      final completedByHabit = await repo.getTodayCompletedByHabit();
+      final excludeIds = completedByHabit.entries
+          .where((e) => e.value)
+          .map((e) => e.key)
+          .toSet();
+      await NotificationService().rescheduleFromHabits(
+        habits,
+        excludeCompletedHabitIds: excludeIds,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

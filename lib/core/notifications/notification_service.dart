@@ -116,7 +116,10 @@ class NotificationService {
 
   /// Rebuild full schedule from enabled habits.
   /// Concurrent calls are coalesced, and each habit is scheduled once.
-  Future<void> rescheduleFromHabits(List<LocalHabit> habits) async {
+  Future<void> rescheduleFromHabits(
+    List<LocalHabit> habits, {
+    Set<String> excludeCompletedHabitIds = const <String>{},
+  }) async {
     if (_rescheduling) return;
     _rescheduling = true;
     try {
@@ -135,7 +138,8 @@ class NotificationService {
           h.reminderEnabled == true &&
           h.reminderHour != null &&
           h.reminderMinute != null &&
-          h.serverId != null).toList();
+          h.serverId != null &&
+          !excludeCompletedHabitIds.contains(h.serverId)).toList();
       debugPrint('[NotificationService] reminder target habits: ${toSchedule.length}');
       final androidDetails = AndroidNotificationDetails(
         _channelId,
