@@ -45,8 +45,11 @@ GoRouter createAppRouter(WidgetRef ref) {
     redirect: (BuildContext context, GoRouterState state) async {
       final restored = await ref.read(sessionRestoredProvider.future);
       final path = state.uri.path;
+      final replayOnboarding = state.uri.queryParameters['replay'] == '1';
       // If already authenticated, keep login/onboarding unreachable.
-      if (restored && (path == AppRoutes.login || path == AppRoutes.onboarding)) {
+      if (restored &&
+          (path == AppRoutes.login ||
+              (path == AppRoutes.onboarding && !replayOnboarding))) {
         return AppRoutes.home;
       }
       if (!restored && path != AppRoutes.onboarding && path != AppRoutes.login && !path.startsWith('/legal/')) {

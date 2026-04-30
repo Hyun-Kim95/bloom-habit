@@ -303,7 +303,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       style: GoogleFonts.dmSans(fontSize: 13, color: muted),
                     ),
                     trailing: Icon(Icons.chevron_right, color: muted),
-                    onTap: () => context.go(AppRoutes.onboarding),
+                    onTap: () => context.go('${AppRoutes.onboarding}?replay=1'),
                   ),
                   SwitchListTile(
                     value: settings.showOnboardingOnlyFirstLaunch,

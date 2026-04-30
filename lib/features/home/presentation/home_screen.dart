@@ -148,6 +148,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
+  void _startRunningDurationTicker(String sid) {
+    _durationTicker?.cancel();
+    _runningDurationHabitId = sid;
+    _runningElapsedMs = 0;
+    _durationTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _runningDurationHabitId != sid) return;
+      setState(() {
+        _runningElapsedMs += 1000;
+      });
+    });
+  }
+
   String _formatRunningDuration(int elapsedMs) {
     final totalSec = (elapsedMs ~/ 1000).clamp(0, 359999);
     final mm = (totalSec ~/ 60).toString().padLeft(2, '0');
@@ -464,6 +476,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _runningElapsedMs = 0;
             });
           }
+          _startRunningDurationTicker(sid);
           try {
             await DurationTimerService.start(
               habitName: h.name ?? 'Habit',
@@ -473,8 +486,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             if (mounted) {
               setState(() {
                 _durationRunningHabits.remove(sid);
+                _runningDurationHabitId = null;
+                _runningElapsedMs = 0;
               });
             }
+            _durationTicker?.cancel();
+            _durationTicker = null;
             rethrow;
           }
           return;
@@ -937,18 +954,6 @@ class _DashboardHabitCard extends StatelessWidget {
                                     color: textMuted,
                                   ),
                                 ),
-                                if (isDurationRunning) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    languageCode == 'en'
-                                        ? 'Running ${runningDurationLabel ?? ''}'
-                                        : '진행중 ${runningDurationLabel ?? ''}',
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 11,
-                                      color: textMuted,
-                                    ),
-                                  ),
-                                ],
                               ],
                             );
                           },
@@ -957,25 +962,45 @@ class _DashboardHabitCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                InkWell(
-                  onTap: completed ? null : onRecord,
-                  customBorder: const CircleBorder(),
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: completed
-                        ? Icon(Icons.check_circle, size: 32, color: primary)
-                        : (habit.goalType == 'duration' && durationRunning)
-                        ? Icon(
-                            Icons.pause_circle_filled,
-                            size: 32,
-                            color: primary,
-                          )
-                        : Icon(
-                            Icons.check_circle_outline,
-                            size: 32,
-                            color: border,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if ((habit.goalType == 'duration') &&
+                        durationRunning &&
+                        runningElapsedMs != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Text(
+                          languageCode == 'en'
+                              ? 'Running ${runningDurationLabel ?? ''}'
+                              : '진행중 ${runningDurationLabel ?? ''}',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 11,
+                            color: textMuted,
                           ),
-                  ),
+                        ),
+                      ),
+                    InkWell(
+                      onTap: completed ? null : onRecord,
+                      customBorder: const CircleBorder(),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: completed
+                            ? Icon(Icons.check_circle, size: 32, color: primary)
+                            : (habit.goalType == 'duration' && durationRunning)
+                            ? Icon(
+                                Icons.pause_circle_filled,
+                                size: 32,
+                                color: primary,
+                              )
+                            : Icon(
+                                Icons.check_circle_outline,
+                                size: 32,
+                                color: border,
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
