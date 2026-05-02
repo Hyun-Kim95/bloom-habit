@@ -49,7 +49,16 @@ class NotificationService {
     }
     debugPrint('[NotificationService] timezone: ${tz.local.name}');
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: android);
+    const darwin = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestSoundPermission: true,
+      requestBadgePermission: true,
+    );
+    const initSettings = InitializationSettings(
+      android: android,
+      iOS: darwin,
+      macOS: darwin,
+    );
     await _plugin.initialize(
       initSettings,
       onDidReceiveNotificationResponse: _onTap,

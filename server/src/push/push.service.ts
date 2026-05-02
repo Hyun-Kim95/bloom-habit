@@ -69,11 +69,12 @@ export class PushService {
           channelId: 'habit_fable_inquiry_reply',
         },
         android: { priority: 'high' as const },
+        // No aps.alert: iOS shows via app local notification from `data` (same as Android B path).
         apns: {
+          headers: { 'apns-priority': '10' },
           payload: {
             aps: {
-              alert: { title, body },
-              sound: 'default',
+              contentAvailable: true,
             },
           },
         },
@@ -127,10 +128,10 @@ export class PushService {
         },
         android: { priority: 'high' as const },
         apns: {
+          headers: { 'apns-priority': '10' },
           payload: {
             aps: {
-              alert: { title, body },
-              sound: 'default',
+              contentAvailable: true,
             },
           },
         },

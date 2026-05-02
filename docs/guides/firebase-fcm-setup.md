@@ -117,8 +117,10 @@ iOS도 푸시를 쓰려면:
 서버는 **Android에서 시스템이 자동으로 띄우는 FCM `notification` 블록을 쓰지 않고**, `data` 맵에 `type`, `title`, `body` 등(값은 모두 **문자열**)만 넣어 보냅니다. 이렇게 하면 Android 포그라운드에서 **OS 자동 알림 + 앱 로컬 알림**이 겹치지 않습니다.
 
 - **Android**: `flutter_local_notifications`가 `data`를 읽어 **한 번만** 표시합니다. 미달성 푸시는 `data.imageUrl`의 이미지를 앱이 받아와 **Big Picture** 스타일로 붙이며, 실패 시 제목/본문만 표시합니다.
-- **iOS**: 서버가 `apns.payload.aps.alert`로 시스템 알림을 띄우므로, 앱은 **이미 표시된 메시지**에 대해 로컬 알림을 **중복으로 띄우지 않습니다**. 포그라운드에서도 배너가 보이도록 앱에서 `setForegroundNotificationPresentationOptions`를 사용합니다.
-- **백그라운드**: `firebaseMessagingBackgroundHandler`에서 동일한 `data` 파싱 규칙으로 Android 로컬 표시를 맞춥니다(핸들러에서 `Firebase.initializeApp()` 호출).
+- **iOS**: 서버는 **`aps.alert`를 보내지 않고** `contentAvailable` 등으로 data 전달을 보조합니다. 배너·소리는 **`flutter_local_notifications`**가 `data`의 `title`/`body`로 **로컬 한 번** 띄웁니다. Xcode `Info.plist`에 **`UIBackgroundModes` → `remote-notification`**이 있어야 백그라운드에서 data 메시지 처리·로컬 표시 전제가 맞습니다. 포그라운드 보조로 `setForegroundNotificationPresentationOptions`를 사용합니다.
+- **백그라운드**: `firebaseMessagingBackgroundHandler`에서 동일한 `data` 파싱 규칙으로 로컬 표시를 맞춥니다(핸들러에서 `WidgetsFlutterBinding.ensureInitialized()` 및 `Firebase.initializeApp()`).
+
+**디버그:** 디버그 빌드에서 푸시 수신 시 콘솔에 `[FCM deliver] …` 로그가 나오며, 토큰 등록 실패 시 `[AuthRepository] registerFcmToken failed: …`가 나올 수 있습니다.
 
 ---
 

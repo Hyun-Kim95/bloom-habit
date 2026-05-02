@@ -514,8 +514,11 @@ class AuthRepository {
       debugPrint(
         'FCM token registered: ${token.length >= 6 ? token.substring(0, 6) : token}',
       );
-    } catch (_) {
+    } catch (e, _) {
       // Ignore when Firebase is not configured, permission denied, or timeout.
+      if (kDebugMode) {
+        debugPrint('[AuthRepository] registerFcmToken failed: $e');
+      }
     }
   }
 }

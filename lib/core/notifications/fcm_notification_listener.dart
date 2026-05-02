@@ -7,9 +7,9 @@ import 'package:flutter/widgets.dart';
 
 import 'notification_service.dart';
 
-/// Parses [RemoteMessage] from data-only FCM (Android) + APNS alert (iOS) and
-/// shows at most one tray entry: local on Android; system APNS on iOS when
-/// [RemoteMessage.notification] is set, otherwise local.
+/// Parses FCM `data` (title/body/type) and shows one local tray entry on all
+/// platforms. Legacy Android-only: if OS filled [RemoteMessage.notification]
+/// without `data` text, skip local to avoid doubling with the system shade.
 Future<void> deliverFcmMessageToTray(
   RemoteMessage message,
   NotificationService notificationService,
@@ -31,14 +31,16 @@ Future<void> deliverFcmMessageToTray(
       (n?.body?.trim().isNotEmpty ?? false);
 
   if (hasPlatformNotification &&
-      (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.macOS)) {
-    return;
-  }
-  if (hasPlatformNotification &&
       defaultTargetPlatform == TargetPlatform.android &&
       !hasDataPayloadText) {
     return;
+  }
+
+  if (kDebugMode) {
+    debugPrint(
+      '[FCM deliver] type=$type hasDataText=$hasDataPayloadText '
+      'hasPlatformN=$hasPlatformNotification -> showLocal',
+    );
   }
 
   final imageUrl = data['imageUrl']?.toString();
