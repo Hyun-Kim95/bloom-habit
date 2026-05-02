@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:app_settings/app_settings.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -191,16 +193,33 @@ class NotificationService {
     await _plugin.cancelAll();
   }
 
-  /// Show local notification for foreground FCM message handling.
+  /// Show local notification for FCM [data] payloads (data-only on Android).
   Future<void> showFcmNotification({
     required String title,
     required String body,
     String? fcmDataType,
+    String? imageUrl,
+    String? androidTag,
   }) async {
     await init();
     final id = fcmDataType == 'missed_habit_reminder'
         ? _fcmMissedHabitAndroidNotificationId
         : DateTime.now().millisecondsSinceEpoch.remainder(1 << 31);
+
+    StyleInformation? styleInformation;
+    if (Platform.isAndroid &&
+        imageUrl != null &&
+        imageUrl.isNotEmpty &&
+        fcmDataType == 'missed_habit_reminder') {
+      final bytes = await _tryDownloadNotificationImage(imageUrl);
+      if (bytes != null && bytes.isNotEmpty) {
+        styleInformation = BigPictureStyleInformation(
+          ByteArrayAndroidBitmap(bytes),
+          contentTitle: title,
+          summaryText: body,
+        );
+      }
+    }
 
     final androidDetails = AndroidNotificationDetails(
       _fcmChannelId,
@@ -208,8 +227,39 @@ class NotificationService {
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,
+      tag: androidTag,
+      styleInformation: styleInformation,
     );
-    final details = NotificationDetails(android: androidDetails);
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentSound: true,
+      presentBanner: true,
+    );
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
     await _plugin.show(id, title, body, details);
+  }
+
+  static Future<Uint8List?> _tryDownloadNotificationImage(String url) async {
+    try {
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 5);
+      final request = await client.getUrl(Uri.parse(url));
+      final response = await request.close();
+      if (response.statusCode != 200) {
+        client.close(force: true);
+        return null;
+      }
+      final chunks = <int>[];
+      await for (final chunk in response) {
+        chunks.addAll(chunk);
+      }
+      client.close(force: true);
+      return Uint8List.fromList(chunks);
+    } catch (_) {
+      return null;
+    }
   }
 }

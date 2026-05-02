@@ -112,6 +112,14 @@ iOS도 푸시를 쓰려면:
 4. **관리자**에서 해당 사용자의 문의에 **답변** 입력 후 저장
 5. 잠시 후 해당 사용자 **앱**에 푸시 알림 수신 확인
 
+### 3-4. data-only 푸시와 표시 책임 (문의 답변·미달성 공통)
+
+서버는 **Android에서 시스템이 자동으로 띄우는 FCM `notification` 블록을 쓰지 않고**, `data` 맵에 `type`, `title`, `body` 등(값은 모두 **문자열**)만 넣어 보냅니다. 이렇게 하면 Android 포그라운드에서 **OS 자동 알림 + 앱 로컬 알림**이 겹치지 않습니다.
+
+- **Android**: `flutter_local_notifications`가 `data`를 읽어 **한 번만** 표시합니다. 미달성 푸시는 `data.imageUrl`의 이미지를 앱이 받아와 **Big Picture** 스타일로 붙이며, 실패 시 제목/본문만 표시합니다.
+- **iOS**: 서버가 `apns.payload.aps.alert`로 시스템 알림을 띄우므로, 앱은 **이미 표시된 메시지**에 대해 로컬 알림을 **중복으로 띄우지 않습니다**. 포그라운드에서도 배너가 보이도록 앱에서 `setForegroundNotificationPresentationOptions`를 사용합니다.
+- **백그라운드**: `firebaseMessagingBackgroundHandler`에서 동일한 `data` 파싱 규칙으로 Android 로컬 표시를 맞춥니다(핸들러에서 `Firebase.initializeApp()` 호출).
+
 ---
 
 ## 4. 문제 해결
@@ -122,7 +130,7 @@ iOS도 푸시를 쓰려면:
 | 앱 실행 시 Firebase 관련 에러 | `android/app/google-services.json` 존재 여부, 패키지명/번들ID가 Firebase에 등록한 것과 같은지                                                                                                                            |
 | 푸시가 안 옴               | 1) 서버 `.env`에 FIREBASE_SERVICE_ACCOUNT_PATH 또는 JSON 설정했는지 2) 한 번 로그인 후 홈까지 들어와서 토큰이 등록됐는지 3) 관리자에서 **답변 내용을 입력하고 저장**했는지                                                                             |
 | **문의 답변** 푸시만 안 옴     | 답변 **내용이 이전과 달라져야** 전송됨(동일 문구 재저장은 스킵). 서버 로그에 `inquiry_reply skipped: missing fcm token` / `firebase not initialized` / `send failed` 있는지 확인. 앱·서버가 **동일 Firebase 프로젝트**인지, iOS는 **APNs** 등록 여부 확인. |
-| Android에서 문의 푸시가 안 보임 | 서버 FCM의 `android.notification.channelId`는 앱 `lib/core/notifications/notification_service.dart`의 `_fcmChannelId` 값(`habit_fable_inquiry_reply`)과 **반드시 동일**해야 합니다.                                    |
+| Android에서 문의·미달성 푸시가 안 보임 | 로컬 알림 채널 ID는 앱 `notification_service.dart`의 `_fcmChannelId`(`habit_fable_inquiry_reply`)로 고정됩니다. 서버는 data-only이므로 **채널은 앱 쪽 설정**이 표시에 사용됩니다. HTTP 이미지(Big Picture)는 기기에서 `PUBLIC_ASSET_BASE_URL` 등 **도달 가능한 URL**이어야 합니다. |
 | 에뮬레이터에서 푸시 안 옴        | Google Play 서비스 있는 에뮬레이터 사용 또는 실제 기기에서 테스트                                                                                                                                                           |
 
 
@@ -151,11 +159,11 @@ iOS도 푸시를 쓰려면:
 - 전송 창: `MISSED_HABIT_LOCAL_SEND_HOUR`(기본 23), `MISSED_HABIT_LOCAL_SEND_MINUTE`(기본 0), `MISSED_HABIT_SEND_WINDOW_MINUTES`(기본 15, **코드에서 최소 15분으로 클램프**) — 유저 **로컬 시각**이 `[H:M, H:M+window)` 안일 때만 후보. **전송 창을 크론 주기보다 짧게 두면 틱이 창을 건너뛰어 알림이 아예 안 나갈 수 있으므로**, 기본 조합은 창 ≥ 틱 간격을 만족하도록 맞춰 두었습니다. **앱에서 `PATCH /me`로 `missedHabitPushLocalHour`/`Minute`를 저장한 경우 그 시각이 env 기본보다 우선**합니다.
 - **유저 로컬 달력** `YYYY-MM-DD`와 동일한 `recordDate`로 완료 여부를 보고 미달성을 계산합니다. `missed_habit_push_logs.pushDate`도 이 **로컬일** 기준(하루 1통).
 - DB `INSERT … ON CONFLICT DO NOTHING`으로 슬롯을 먼저 잡은 뒤에만 FCM 전송(멀티 인스턴스 중복 완화).
-- 푸시에 **이미지 URL** 포함 → Android 잠금 화면에서 Big Picture 스타일로 표시
+- 푸시 `data`에 **이미지 URL**(`imageUrl`) 포함 → Android에서 앱이 URL을 받아 **로컬** Big Picture 스타일로 표시
 
 ### 6-2. 이미지 URL (필수)
 
-FCM이 Big Picture용 이미지를 다운로드할 수 있어야 하므로, 서버가 **공개 URL**로 이미지를 제공해야 합니다.
+앱(로컬 알림)이 Big Picture용 이미지를 다운로드할 수 있어야 하므로, 서버가 **공개 URL**로 이미지를 제공해야 합니다.
 
 - 서버 라우트: `GET /static/missed_habit.png` (기본 1x1 placeholder PNG 제공)
 - `.env`에 **앱/에뮬레이터가 접근 가능한** 공개 기본 URL 설정:
@@ -209,7 +217,7 @@ FCM이 Big Picture용 이미지를 다운로드할 수 있어야 하므로, 서�
 
 #### ③ Big Picture 이미지(잠금 화면)가 안 보일 때
 
-- 푸시는 오는데 **이미지(큰 그림)** 가 잠금 화면에 안 나오는 경우, FCM이 이미지를 받아오는 **URL**을 확인합니다.
+- 푸시는 오는데 **이미지(큰 그림)** 가 잠금 화면에 안 나오는 경우, 앱이 `data.imageUrl`에서 받아오는 **URL**을 확인합니다.
 - 서버가 제공하는 URL: `{PUBLIC_ASSET_BASE_URL}/static/missed_habit.png`
 - **에뮬레이터**에서 서버가 PC의 3000 포트라면, `.env`에 다음을 넣고 서버를 재시작합니다.
   ```env
@@ -218,13 +226,13 @@ FCM이 Big Picture용 이미지를 다운로드할 수 있어야 하므로, 서�
   (에뮬레이터 안에서는 `localhost`가 에뮬레이터 자신을 가리키므로, PC를 가리키는 `10.0.2.2`를 씁니다.)
 - **접근 가능 여부 확인**  
   - PC 브라우저: `http://localhost:3000/static/missed_habit.png` 로 열려서 이미지(또는 1x1 placeholder)가 보이면 서버 제공은 정상입니다.
-  - 에뮬레이터/기기에서는 위 URL이 **해당 환경에서 접근 가능한 주소**여야 FCM이 이미지를 다운로드해 Big Picture로 띄울 수 있습니다. 배포 시에는 `https://` 공개 도메인으로 설정하는 것이 좋습니다.
+  - 에뮬레이터/기기에서는 위 URL이 **해당 환경에서 접근 가능한 주소**여야 앱이 이미지를 다운로드해 Big Picture로 띄울 수 있습니다. 배포 시에는 `https://` 공개 도메인으로 설정하는 것이 좋습니다.
 
 ---
 
 #### ④ 이미지 교체 (선택)
 
-- 현재 `/static/missed_habit.png` 는 **1x1 placehol전송 창을 크론보다 짧게 두면 틱이 창을 건너뛸 수 있다der** PNG입니다.  
+- 현재 `/static/missed_habit.png` 는 **1x1 placeholder** PNG입니다.  
 - 나중에 원하는 디자인 이미지를 서버에서 같은 경로로 서빙하도록 바꾸면, **URL은 그대로** 두고 Big Picture 이미지만 교체할 수 있습니다.  
   - 예: `server/src/static/` 에 `missed_habit.png` 파일을 두고, 해당 컨트롤러에서 그 파일을 읽어 응답하도록 수정.
 

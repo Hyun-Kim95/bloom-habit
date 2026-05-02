@@ -1,8 +1,52 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
+
 import 'notification_service.dart';
+
+/// Parses [RemoteMessage] from data-only FCM (Android) + APNS alert (iOS) and
+/// shows at most one tray entry: local on Android; system APNS on iOS when
+/// [RemoteMessage.notification] is set, otherwise local.
+Future<void> deliverFcmMessageToTray(
+  RemoteMessage message,
+  NotificationService notificationService,
+) async {
+  final data = message.data;
+  final type = data['type']?.toString();
+  var title = (data['title'] ?? '').toString().trim();
+  var body = (data['body'] ?? '').toString().trim();
+  final n = message.notification;
+  if (title.isEmpty && body.isEmpty) {
+    title = (n?.title ?? '').trim();
+    body = (n?.body ?? '').trim();
+  }
+  if (title.isEmpty && body.isEmpty) return;
+
+  final hasPlatformNotification = (n?.title?.trim().isNotEmpty ?? false) ||
+      (n?.body?.trim().isNotEmpty ?? false);
+
+  if (hasPlatformNotification &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS)) {
+    return;
+  }
+  if (hasPlatformNotification && defaultTargetPlatform == TargetPlatform.android) {
+    return;
+  }
+
+  final imageUrl = data['imageUrl']?.toString();
+  final tag = data['tag']?.toString();
+
+  await notificationService.showFcmNotification(
+    title: title,
+    body: body,
+    fcmDataType: type,
+    imageUrl: (imageUrl != null && imageUrl.isNotEmpty) ? imageUrl : null,
+    androidTag: (tag != null && tag.isNotEmpty) ? tag : null,
+  );
+}
 
 /// Shows FCM notifications even while app is in foreground.
 class FcmNotificationListener {
@@ -14,29 +58,24 @@ class FcmNotificationListener {
   static Stream<String> get messageTypes => _messageTypeController.stream;
 
   static Future<void> init(NotificationService notificationService) async {
-    // Register background handler for data/notification delivery.
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    }
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       final type = message.data['type']?.toString();
       if (type != null && type.isNotEmpty) {
         _messageTypeController.add(type);
       }
-      final notification = message.notification;
-      if (notification == null) return;
-
-      final title = notification.title ?? '';
-      final body = notification.body ?? '';
-      if (title.isEmpty && body.isEmpty) return;
-
-      await notificationService.showFcmNotification(
-        title: title,
-        body: body,
-        fcmDataType: type,
-      );
+      await deliverFcmMessageToTray(message, notificationService);
     });
 
-    // User opened app from notification tap (currently log only).
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint('FCM opened: ${message.messageId}');
     });
@@ -45,16 +84,10 @@ class FcmNotificationListener {
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // OS usually displays notification payload in background/terminated states.
-  // Still try a minimal local display for data-driven messages.
-  final notification = message.notification;
-  final title = notification?.title ?? '';
-  final body = notification?.body ?? '';
-  if (title.isEmpty && body.isEmpty) return;
-
-  final type = message.data['type']?.toString();
+  try {
+    await Firebase.initializeApp();
+  } catch (_) {}
   final service = NotificationService();
   await service.init();
-  await service.showFcmNotification(title: title, body: body, fcmDataType: type);
+  await deliverFcmMessageToTray(message, service);
 }
-

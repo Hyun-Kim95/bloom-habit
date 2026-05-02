@@ -61,18 +61,18 @@ export class PushService {
     try {
       await this.messaging.send({
         token: user.fcmToken,
-        notification: { title, body },
-        data: { type: 'inquiry_reply', subject: inquirySubject },
-        android: {
-          priority: 'high' as const,
-          notification: {
-            // Must match Flutter [NotificationService] channel id for local/FCM display.
-            channelId: 'habit_fable_inquiry_reply',
-          },
+        data: {
+          type: 'inquiry_reply',
+          title,
+          body,
+          subject: inquirySubject,
+          channelId: 'habit_fable_inquiry_reply',
         },
+        android: { priority: 'high' as const },
         apns: {
           payload: {
             aps: {
+              alert: { title, body },
               sound: 'default',
             },
           },
@@ -115,19 +115,23 @@ export class PushService {
     try {
       await this.messaging.send({
         token: user.fcmToken,
-        notification: { title, body },
         data: {
           type: 'missed_habit_reminder',
+          title,
+          body,
+          imageUrl,
           missedCount: String(missedCount),
           topName,
+          tag: 'missed_habit_reminder',
+          channelId: 'habit_fable_inquiry_reply',
         },
-        android: {
-          priority: 'high' as const,
-          notification: {
-            imageUrl,
-            // 동일 tag로 시스템 트레이 중복 헤드 축소
-            tag: 'missed_habit_reminder',
-            channelId: 'habit_fable_inquiry_reply',
+        android: { priority: 'high' as const },
+        apns: {
+          payload: {
+            aps: {
+              alert: { title, body },
+              sound: 'default',
+            },
           },
         },
       });
