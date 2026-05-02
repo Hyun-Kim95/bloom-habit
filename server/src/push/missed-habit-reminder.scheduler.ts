@@ -25,9 +25,13 @@ function parseDefaultSendHM(): { hour: number; minute: number } {
   return { hour, minute };
 }
 
+/** 틱 크론(기본 5분)과 겹치지 않게 하려면 전송 창이 너무 짧으면 안 됨 — env로 더 줄여도 최소 이 값. */
+const MIN_SEND_WINDOW_MINUTES = 15;
+
 function parseWindowMinutes(): number {
-  const windowRaw = parseInt(process.env.MISSED_HABIT_SEND_WINDOW_MINUTES ?? '10', 10);
-  return Number.isFinite(windowRaw) ? Math.min(180, Math.max(1, windowRaw)) : 10;
+  const windowRaw = parseInt(process.env.MISSED_HABIT_SEND_WINDOW_MINUTES ?? '15', 10);
+  const parsed = Number.isFinite(windowRaw) ? Math.min(180, Math.max(1, windowRaw)) : 15;
+  return Math.max(MIN_SEND_WINDOW_MINUTES, parsed);
 }
 
 function userSendHM(
@@ -78,7 +82,7 @@ export class MissedHabitReminderScheduler {
     if (MissedHabitReminderScheduler._scheduled) return;
     MissedHabitReminderScheduler._scheduled = true;
 
-    const cronExpr = process.env.MISSED_HABIT_TICK_CRON ?? '*/10 * * * *';
+    const cronExpr = process.env.MISSED_HABIT_TICK_CRON ?? '*/5 * * * *';
     cron.schedule(cronExpr, async () => {
       try {
         await this.runOnce({ force: false });

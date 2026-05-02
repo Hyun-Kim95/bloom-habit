@@ -336,11 +336,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationSettingsSubtitle => 'Enable habit reminders here.';
 
   @override
-  String get missedHabitSummaryPushTimeTitle => 'Missed habits summary alert';
+  String get missedHabitSummaryPushTimeTitle => 'Incomplete habits alert';
 
   @override
   String get missedHabitSummaryPushTimeSubtitle =>
-      'When to notify you about habits not completed today (your time zone). Default follows the server schedule.';
+      'When to remind you about habits not completed today.';
 
   @override
   String get missedHabitSummaryPushTimeDefaultLabel => 'Server default';

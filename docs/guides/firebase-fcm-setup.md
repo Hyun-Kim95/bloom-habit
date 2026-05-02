@@ -11,22 +11,23 @@ Firebase 프로젝트를 생성한 후, 아래 순서대로 진행하세요.
 1. [Firebase Console](https://console.firebase.google.com/) → 프로젝트 선택
 2. **프로젝트 개요** 옆 톱니바퀴 → **프로젝트 설정**
 3. **일반** 탭에서 **앱** 섹션 → **Android 앱** 아이콘(로봇) 클릭
-4. **Android 패키지 이름** 입력  
-   - 이 프로젝트: `com.khyun.bloom_habit` (또는 `android/app/build.gradle.kts`의 `applicationId`와 동일하게)
+4. **Android 패키지 이름** 입력
+  - 이 프로젝트: `com.khyun.bloom_habit` (또는 `android/app/build.gradle.kts`의 `applicationId`와 동일하게)
 5. **앱 등록** 클릭
 6. **google-services.json** 다운로드 버튼 클릭 → 파일 저장
 
 ### 1-2. google-services.json 넣기 (Flutter)
 
 1. 다운로드한 `google-services.json`을 아래 경로에 복사:
-   ```
+  ```
    bloom_habit/android/app/google-services.json
-   ```
+  ```
 2. **Windows**: `d:\cursor\flutter_test\bloom_habit\android\app\google-services.json`
 
 ### 1-3. Android 빌드 설정 (이미 적용됨)
 
 이 프로젝트에는 이미 다음이 적용되어 있습니다.
+
 - `android/settings.gradle.kts`: `id("com.google.gms.google-services") version "4.4.2" apply false`
 - `android/app/build.gradle.kts`: `id("com.google.gms.google-services")` in plugins
 
@@ -40,9 +41,9 @@ iOS도 푸시를 쓰려면:
 2. **번들 ID** 입력 (Xcode에서 확인, 예: `com.khyun.bloomHabit`)
 3. **GoogleService-Info.plist** 다운로드
 4. Flutter 프로젝트에서:
-   ```
+  ```
    bloom_habit/ios/Runner/GoogleService-Info.plist
-   ```
+  ```
    에 복사한 뒤, Xcode에서 **Runner** 타겟에 해당 파일이 포함되어 있는지 확인.
 
 ---
@@ -62,26 +63,26 @@ iOS도 푸시를 쓰려면:
 
 **방법 A: 파일 경로로 설정 (권장)**
 
-1. 다운로드한 JSON 파일을 **서버가 실행되는 환경**에서 접근 가능한 폴더에 둔다.  
-   (로컬 개발이면 예: `d:\cursor\flutter_test\bloom_habit\server\keys\` 같은 폴더 생성 후 복사)
-2. **절대 경로**를 복사한다.  
-   - Windows 예: `D:\cursor\flutter_test\bloom_habit\server\keys\bloom-habit-xxxxx-firebase-adminsdk-xxxxx.json`
+1. 다운로드한 JSON 파일을 **서버가 실행되는 환경**에서 접근 가능한 폴더에 둔다.
+  (로컬 개발이면 예: `d:\cursor\flutter_test\bloom_habit\server\keys\` 같은 폴더 생성 후 복사)
+2. **절대 경로**를 복사한다.
+  - Windows 예: `D:\cursor\flutter_test\bloom_habit\server\keys\bloom-habit-xxxxx-firebase-adminsdk-xxxxx.json`
 3. 서버 `.env` 파일에 추가:
-   ```env
+  ```env
    FIREBASE_SERVICE_ACCOUNT_PATH=D:\cursor\flutter_test\bloom_habit\server\keys\bloom-habit-xxxxx-firebase-adminsdk-xxxxx.json
-   ```
+  ```
    (실제 파일명으로 바꾸고, 경로에 공백이 있으면 따옴표로 감싸도 됨)
 
 **방법 B: JSON 내용을 환경 변수로**
 
 1. 다운로드한 JSON 파일을 메모장 등으로 연다.
-2. **한 줄로** 만든다 (줄바꿈 제거).  
-   - 예: `{"type":"service_account","project_id":"bloom-habit-xxxxx",...}`
+2. **한 줄로** 만든다 (줄바꿈 제거).
+  - 예: `{"type":"service_account","project_id":"bloom-habit-xxxxx",...}`
 3. `.env`에 추가 (한 줄):
-   ```env
+  ```env
    FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"bloom-habit-xxxxx",...}
-   ```
-   - 주의: 값 안에 `"`가 많으므로, `.env`에서 따옴표 이스케이프 규칙을 확인하거나, JSON 전체를 작은따옴표로 감싸는 방식으로 저장.
+  ```
+  - 주의: 값 안에 `"`가 많으므로, `.env`에서 따옴표 이스케이프 규칙을 확인하거나, JSON 전체를 작은따옴표로 감싸는 방식으로 저장.
 
 ### 2-3. 서버 재시작
 
@@ -115,37 +116,39 @@ iOS도 푸시를 쓰려면:
 
 ## 4. 문제 해결
 
-| 현상 | 확인할 것 |
-|------|------------|
-| 앱 실행 시 Firebase 관련 에러 | `android/app/google-services.json` 존재 여부, 패키지명/번들ID가 Firebase에 등록한 것과 같은지 |
-| 푸시가 안 옴 | 1) 서버 `.env`에 FIREBASE_SERVICE_ACCOUNT_PATH 또는 JSON 설정했는지 2) 한 번 로그인 후 홈까지 들어와서 토큰이 등록됐는지 3) 관리자에서 **답변 내용을 입력하고 저장**했는지 |
-| **문의 답변** 푸시만 안 옴 | 답변 **내용이 이전과 달라져야** 전송됨(동일 문구 재저장은 스킵). 서버 로그에 `inquiry_reply skipped: missing fcm token` / `firebase not initialized` / `send failed` 있는지 확인. 앱·서버가 **동일 Firebase 프로젝트**인지, iOS는 **APNs** 등록 여부 확인. |
-| Android에서 문의 푸시가 안 보임 | 서버 FCM의 `android.notification.channelId`는 앱 `lib/core/notifications/notification_service.dart`의 `_fcmChannelId` 값(`habit_fable_inquiry_reply`)과 **반드시 동일**해야 합니다. |
-| 에뮬레이터에서 푸시 안 옴 | Google Play 서비스 있는 에뮬레이터 사용 또는 실제 기기에서 테스트 |
+
+| 현상                    | 확인할 것                                                                                                                                                                                                |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 앱 실행 시 Firebase 관련 에러 | `android/app/google-services.json` 존재 여부, 패키지명/번들ID가 Firebase에 등록한 것과 같은지                                                                                                                            |
+| 푸시가 안 옴               | 1) 서버 `.env`에 FIREBASE_SERVICE_ACCOUNT_PATH 또는 JSON 설정했는지 2) 한 번 로그인 후 홈까지 들어와서 토큰이 등록됐는지 3) 관리자에서 **답변 내용을 입력하고 저장**했는지                                                                             |
+| **문의 답변** 푸시만 안 옴     | 답변 **내용이 이전과 달라져야** 전송됨(동일 문구 재저장은 스킵). 서버 로그에 `inquiry_reply skipped: missing fcm token` / `firebase not initialized` / `send failed` 있는지 확인. 앱·서버가 **동일 Firebase 프로젝트**인지, iOS는 **APNs** 등록 여부 확인. |
+| Android에서 문의 푸시가 안 보임 | 서버 FCM의 `android.notification.channelId`는 앱 `lib/core/notifications/notification_service.dart`의 `_fcmChannelId` 값(`habit_fable_inquiry_reply`)과 **반드시 동일**해야 합니다.                                    |
+| 에뮬레이터에서 푸시 안 옴        | Google Play 서비스 있는 에뮬레이터 사용 또는 실제 기기에서 테스트                                                                                                                                                           |
+
 
 ---
 
 ## 5. 요약 체크리스트
 
-- [ ] Firebase Console에서 Android 앱 등록, 패키지명 일치
-- [ ] `android/app/google-services.json` 복사
-- [ ] `android/build.gradle.kts`에 Google services classpath, `android/app/build.gradle.kts`에 `apply plugin: 'com.google.gms.google-services'`
-- [ ] Firebase Console → 서비스 계정 → 새 비공개 키 생성 → JSON 다운로드
-- [ ] 서버 `.env`에 `FIREBASE_SERVICE_ACCOUNT_PATH=절대경로` 또는 `FIREBASE_SERVICE_ACCOUNT_JSON=...` 설정
-- [ ] 서버 재시작
-- [ ] 앱 빌드 후 로그인 → 홈 진입 → 관리자에서 문의 답변 → 푸시 수신 확인
+- Firebase Console에서 Android 앱 등록, 패키지명 일치
+- `android/app/google-services.json` 복사
+- `android/build.gradle.kts`에 Google services classpath, `android/app/build.gradle.kts`에 `apply plugin: 'com.google.gms.google-services'`
+- Firebase Console → 서비스 계정 → 새 비공개 키 생성 → JSON 다운로드
+- 서버 `.env`에 `FIREBASE_SERVICE_ACCOUNT_PATH=절대경로` 또는 `FIREBASE_SERVICE_ACCOUNT_JSON=...` 설정
+- 서버 재시작
+- 앱 빌드 후 로그인 → 홈 진입 → 관리자에서 문의 답변 → 푸시 수신 확인
 
 ---
 
 ## 6. 미달성 습관 리마인더 (로컬 저녁 Big Picture 푸시)
 
-오늘 완료하지 않은 습관이 있는 사용자에게 **해당 사용자 IANA 타임존 기준 매일 한 번**(기본 전송 창: 로컬 **23:00~23:10**) 잠금 화면용 Big Picture 푸시가 발송됩니다.
+오늘 완료하지 않은 습관이 있는 사용자에게 **해당 사용자 IANA 타임존 기준 매일 한 번**(기본 전송 창: 로컬 **23:00~23:15** 근처) 잠금 화면용 Big Picture 푸시가 발송됩니다.
 
 ### 6-1. 동작 요약
 
-- 앱이 `PATCH /me`로 **`ianaTimeZone`**(예: `Asia/Seoul`)을 올리며, 비어 있으면 서버는 **`Asia/Seoul`**로 간주합니다.
-- **틱 크론** (기본 `*/10 * * * *`, 환경변수 `MISSED_HABIT_TICK_CRON`): 주기마다 “전송 창 안에 있는 유저”만 검사합니다.
-- 전송 창: `MISSED_HABIT_LOCAL_SEND_HOUR`(기본 23), `MISSED_HABIT_LOCAL_SEND_MINUTE`(기본 0), `MISSED_HABIT_SEND_WINDOW_MINUTES`(기본 10) — 유저 **로컬 시각**이 `[H:M, H:M+window)` 안일 때만 후보. **앱에서 `PATCH /me`로 `missedHabitPushLocalHour`/`Minute`를 저장한 경우 그 시각이 env 기본보다 우선**합니다.
+- 앱이 `PATCH /me`로 `**ianaTimeZone`**(예: `Asia/Seoul`)을 올리며, 비어 있으면 서버는 **`Asia/Seoul`**로 간주합니다.
+- **틱 크론** (기본 `*/5 * * * `*, 환경변수 `MISSED_HABIT_TICK_CRON`): 주기마다 “전송 창 안에 있는 유저”만 검사합니다.
+- 전송 창: `MISSED_HABIT_LOCAL_SEND_HOUR`(기본 23), `MISSED_HABIT_LOCAL_SEND_MINUTE`(기본 0), `MISSED_HABIT_SEND_WINDOW_MINUTES`(기본 15, **코드에서 최소 15분으로 클램프**) — 유저 **로컬 시각**이 `[H:M, H:M+window)` 안일 때만 후보. **전송 창을 크론 주기보다 짧게 두면 틱이 창을 건너뛰어 알림이 아예 안 나갈 수 있으므로**, 기본 조합은 창 ≥ 틱 간격을 만족하도록 맞춰 두었습니다. **앱에서 `PATCH /me`로 `missedHabitPushLocalHour`/`Minute`를 저장한 경우 그 시각이 env 기본보다 우선**합니다.
 - **유저 로컬 달력** `YYYY-MM-DD`와 동일한 `recordDate`로 완료 여부를 보고 미달성을 계산합니다. `missed_habit_push_logs.pushDate`도 이 **로컬일** 기준(하루 1통).
 - DB `INSERT … ON CONFLICT DO NOTHING`으로 슬롯을 먼저 잡은 뒤에만 FCM 전송(멀티 인스턴스 중복 완화).
 - 푸시에 **이미지 URL** 포함 → Android 잠금 화면에서 Big Picture 스타일로 표시
@@ -165,7 +168,7 @@ FCM이 Big Picture용 이미지를 다운로드할 수 있어야 하므로, 서�
 ### 6-2a. 테스트 시 특정 시간에 알림 받기
 
 - 전송 시각은 **서버가 아니라 사용자 타임존의 로컬 시각**입니다. 기기에서 앱을 열어 `PATCH /me`로 타임존이 올라가 있는지 확인하세요.
-- **틱 주기 늘리기**: `MISSED_HABIT_TICK_CRON=*/2 * * * *` 등으로 바꿀 수 있습니다(테스트 후 원복 권장).
+- **틱 주기 늘리기**: `MISSED_HABIT_TICK_CRON=*/2 * * * `* 등으로 바꿀 수 있습니다(테스트 후 원복 권장).
 - **전송 창 넓히기**: `MISSED_HABIT_SEND_WINDOW_MINUTES=120` 등.
 - **즉시 한 번 보내기**: `.env`에 `MISSED_HABIT_RUN_ON_START=true` 후 서버 재시작 → 기동 시 `force` 경로로 전송(이미 해당 로컬일에 로그가 있으면 `force`가 로그를 지우고 다시 시도).
 
@@ -175,9 +178,9 @@ FCM이 Big Picture용 이미지를 다운로드할 수 있어야 하므로, 서�
 
 1. 서버를 **한 번 종료**(Ctrl+C)한 뒤 다시 실행: `npm run start:dev`
 2. 터미널에서 아래 로그가 나오는지 확인합니다.
-   - `[MissedHabitReminder] runOnce start (force=…, sendLocal=23:00+10m)`  
-   - `[MissedHabitReminder] sending to user=… pushDate=YYYY-MM-DD missedCount=…`  
-   - `[MissedHabitReminder] runOnce done. sent=N`
+  - `[MissedHabitReminder] runOnce start (force=…, sendLocal=23:00+10m)`  
+  - `[MissedHabitReminder] sending to user=… pushDate=YYYY-MM-DD missedCount=…`  
+  - `[MissedHabitReminder] runOnce done. sent=N`
 
 **참고:** `.env`에 `MISSED_HABIT_RUN_ON_START=true`가 있어야 서버 시작 시 `force`로 한 번 돕니다. 없으면 `MISSED_HABIT_TICK_CRON` 주기마다 전송 창에 들어온 유저만 처리됩니다.
 
@@ -209,13 +212,10 @@ FCM이 Big Picture용 이미지를 다운로드할 수 있어야 하므로, 서�
 - 푸시는 오는데 **이미지(큰 그림)** 가 잠금 화면에 안 나오는 경우, FCM이 이미지를 받아오는 **URL**을 확인합니다.
 - 서버가 제공하는 URL: `{PUBLIC_ASSET_BASE_URL}/static/missed_habit.png`
 - **에뮬레이터**에서 서버가 PC의 3000 포트라면, `.env`에 다음을 넣고 서버를 재시작합니다.
-
   ```env
   PUBLIC_ASSET_BASE_URL=http://10.0.2.2:3000
   ```
-
   (에뮬레이터 안에서는 `localhost`가 에뮬레이터 자신을 가리키므로, PC를 가리키는 `10.0.2.2`를 씁니다.)
-
 - **접근 가능 여부 확인**  
   - PC 브라우저: `http://localhost:3000/static/missed_habit.png` 로 열려서 이미지(또는 1x1 placeholder)가 보이면 서버 제공은 정상입니다.
   - 에뮬레이터/기기에서는 위 URL이 **해당 환경에서 접근 가능한 주소**여야 FCM이 이미지를 다운로드해 Big Picture로 띄울 수 있습니다. 배포 시에는 `https://` 공개 도메인으로 설정하는 것이 좋습니다.
@@ -224,6 +224,7 @@ FCM이 Big Picture용 이미지를 다운로드할 수 있어야 하므로, 서�
 
 #### ④ 이미지 교체 (선택)
 
-- 현재 `/static/missed_habit.png` 는 **1x1 placeholder** PNG입니다.  
+- 현재 `/static/missed_habit.png` 는 **1x1 placehol전송 창을 크론보다 짧게 두면 틱이 창을 건너뛸 수 있다der** PNG입니다.  
 - 나중에 원하는 디자인 이미지를 서버에서 같은 경로로 서빙하도록 바꾸면, **URL은 그대로** 두고 Big Picture 이미지만 교체할 수 있습니다.  
   - 예: `server/src/static/` 에 `missed_habit.png` 파일을 두고, 해당 컨트롤러에서 그 파일을 읽어 응답하도록 수정.
+
