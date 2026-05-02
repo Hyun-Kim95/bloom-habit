@@ -29,7 +29,8 @@ class HabitDetailScreen extends ConsumerStatefulWidget {
   ConsumerState<HabitDetailScreen> createState() => _HabitDetailScreenState();
 }
 
-class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
+class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen>
+    with WidgetsBindingObserver {
   late LocalHabit _habit;
   int _streak = 0;
   bool _todayCompleted = false;
@@ -48,6 +49,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _habit = widget.habit;
     _loadStats();
     _loadRecordHistory();
@@ -55,8 +57,28 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _durationTicker?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_refreshNativeDurationTimer());
+    }
+  }
+
+  Future<void> _refreshNativeDurationTimer() async {
+    final timerState = await DurationTimerService.getState();
+    if (!mounted) return;
+    setState(() {
+      _durationRunning =
+          timerState.running &&
+          timerState.habitId != null &&
+          timerState.habitId == _habit.serverId;
+      _setRunningTimerState(timerState);
+    });
   }
 
   void _setRunningTimerState(DurationTimerState timerState) {

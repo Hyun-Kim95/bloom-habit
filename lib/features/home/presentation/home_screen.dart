@@ -51,7 +51,8 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   static bool _remindersRescheduled = false;
 
   List<LocalHabit> _habits = [];
@@ -116,6 +117,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final startIdx = _linearHeatmapMonthIndex(_heatmapMonth);
     _heatmapPageController = PageController(
       initialPage: startIdx - _kHeatmapEarliestLinearIdx,
@@ -127,9 +129,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _durationTicker?.cancel();
     _heatmapPageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_refreshNativeDurationTimer());
+    }
+  }
+
+  Future<void> _refreshNativeDurationTimer() async {
+    final timerState = await DurationTimerService.getState();
+    if (!mounted) return;
+    setState(() {
+      _durationRunningHabits
+        ..clear()
+        ..addAll(
+          timerState.running && timerState.habitId != null
+              ? <String>{timerState.habitId!}
+              : <String>{},
+        );
+      _syncRunningDuration(timerState);
+    });
   }
 
   void _syncRunningDuration(DurationTimerState timerState) {
