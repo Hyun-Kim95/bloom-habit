@@ -20,6 +20,75 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _versionText = '';
 
+  bool _missedPushLoadRequested = false;
+  bool _missedPushLoadComplete = false;
+  bool _missedPushLoggedIn = false;
+  int? _missedPushHour;
+  int? _missedPushMinute;
+
+  void _requestMissedPushLoad() {
+    if (_missedPushLoadRequested) return;
+    _missedPushLoadRequested = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final p = await ref.read(authRepositoryProvider).fetchProfile();
+      if (!mounted) return;
+      setState(() {
+        _missedPushLoadComplete = true;
+        if (p != null) {
+          _missedPushLoggedIn = true;
+          _missedPushHour = p.missedHabitPushLocalHour;
+          _missedPushMinute = p.missedHabitPushLocalMinute;
+        }
+      });
+    });
+  }
+
+  Future<void> _pickMissedPushTime() async {
+    final l10n = AppLocalizations.of(context)!;
+    final initial = TimeOfDay(
+      hour: _missedPushHour ?? 23,
+      minute: _missedPushMinute ?? 0,
+    );
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+    );
+    if (picked == null || !mounted) return;
+    try {
+      await ref.read(authRepositoryProvider).updateMissedHabitPushLocalTime(
+        hour: picked.hour,
+        minute: picked.minute,
+      );
+      if (!mounted) return;
+      setState(() {
+        _missedPushHour = picked.hour;
+        _missedPushMinute = picked.minute;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.connectionErrorMessage.split('\n').first)),
+      );
+    }
+  }
+
+  Future<void> _resetMissedPushTime() async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      await ref.read(authRepositoryProvider).clearMissedHabitPushLocalTime();
+      if (!mounted) return;
+      setState(() {
+        _missedPushHour = null;
+        _missedPushMinute = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.connectionErrorMessage.split('\n').first)),
+      );
+    }
+  }
+
   String _themeModeLabel(String mode) {
     final l10n = AppLocalizations.of(context)!;
     switch (mode) {
@@ -45,13 +114,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void initState() {
     super.initState();
     PackageInfo.fromPlatform().then((info) {
-      if (mounted)
+      if (mounted) {
         setState(() => _versionText = '${info.version}+${info.buildNumber}');
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    _requestMissedPushLoad();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final muted = AppColors.mutedFg(isDark);
     final settingsAsync = ref.watch(appSettingsProvider);
@@ -104,7 +175,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             icon: Icons.mail_outline,
             title: l10n.inquiry,
             subtitle: l10n.inquirySubtitle,
-            trailing: _CountBadge(count: unreadSummary?.inquiryUnreadCount ?? 0),
+            trailing: _CountBadge(
+              count: unreadSummary?.inquiryUnreadCount ?? 0,
+            ),
             onTap: () {
               context.push(AppRoutes.inquiries).then((_) {
                 ref.invalidate(unreadSummaryProvider);
@@ -123,6 +196,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             subtitle: l10n.notificationSettingsSubtitle,
             onTap: () => NotificationService().openNotificationSettings(),
           ),
+          if (_missedPushLoadComplete && _missedPushLoggedIn) ...[
+            const SizedBox(height: 8),
+            _SettingsTile(
+              icon: Icons.schedule_outlined,
+              title: l10n.missedHabitSummaryPushTimeTitle,
+              subtitle: _missedPushHour != null && _missedPushMinute != null
+                  ? '${_missedPushHour!.toString().padLeft(2, '0')}:${_missedPushMinute!.toString().padLeft(2, '0')}\n${l10n.missedHabitSummaryPushTimeSubtitle}'
+                  : '${l10n.missedHabitSummaryPushTimeDefaultLabel}\n${l10n.missedHabitSummaryPushTimeSubtitle}',
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_missedPushHour != null && _missedPushMinute != null)
+                    IconButton(
+                      tooltip: l10n.missedHabitSummaryPushTimeDefaultLabel,
+                      icon: const Icon(Icons.restart_alt),
+                      onPressed: _resetMissedPushTime,
+                    ),
+                  Icon(Icons.chevron_right, color: muted),
+                ],
+              ),
+              onTap: _pickMissedPushTime,
+            ),
+          ],
           const Divider(height: 24),
           Text(
             l10n.displaySettings,
@@ -228,7 +324,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
             loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
           ),
           const Divider(height: 24),
           Text(
@@ -269,7 +365,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
             loading: () => Card(child: ListTile(title: Text(l10n.loading))),
-            error: (_, __) => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
           ),
           const SizedBox(height: 24),
           Text(
@@ -330,7 +426,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
             loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
           ),
           if (_versionText.isNotEmpty) ...[
             const SizedBox(height: 24),
@@ -351,6 +447,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               await ref.read(habitRepositoryProvider).clearAllLocalData();
               await ref.read(authRepositoryProvider).logout();
               if (!context.mounted) return;
+              setState(() {
+                _missedPushLoadRequested = false;
+                _missedPushLoadComplete = false;
+                _missedPushLoggedIn = false;
+                _missedPushHour = null;
+                _missedPushMinute = null;
+              });
               ref.invalidate(sessionRestoredProvider);
               context.go(AppRoutes.login);
             },

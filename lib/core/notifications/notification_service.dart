@@ -20,6 +20,8 @@ class NotificationService {
   static String get _channelName => AppStrings.notifChannelHabit;
   static const _fcmChannelId = 'habit_fable_inquiry_reply';
   static String get _fcmChannelName => AppStrings.notifChannelInquiry;
+  /// 포그라운드에서 동일 유형 FCM이 연속으로 와도 알림 슬롯 1개로 덮어쓰기.
+  static const int _fcmMissedHabitAndroidNotificationId = 0x4d4953;
 
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
@@ -193,9 +195,12 @@ class NotificationService {
   Future<void> showFcmNotification({
     required String title,
     required String body,
+    String? fcmDataType,
   }) async {
     await init();
-    final id = DateTime.now().millisecondsSinceEpoch.remainder(1 << 31);
+    final id = fcmDataType == 'missed_habit_reminder'
+        ? _fcmMissedHabitAndroidNotificationId
+        : DateTime.now().millisecondsSinceEpoch.remainder(1 << 31);
 
     final androidDetails = AndroidNotificationDetails(
       _fcmChannelId,

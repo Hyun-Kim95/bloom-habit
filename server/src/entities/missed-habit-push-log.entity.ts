@@ -15,7 +15,7 @@ export class MissedHabitPushLog {
   @Column()
   userId: string;
 
-  /** YYYY-MM-DD (서버 기준 날짜) */
+  /** YYYY-MM-DD — 해당 유저 로컬 달력 기준 전송일(미달성 판정과 동일). */
   @Column()
   pushDate: string;
 

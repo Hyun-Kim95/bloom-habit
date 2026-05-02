@@ -180,8 +180,10 @@
 
 ### 2.2 사용자
 
-- `GET /me` — 현재 사용자 프로필 (`email`, `displayName`, `avatarUrl`, `authProvider`, `createdAt` 등).
-- `PATCH /me` — `fcmToken`, `displayName`, `avatarUrl`, `email`(선택) 부분 수정.  
+- `GET /me` — 현재 사용자 프로필 (`email`, `displayName`, `avatarUrl`, `ianaTimeZone`, `missedHabitPushLocalHour`, `missedHabitPushLocalMinute`, `authProvider`, `createdAt` 등).
+- `PATCH /me` — `fcmToken`, `displayName`, `avatarUrl`, `email`, `ianaTimeZone`, `missedHabitPushLocalHour` / `missedHabitPushLocalMinute`(선택) 부분 수정.  
+  - `ianaTimeZone`: IANA 이름(예: `Asia/Seoul`, `America/Los_Angeles`). 빈 문자열·`null`이면 저장값을 지움(미달성 푸시는 서버에서 `Asia/Seoul`로 간주). 유효하지 않은 이름은 400.
+  - `missedHabitPushLocalHour` / `missedHabitPushLocalMinute`: 미달성 요약 FCM을 보낼 **로컬 시각**(유저 `ianaTimeZone` 기준). 둘 다 정수로 함께 보내거나, 둘 다 `null`로 보내 저장값을 지움(서버 env 기본 시각 사용). 한쪽만내면 400.
   - 신규 소셜 가입 시 이메일이 없으면 가입이 거절되며, 레거시 계정에만 `email`이 비어 있을 수 있음. 이 경우 `PATCH /me`로 **한 번** 이메일을 등록할 수 있음(이후 변경 불가, 동일 이메일 재전송은 무시).
 - `DELETE /me` — 회원 탈퇴(계정 즉시 비활성화). 서버 연계 데이터는 비활성화 시점부터 최대 365일(`INACTIVE_USER_RETENTION_DAYS`) 보관 후 배치 삭제(정책: `docs/spec/04-account-policy.md`).
 

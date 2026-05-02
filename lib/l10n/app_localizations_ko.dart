@@ -330,6 +330,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notificationSettingsSubtitle => '습관 리마인더는 여기서 켜세요.';
 
   @override
+  String get missedHabitSummaryPushTimeTitle => '미완료 습관 요약 알림';
+
+  @override
+  String get missedHabitSummaryPushTimeSubtitle =>
+      '오늘 아직 완료하지 않은 습관이 있을 때 알려줄 시각입니다 (기기 타임존 기준). 기본값은 서버 설정을 따릅니다.';
+
+  @override
+  String get missedHabitSummaryPushTimeDefaultLabel => '서버 기본값';
+
+  @override
   String get soundAndFeedback => '완료 피드백';
 
   @override

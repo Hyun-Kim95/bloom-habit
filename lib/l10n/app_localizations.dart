@@ -716,6 +716,24 @@ abstract class AppLocalizations {
   /// **'습관 리마인더는 여기서 켜세요.'**
   String get notificationSettingsSubtitle;
 
+  /// No description provided for @missedHabitSummaryPushTimeTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'미완료 습관 요약 알림'**
+  String get missedHabitSummaryPushTimeTitle;
+
+  /// No description provided for @missedHabitSummaryPushTimeSubtitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘 아직 완료하지 않은 습관이 있을 때 알려줄 시각입니다 (기기 타임존 기준). 기본값은 서버 설정을 따릅니다.'**
+  String get missedHabitSummaryPushTimeSubtitle;
+
+  /// No description provided for @missedHabitSummaryPushTimeDefaultLabel.
+  ///
+  /// In ko, this message translates to:
+  /// **'서버 기본값'**
+  String get missedHabitSummaryPushTimeDefaultLabel;
+
   /// No description provided for @soundAndFeedback.
   ///
   /// In ko, this message translates to:

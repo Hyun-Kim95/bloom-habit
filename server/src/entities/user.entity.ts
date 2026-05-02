@@ -30,6 +30,18 @@ export class User {
   @Column({ type: 'varchar', length: 512, nullable: true })
   fcmToken: string | null;
 
+  /** IANA 타임존 (예: Asia/Seoul). null이면 미달성 푸시 시 Asia/Seoul로 간주. */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  ianaTimeZone: string | null;
+
+  /** 미달성 요약 FCM 로컬 시각(시). null이면 서버 env 기본. */
+  @Column({ type: 'smallint', nullable: true })
+  missedHabitPushLocalHour: number | null;
+
+  /** 미달성 요약 FCM 로컬 시각(분). null이면 서버 env 기본. */
+  @Column({ type: 'smallint', nullable: true })
+  missedHabitPushLocalMinute: number | null;
+
   @Column({ default: true })
   isActive: boolean;
 

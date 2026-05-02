@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
@@ -23,6 +24,9 @@ class MeProfile {
     this.email,
     this.displayName,
     this.avatarUrl,
+    this.ianaTimeZone,
+    this.missedHabitPushLocalHour,
+    this.missedHabitPushLocalMinute,
     required this.authProvider,
     required this.createdAt,
   });
@@ -31,10 +35,20 @@ class MeProfile {
   final String? email;
   final String? displayName;
   final String? avatarUrl;
+  final String? ianaTimeZone;
+  final int? missedHabitPushLocalHour;
+  final int? missedHabitPushLocalMinute;
 
   /// `google` | `kakao` | `naver` | `unknown` (legacy `apple` possible)
   final String authProvider;
   final String createdAt;
+
+  static int? _intField(Object? v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return null;
+  }
 
   static MeProfile? fromJson(Map<String, dynamic>? json) {
     if (json == null) return null;
@@ -45,6 +59,9 @@ class MeProfile {
       email: json['email'] as String?,
       displayName: json['displayName'] as String?,
       avatarUrl: json['avatarUrl'] as String?,
+      ianaTimeZone: json['ianaTimeZone'] as String?,
+      missedHabitPushLocalHour: _intField(json['missedHabitPushLocalHour']),
+      missedHabitPushLocalMinute: _intField(json['missedHabitPushLocalMinute']),
       authProvider: json['authProvider'] as String? ?? 'unknown',
       createdAt: json['createdAt'] as String? ?? '',
     );
@@ -296,6 +313,31 @@ class AuthRepository {
     await _api.dio.patch<Map<String, dynamic>>(ApiEndpoints.me, data: data);
   }
 
+  /// 미달성 요약 FCM 로컬 시각 (PATCH /me).
+  Future<void> updateMissedHabitPushLocalTime({
+    required int hour,
+    required int minute,
+  }) async {
+    await _api.dio.patch<Map<String, dynamic>>(
+      ApiEndpoints.me,
+      data: {
+        'missedHabitPushLocalHour': hour,
+        'missedHabitPushLocalMinute': minute,
+      },
+    );
+  }
+
+  /// 미달성 요약 시각을 서버 env 기본으로 되돌림.
+  Future<void> clearMissedHabitPushLocalTime() async {
+    await _api.dio.patch<Map<String, dynamic>>(
+      ApiEndpoints.me,
+      data: {
+        'missedHabitPushLocalHour': null,
+        'missedHabitPushLocalMinute': null,
+      },
+    );
+  }
+
   Future<AvatarUploadPresign> createAvatarUploadPresign({
     required String fileName,
     required int fileSize,
@@ -413,6 +455,16 @@ class AuthRepository {
     }
   }
 
+  Future<String?> _deviceIanaTimeZone() async {
+    try {
+      final tzInfo = await FlutterTimezone.getLocalTimezone();
+      final id = tzInfo.identifier.trim();
+      return id.isEmpty ? null : id;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Subscribe to FCM token rotation and PATCH `/me` when logged in.
   void attachFcmTokenRefreshListener() {
     _fcmTokenRefreshSub?.cancel();
@@ -420,9 +472,13 @@ class AuthRepository {
       final t = newToken.trim();
       if (t.isEmpty) return;
       try {
+        final iana = await _deviceIanaTimeZone();
         await _api.dio.patch<Map<String, dynamic>>(
           ApiEndpoints.me,
-          data: {'fcmToken': t},
+          data: {
+            'fcmToken': t,
+            'ianaTimeZone': ?iana,
+          },
         );
         debugPrint(
           'FCM token refreshed on server: ${t.length >= 6 ? t.substring(0, 6) : t}',
@@ -447,9 +503,13 @@ class AuthRepository {
           .timeout(stepTimeout);
       final token = await messaging.getToken().timeout(stepTimeout);
       if (token == null || token.isEmpty) return;
+      final iana = await _deviceIanaTimeZone();
       await _api.dio.patch<Map<String, dynamic>>(
         ApiEndpoints.me,
-        data: {'fcmToken': token},
+        data: {
+          'fcmToken': token,
+          'ianaTimeZone': ?iana,
+        },
       );
       debugPrint(
         'FCM token registered: ${token.length >= 6 ? token.substring(0, 6) : token}',

@@ -29,7 +29,11 @@ class FcmNotificationListener {
       final body = notification.body ?? '';
       if (title.isEmpty && body.isEmpty) return;
 
-      await notificationService.showFcmNotification(title: title, body: body);
+      await notificationService.showFcmNotification(
+        title: title,
+        body: body,
+        fcmDataType: type,
+      );
     });
 
     // User opened app from notification tap (currently log only).
@@ -48,8 +52,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   final body = notification?.body ?? '';
   if (title.isEmpty && body.isEmpty) return;
 
+  final type = message.data['type']?.toString();
   final service = NotificationService();
   await service.init();
-  await service.showFcmNotification(title: title, body: body);
+  await service.showFcmNotification(title: title, body: body, fcmDataType: type);
 }
 

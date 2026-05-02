@@ -52,13 +52,17 @@ GoRouter createAppRouter(WidgetRef ref) {
               (path == AppRoutes.onboarding && !replayOnboarding))) {
         return AppRoutes.home;
       }
-      if (!restored && path != AppRoutes.onboarding && path != AppRoutes.login && !path.startsWith('/legal/')) {
+      if (!restored &&
+          path != AppRoutes.onboarding &&
+          path != AppRoutes.login &&
+          !path.startsWith('/legal/')) {
         return AppRoutes.login;
       }
       // If onboarding was already seen and one-time mode is enabled, go to login.
       if (path == AppRoutes.onboarding && !restored) {
         final settings = await ref.read(appSettingsProvider.future);
-        if (settings.hasSeenOnboarding && settings.showOnboardingOnlyFirstLaunch) {
+        if (settings.hasSeenOnboarding &&
+            settings.showOnboardingOnlyFirstLaunch) {
           return AppRoutes.login;
         }
       }
@@ -67,12 +71,9 @@ GoRouter createAppRouter(WidgetRef ref) {
     routes: [
       GoRoute(
         path: AppRoutes.onboarding,
-        builder: (_, __) => const OnboardingScreen(),
+        builder: (_, _) => const OnboardingScreen(),
       ),
-      GoRoute(
-        path: AppRoutes.login,
-        builder: (_, __) => const LoginScreen(),
-      ),
+      GoRoute(path: AppRoutes.login, builder: (_, _) => const LoginScreen()),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return MainShell(navigationShell: navigationShell);
@@ -83,7 +84,7 @@ GoRouter createAppRouter(WidgetRef ref) {
             routes: [
               GoRoute(
                 path: AppRoutes.home,
-                builder: (_, __) => const HomeScreen(),
+                builder: (_, _) => const HomeScreen(),
               ),
             ],
           ),
@@ -92,11 +93,11 @@ GoRouter createAppRouter(WidgetRef ref) {
             routes: [
               GoRoute(
                 path: AppRoutes.habits,
-                builder: (_, __) => const HabitListScreen(),
+                builder: (_, _) => const HabitListScreen(),
               ),
               GoRoute(
                 path: AppRoutes.habitCreate,
-                builder: (_, __) => const HabitCreateScreen(),
+                builder: (_, _) => const HabitCreateScreen(),
               ),
             ],
           ),
@@ -105,7 +106,7 @@ GoRouter createAppRouter(WidgetRef ref) {
             routes: [
               GoRoute(
                 path: AppRoutes.statistics,
-                builder: (_, __) => const StatisticsScreen(),
+                builder: (_, _) => const StatisticsScreen(),
               ),
             ],
           ),
@@ -114,7 +115,7 @@ GoRouter createAppRouter(WidgetRef ref) {
             routes: [
               GoRoute(
                 path: AppRoutes.settings,
-                builder: (_, __) => const SettingsScreen(),
+                builder: (_, _) => const SettingsScreen(),
               ),
             ],
           ),
@@ -130,32 +131,34 @@ GoRouter createAppRouter(WidgetRef ref) {
       ),
       GoRoute(
         path: AppRoutes.account,
-        builder: (_, __) => const AccountScreen(),
+        builder: (_, _) => const AccountScreen(),
       ),
       GoRoute(
         path: AppRoutes.inquiries,
-        builder: (_, __) => const InquiriesScreen(),
+        builder: (_, _) => const InquiriesScreen(),
       ),
       GoRoute(
         path: AppRoutes.legalTerms,
-        builder: (_, __) => const LegalViewScreen(type: 'terms'),
+        builder: (_, _) => const LegalViewScreen(type: 'terms'),
       ),
       GoRoute(
         path: AppRoutes.legalPrivacy,
-        builder: (_, __) => const LegalViewScreen(type: 'privacy'),
+        builder: (_, _) => const LegalViewScreen(type: 'privacy'),
       ),
       GoRoute(
         path: AppRoutes.notices,
-        builder: (_, __) => const NoticesScreen(),
+        builder: (_, _) => const NoticesScreen(),
       ),
       GoRoute(
         path: AppRoutes.supportMonetization,
-        builder: (_, __) => const SupportMonetizationScreen(),
+        builder: (_, _) => const SupportMonetizationScreen(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
       body: Center(
-        child: Text(AppLocalizations.of(context)!.pageNotFound(state.uri.toString())),
+        child: Text(
+          AppLocalizations.of(context)!.pageNotFound(state.uri.toString()),
+        ),
       ),
     ),
   );

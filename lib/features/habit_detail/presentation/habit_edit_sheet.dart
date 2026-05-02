@@ -167,7 +167,7 @@ Future<HabitEditResult?> showHabitEditSheet(
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: goalType,
+                    initialValue: goalType,
                     decoration: InputDecoration(
                       labelText: l10n.goalType,
                       border: OutlineInputBorder(),
@@ -192,14 +192,15 @@ Future<HabitEditResult?> showHabitEditSheet(
                         goalValue ??= 1;
                         unit = normalizedUnitForGoalType(goalType, unit);
                       }
-                      if (goalType == 'completion' || goalType == 'count')
+                      if (goalType == 'completion' || goalType == 'count') {
                         unit = null;
+                      }
                     }),
                   ),
                   if (goalType == 'duration' || goalType == 'number') ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: normalizedUnitForGoalType(goalType, unit),
+                      initialValue: normalizedUnitForGoalType(goalType, unit),
                       decoration: InputDecoration(
                         labelText: isEn ? 'Unit' : '단위',
                         border: const OutlineInputBorder(),
@@ -218,7 +219,7 @@ Future<HabitEditResult?> showHabitEditSheet(
                   if (goalType == 'number') ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: numberDirection,
+                      initialValue: numberDirection,
                       decoration: InputDecoration(
                         labelText: l10n.goalNumberHint,
                         border: const OutlineInputBorder(),

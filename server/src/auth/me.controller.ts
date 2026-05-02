@@ -47,13 +47,19 @@ export class MeController {
       displayName?: string;
       avatarUrl?: string | null;
       email?: string;
+      ianaTimeZone?: string | null;
+      missedHabitPushLocalHour?: number | null;
+      missedHabitPushLocalMinute?: number | null;
     },
   ) {
     if (
       body.fcmToken !== undefined ||
       body.displayName !== undefined ||
       body.avatarUrl !== undefined ||
-      body.email !== undefined
+      body.email !== undefined ||
+      body.ianaTimeZone !== undefined ||
+      body.missedHabitPushLocalHour !== undefined ||
+      body.missedHabitPushLocalMinute !== undefined
     ) {
       await this.auth.patchMe(req.userId, body);
     }

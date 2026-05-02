@@ -1,16 +1,57 @@
 import { Injectable } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import cron from 'node-cron';
+import { DateTime } from 'luxon';
 
 import { Habit, HabitRecord, MissedHabitPushLog, User } from '../entities';
 import { PushService } from './push.service';
 
-function toYmdLocal(d: Date) {
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+/** DB에 타임존이 없을 때 미달성 푸시·로컬일 판정에 사용 */
+const DEFAULT_IANA_TZ = 'Asia/Seoul';
+
+function effectiveIana(user: { ianaTimeZone: string | null }): string {
+  const z = user.ianaTimeZone?.trim();
+  if (z && DateTime.now().setZone(z).isValid) return z;
+  return DEFAULT_IANA_TZ;
+}
+
+function parseDefaultSendHM(): { hour: number; minute: number } {
+  const hourRaw = parseInt(process.env.MISSED_HABIT_LOCAL_SEND_HOUR ?? '23', 10);
+  const minuteRaw = parseInt(process.env.MISSED_HABIT_LOCAL_SEND_MINUTE ?? '0', 10);
+  const hour = Number.isFinite(hourRaw) ? Math.min(23, Math.max(0, hourRaw)) : 23;
+  const minute = Number.isFinite(minuteRaw) ? Math.min(59, Math.max(0, minuteRaw)) : 0;
+  return { hour, minute };
+}
+
+function parseWindowMinutes(): number {
+  const windowRaw = parseInt(process.env.MISSED_HABIT_SEND_WINDOW_MINUTES ?? '10', 10);
+  return Number.isFinite(windowRaw) ? Math.min(180, Math.max(1, windowRaw)) : 10;
+}
+
+function userSendHM(
+  user: {
+    missedHabitPushLocalHour: number | null;
+    missedHabitPushLocalMinute: number | null;
+  },
+  fallback: { hour: number; minute: number },
+): { hour: number; minute: number } {
+  if (user.missedHabitPushLocalHour != null && user.missedHabitPushLocalMinute != null) {
+    return { hour: user.missedHabitPushLocalHour, minute: user.missedHabitPushLocalMinute };
+  }
+  return fallback;
+}
+
+function inLocalSendWindow(
+  localNow: DateTime,
+  hour: number,
+  minute: number,
+  windowMinutes: number,
+): boolean {
+  const start = hour * 60 + minute;
+  const cur = localNow.hour * 60 + localNow.minute;
+  return cur >= start && cur < start + windowMinutes;
 }
 
 @Injectable()
@@ -19,6 +60,8 @@ export class MissedHabitReminderScheduler {
 
   constructor(
     private readonly pushService: PushService,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     @InjectRepository(Habit)
     private readonly habitRepo: Repository<Habit>,
     @InjectRepository(HabitRecord)
@@ -35,119 +78,146 @@ export class MissedHabitReminderScheduler {
     if (MissedHabitReminderScheduler._scheduled) return;
     MissedHabitReminderScheduler._scheduled = true;
 
-    // 매일 23:00 (서버 = PC 기준 시간). 테스트 시 MISSED_HABIT_CRON_OVERRIDE 로 변경 가능 (예: "*/2 * * * *" = 2분마다)
-    const cronExpr = process.env.MISSED_HABIT_CRON_OVERRIDE || '0 23 * * *';
+    const cronExpr = process.env.MISSED_HABIT_TICK_CRON ?? '*/10 * * * *';
     cron.schedule(cronExpr, async () => {
       try {
         await this.runOnce({ force: false });
       } catch {
-        // 알림 실패는 조용히 무시(재시도 로직은 추후 확장)
+        // 알림 실패는 조용히 무시(재시도는 다음 틱)
       }
     });
 
-    // 개발/테스트 편의: 서버 시작 시 한 번 즉시 실행
     if (process.env.MISSED_HABIT_RUN_ON_START === 'true') {
       this.runOnce({ force: true }).catch(() => {});
     }
   }
 
   async runOnce({ force = false }: { force?: boolean } = {}): Promise<void> {
-    const todayStr = toYmdLocal(new Date());
+    const defaultHm = parseDefaultSendHM();
+    const windowMinutes = parseWindowMinutes();
     // eslint-disable-next-line no-console
-    console.log(`[MissedHabitReminder] runOnce start (today=${todayStr}, force=${force})`);
+    console.log(
+      `[MissedHabitReminder] runOnce start (force=${force}, defaultLocal=${defaultHm.hour}:${String(defaultHm.minute).padStart(2, '0')}+${windowMinutes}m)`,
+    );
 
-    // 오늘 완료된 habitId 집합
-    const completed = await this.habitRecordRepo.find({
-      where: { recordDate: todayStr, completed: true },
-      select: ['habitId'],
-    });
-    const completedHabitIds = new Set(completed.map((r) => r.habitId));
-
-    // 활성 습관 중, 오늘 시작 전/후 필터(간단 문자열 비교: YYYY-MM-DD)
-    // TypeORM where null 타입 이슈를 피하기 위해 쿼리빌더 사용
     const habits = await this.habitRepo
       .createQueryBuilder('h')
       .innerJoin(User, 'u', 'u.id = h.userId AND u.isActive = true')
       .where('h.archivedAt IS NULL')
       .getMany();
 
-    const missedByUserId = new Map<string, string[]>();
+    const habitsByUser = new Map<string, Habit[]>();
     for (const h of habits) {
-      if (h.startDate && h.startDate > todayStr) continue;
-      if (completedHabitIds.has(h.id)) continue;
-      const arr = missedByUserId.get(h.userId) ?? [];
-      arr.push(h.name);
-      missedByUserId.set(h.userId, arr);
+      const arr = habitsByUser.get(h.userId) ?? [];
+      arr.push(h);
+      habitsByUser.set(h.userId, arr);
     }
 
-    if (missedByUserId.size === 0) {
+    const users = await this.userRepo.find({
+      where: { isActive: true },
+      select: [
+        'id',
+        'fcmToken',
+        'ianaTimeZone',
+        'missedHabitPushLocalHour',
+        'missedHabitPushLocalMinute',
+        'isActive',
+      ],
+    });
+    const usersWithToken = users.filter((u) => u.fcmToken?.trim());
+    if (usersWithToken.length === 0) {
       // eslint-disable-next-line no-console
-      console.log('[MissedHabitReminder] no missed habits. skip.');
+      console.log('[MissedHabitReminder] no users with FCM token. skip.');
       return;
     }
 
-    // eslint-disable-next-line no-console
-    console.log(
-      `[MissedHabitReminder] missedByUserId=${missedByUserId.size}`,
-    );
+    type Candidate = { user: (typeof usersWithToken)[0]; localDate: string; iana: string };
+    const candidates: Candidate[] = [];
 
-    const userIds = [...missedByUserId.keys()];
-    const users = await this.userRepo.find({
-      where: { id: In(userIds), isActive: true },
-      select: ['id', 'fcmToken', 'isActive'],
-    });
-    // eslint-disable-next-line no-console
-    console.log(
-      `[MissedHabitReminder] userIds=${userIds.length} usersFetched=${users.length}`,
-    );
+    for (const user of usersWithToken) {
+      const iana = effectiveIana(user);
+      const localNow = DateTime.now().setZone(iana);
+      if (!localNow.isValid) continue;
 
-    const usersWithToken = users.filter((u) => u.fcmToken?.trim());
-    // eslint-disable-next-line no-console
-    console.log(
-      `[MissedHabitReminder] usersWithToken=${usersWithToken.length}`,
-    );
+      const hm = userSendHM(user, defaultHm);
+      if (!force && !inLocalSendWindow(localNow, hm.hour, hm.minute, windowMinutes)) {
+        continue;
+      }
 
-    // 오늘 이미 보냈던 사용자 스킵
-    const logs = await this.logRepo.find({
-      where: { pushDate: todayStr, userId: In(userIds) },
-      select: ['userId'],
-    });
-    const alreadySent = new Set(logs.map((l) => l.userId));
-    // eslint-disable-next-line no-console
-    console.log(`[MissedHabitReminder] alreadySent=${alreadySent.size}`);
+      const localDate = localNow.toISODate();
+      if (!localDate) continue;
+
+      const userHabits = habitsByUser.get(user.id) ?? [];
+      if (userHabits.length === 0) continue;
+
+      candidates.push({ user, localDate, iana });
+    }
+
+    if (candidates.length === 0) {
+      // eslint-disable-next-line no-console
+      console.log('[MissedHabitReminder] no candidates in send window (or no habits). skip.');
+      return;
+    }
+
+    const uniqueDates = [...new Set(candidates.map((c) => c.localDate))];
+    const completedByDate = new Map<string, Set<string>>();
+    for (const d of uniqueDates) {
+      const rows = await this.habitRecordRepo.find({
+        where: { recordDate: d, completed: true },
+        select: ['habitId'],
+      });
+      completedByDate.set(d, new Set(rows.map((r) => r.habitId)));
+    }
 
     let sent = 0;
-    const sentTokens = new Set<string>();
-
-    for (const user of users) {
-      const token = user.fcmToken?.trim();
-      if (!token) continue;
-      if (!force && alreadySent.has(user.id)) continue;
-      if (sentTokens.has(token)) continue;
-      const missedNames = missedByUserId.get(user.id) ?? [];
+    for (const { user, localDate } of candidates) {
+      const completedHabitIds = completedByDate.get(localDate) ?? new Set();
+      const userHabits = habitsByUser.get(user.id) ?? [];
+      const missedNames: string[] = [];
+      for (const h of userHabits) {
+        if (h.startDate && h.startDate > localDate) continue;
+        if (completedHabitIds.has(h.id)) continue;
+        missedNames.push(h.name);
+      }
       if (missedNames.length === 0) continue;
+
+      if (force) {
+        await this.logRepo.delete({ userId: user.id, pushDate: localDate });
+      }
+
+      const inserted = await this.tryClaimPushSlot(user.id, localDate);
+      if (!inserted) {
+        continue;
+      }
 
       // eslint-disable-next-line no-console
       console.log(
-        `[MissedHabitReminder] sending to user=${user.id} missedCount=${missedNames.length}`,
+        `[MissedHabitReminder] sending to user=${user.id} pushDate=${localDate} missedCount=${missedNames.length}`,
       );
 
-      await this.pushService.sendMissedHabitReminderNotification({
+      const ok = await this.pushService.sendMissedHabitReminderNotification({
         userId: user.id,
         missedHabitNames: missedNames,
       });
-      sentTokens.add(token);
-
-      if (force) {
-        await this.logRepo.delete({ userId: user.id, pushDate: todayStr });
+      if (!ok) {
+        await this.logRepo.delete({ userId: user.id, pushDate: localDate });
+      } else {
+        sent++;
       }
-      const log = this.logRepo.create({ userId: user.id, pushDate: todayStr });
-      await this.logRepo.save(log);
-      sent++;
     }
 
     // eslint-disable-next-line no-console
     console.log(`[MissedHabitReminder] runOnce done. sent=${sent}`);
   }
-}
 
+  /** @returns true if this invocation claimed the send slot (insert succeeded). */
+  private async tryClaimPushSlot(userId: string, pushDate: string): Promise<boolean> {
+    const rows: { id: number }[] = await this.dataSource.query(
+      `INSERT INTO "missed_habit_push_logs" ("userId", "pushDate") VALUES ($1, $2)
+       ON CONFLICT ("userId", "pushDate") DO NOTHING
+       RETURNING id`,
+      [userId, pushDate],
+    );
+    return rows.length > 0;
+  }
+}

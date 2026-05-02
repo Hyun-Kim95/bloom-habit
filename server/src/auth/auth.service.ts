@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { DateTime } from 'luxon';
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { extname, join } from 'path';
 import { mkdir, writeFile } from 'fs/promises';
@@ -166,6 +167,9 @@ export class AuthService {
       email: user.email,
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
+      ianaTimeZone: user.ianaTimeZone ?? null,
+      missedHabitPushLocalHour: user.missedHabitPushLocalHour ?? null,
+      missedHabitPushLocalMinute: user.missedHabitPushLocalMinute ?? null,
       authProvider: user.authProvider ?? authProviderFromUserId(user.id),
       createdAt: user.createdAt.toISOString(),
     };
@@ -178,6 +182,9 @@ export class AuthService {
       displayName?: string;
       avatarUrl?: string | null;
       email?: string;
+      ianaTimeZone?: string | null;
+      missedHabitPushLocalHour?: number | null;
+      missedHabitPushLocalMinute?: number | null;
     },
   ): Promise<void> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
@@ -189,6 +196,46 @@ export class AuthService {
         body.fcmToken && String(body.fcmToken).trim() !== ''
           ? String(body.fcmToken).trim()
           : null;
+    }
+    if (body.ianaTimeZone !== undefined) {
+      if (body.ianaTimeZone === null || String(body.ianaTimeZone).trim() === '') {
+        user.ianaTimeZone = null;
+      } else {
+        const z = String(body.ianaTimeZone).trim();
+        if (z.length > 64) {
+          throw new BadRequestException('ianaTimeZone은 64자 이하여야 합니다.');
+        }
+        if (!DateTime.now().setZone(z).isValid) {
+          throw new BadRequestException('유효하지 않은 IANA 타임존입니다.');
+        }
+        user.ianaTimeZone = z;
+      }
+    }
+    if (
+      body.missedHabitPushLocalHour !== undefined ||
+      body.missedHabitPushLocalMinute !== undefined
+    ) {
+      const h = body.missedHabitPushLocalHour;
+      const m = body.missedHabitPushLocalMinute;
+      if (h === null && m === null) {
+        user.missedHabitPushLocalHour = null;
+        user.missedHabitPushLocalMinute = null;
+      } else if (h != null && m != null) {
+        const hi = Math.trunc(Number(h));
+        const mi = Math.trunc(Number(m));
+        if (!Number.isFinite(hi) || !Number.isFinite(mi)) {
+          throw new BadRequestException('missedHabitPushLocalHour/Minute는 숫자여야 합니다.');
+        }
+        if (hi < 0 || hi > 23 || mi < 0 || mi > 59) {
+          throw new BadRequestException('미달성 푸시 시각은 시 0~23, 분 0~59 범위여야 합니다.');
+        }
+        user.missedHabitPushLocalHour = hi;
+        user.missedHabitPushLocalMinute = mi;
+      } else {
+        throw new BadRequestException(
+          '미달성 푸시 시각은 시·분을 함께 보내거나, 둘 다 null로 초기화하세요.',
+        );
+      }
     }
     if (body.displayName !== undefined) {
       const d = String(body.displayName).trim();

@@ -137,15 +137,17 @@ iOS도 푸시를 쓰려면:
 
 ---
 
-## 6. 미달성 습관 리마인더 (23:00 Big Picture 푸시)
+## 6. 미달성 습관 리마인더 (로컬 저녁 Big Picture 푸시)
 
-오늘 완료하지 않은 습관이 있는 사용자에게 **매일 23:00(서버 로컬 시간)** 에 잠금 화면용 Big Picture 푸시가 발송됩니다.
+오늘 완료하지 않은 습관이 있는 사용자에게 **해당 사용자 IANA 타임존 기준 매일 한 번**(기본 전송 창: 로컬 **23:00~23:10**) 잠금 화면용 Big Picture 푸시가 발송됩니다.
 
 ### 6-1. 동작 요약
 
-- 서버 크론: `0 23 * * *` (매일 **서버=PC 기준 23:00**). 에뮬레이터/폰 시계와 무관함.
-- 오늘 `recordDate` 기준으로 완료되지 않은 활성 습관을 계산
-- 해당 사용자 중 FCM 토큰이 있고, **오늘 이미 보낸 적이 없는** 사용자에게만 1회 전송
+- 앱이 `PATCH /me`로 **`ianaTimeZone`**(예: `Asia/Seoul`)을 올리며, 비어 있으면 서버는 **`Asia/Seoul`**로 간주합니다.
+- **틱 크론** (기본 `*/10 * * * *`, 환경변수 `MISSED_HABIT_TICK_CRON`): 주기마다 “전송 창 안에 있는 유저”만 검사합니다.
+- 전송 창: `MISSED_HABIT_LOCAL_SEND_HOUR`(기본 23), `MISSED_HABIT_LOCAL_SEND_MINUTE`(기본 0), `MISSED_HABIT_SEND_WINDOW_MINUTES`(기본 10) — 유저 **로컬 시각**이 `[H:M, H:M+window)` 안일 때만 후보. **앱에서 `PATCH /me`로 `missedHabitPushLocalHour`/`Minute`를 저장한 경우 그 시각이 env 기본보다 우선**합니다.
+- **유저 로컬 달력** `YYYY-MM-DD`와 동일한 `recordDate`로 완료 여부를 보고 미달성을 계산합니다. `missed_habit_push_logs.pushDate`도 이 **로컬일** 기준(하루 1통).
+- DB `INSERT … ON CONFLICT DO NOTHING`으로 슬롯을 먼저 잡은 뒤에만 FCM 전송(멀티 인스턴스 중복 완화).
 - 푸시에 **이미지 URL** 포함 → Android 잠금 화면에서 Big Picture 스타일로 표시
 
 ### 6-2. 이미지 URL (필수)
@@ -162,82 +164,40 @@ FCM이 Big Picture용 이미지를 다운로드할 수 있어야 하므로, 서�
 
 ### 6-2a. 테스트 시 특정 시간에 알림 받기
 
-- 알림은 **서버(PC) 시계 기준**으로만 동작합니다. **에뮬레이터/폰 시계를 바꿔도 서버가 23:00이 아니면 안 옵니다.**
-- **방법 1 – PC 시계 변경**: Windows에서 PC 시계를 22:59 등으로 맞춘 뒤, 23:00이 될 때까지 대기.
-- **방법 2 – 강제 전송 API**: 23:00을 기다리지 않고 `POST /admin/test/missed-habit-push` 호출로 즉시 전송.
-- **방법 3 – 크론 시간 임시 변경**: `.env`에 예시 추가 후 서버 재시작.
-  ```env
-  # 예: 2분마다 실행 (테스트용). 정식 배포 시 제거.
-  MISSED_HABIT_CRON_OVERRIDE=*/2 * * * *
-  ```
-  그러면 서버 시작 후 2분마다 미달성 푸시가 나갑니다. 테스트 끝나면 이 줄 삭제하고 서버 재시작하면 다시 23:00만 실행됩니다.
+- 전송 시각은 **서버가 아니라 사용자 타임존의 로컬 시각**입니다. 기기에서 앱을 열어 `PATCH /me`로 타임존이 올라가 있는지 확인하세요.
+- **틱 주기 늘리기**: `MISSED_HABIT_TICK_CRON=*/2 * * * *` 등으로 바꿀 수 있습니다(테스트 후 원복 권장).
+- **전송 창 넓히기**: `MISSED_HABIT_SEND_WINDOW_MINUTES=120` 등.
+- **즉시 한 번 보내기**: `.env`에 `MISSED_HABIT_RUN_ON_START=true` 후 서버 재시작 → 기동 시 `force` 경로로 전송(이미 해당 로컬일에 로그가 있으면 `force`가 로그를 지우고 다시 시도).
 
 ### 6-3. 확인 방법 (자세히)
 
 #### ① 서버 재시작 후 로그 확인
 
 1. 서버를 **한 번 종료**(Ctrl+C)한 뒤 다시 실행: `npm run start:dev`
-2. 터미널에서 아래 로그가 **순서대로** 나오는지 확인합니다.
-   - `[MissedHabitReminder] runOnce start (today=YYYY-MM-DD, force=true)`  
-     → 오늘 날짜로 미달성 리마인더가 한 번 실행됨
-   - `[MissedHabitReminder] missedByUserId=N`  
-     → 미달성 습관이 있는 사용자 N명
-   - `[MissedHabitReminder] usersWithToken=N`  
-     → FCM 토큰이 등록된 사용자 N명
-   - `[MissedHabitReminder] sending to user=... missedCount=...`  
-     → 실제로 푸시 전송 시도
-   - `[MissedHabitReminder] runOnce done. sent=N`  
-     → N명에게 전송 완료
-   - `Server listening on http://localhost:3000`  
-     → 서버 기동 완료
+2. 터미널에서 아래 로그가 나오는지 확인합니다.
+   - `[MissedHabitReminder] runOnce start (force=…, sendLocal=23:00+10m)`  
+   - `[MissedHabitReminder] sending to user=… pushDate=YYYY-MM-DD missedCount=…`  
+   - `[MissedHabitReminder] runOnce done. sent=N`
 
-**참고:** `.env`에 `MISSED_HABIT_RUN_ON_START=true`가 있어야 서버 시작 시 위 로그가 찍힙니다. 없으면 23:00에만 실행됩니다.
+**참고:** `.env`에 `MISSED_HABIT_RUN_ON_START=true`가 있어야 서버 시작 시 `force`로 한 번 돕니다. 없으면 `MISSED_HABIT_TICK_CRON` 주기마다 전송 창에 들어온 유저만 처리됩니다.
 
 ---
 
 #### ② 강제 전송으로 앱/에뮬레이터에서 푸시 확인
 
-23:00을 기다리지 않고, **지금 바로** 푸시가 오는지 테스트하는 방법입니다.
+전송 창을 기다리지 않고 **지금 바로** 푸시가 오는지 테스트하는 방법입니다.
 
-**1단계: 관리자 JWT 받기**
+**권장: 서버 기동 시 한 번 실행**
 
-- **방법 A – curl (PowerShell 또는 터미널)**  
-  관리자 이메일/비밀번호는 `.env`의 `ADMIN_EMAIL`, `ADMIN_PASSWORD`와 동일하게 사용합니다.
+1. `.env`에 `MISSED_HABIT_RUN_ON_START=true` 추가 후 서버 재시작.
+2. 터미널에 `[MissedHabitReminder] sending to user=…` 로그가 나오는지 확인합니다.
+3. 테스트가 끝나면 해당 줄을 제거하거나 `false`로 두고 재시작합니다.
 
-  ```bash
-  curl -X POST http://localhost:3000/admin/auth/login -H "Content-Type: application/json" -d "{\"email\":\"admin@bloom.local\",\"password\":\"admin123\"}"
-  ```
-
-  응답 예: `{"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}`  
-  → `accessToken` 값 전체를 복사합니다.
-
-- **방법 B – 관리자 웹(React) 로그인**  
-  1. 관리자 패널 주소 접속 (예: `http://localhost:5173` 또는 사용 중인 admin 주소)
-  2. 로그인 (동일한 이메일/비밀번호)
-  3. 브라우저 개발자 도구(F12) → **Application** (또는 **Storage**) → **Local Storage** → 해당 사이트 선택
-  4. 키 `bloom_admin_token` 의 **값**이 JWT입니다. 복사합니다.
-
-**2단계: 강제 전송 API 호출**
-
-- **curl 예시** (위에서 복사한 토큰을 `여기에_JWT_붙여넣기` 자리에 넣음):
-
-  ```bash
-  curl -X POST http://localhost:3000/admin/test/missed-habit-push -H "Authorization: Bearer 여기에_JWT_붙여넣기"
-  ```
-
-  성공 시 응답: `{"ok":true}`
-
-- **Postman**  
-  - Method: **POST**  
-  - URL: `http://localhost:3000/admin/test/missed-habit-push`  
-  - Headers: `Authorization` = `Bearer 여기에_JWT_붙여넣기`  
-  - Send 후 응답이 `{"ok":true}` 이면 성공.
-
-**3단계: 앱/에뮬레이터에서 확인**
+**앱/에뮬레이터에서 확인**
 
 - 테스트할 **앱 사용자**는 **오늘 습관을 하나라도 완료하지 않은** 상태여야 합니다.
 - 해당 사용자로 **앱에 로그인**한 뒤 **홈**까지 한 번 들어가서 FCM 토큰이 서버에 등록된 상태여야 합니다.
-- 위 API 호출 후 **잠시 뒤**(수 초 이내) 해당 사용자 기기/에뮬레이터에 푸시 알림이 와야 합니다.
+- 서버가 기동 직후 `runOnce`를 돌린 뒤 **잠시**(수 초 이내) 해당 사용자 기기/에뮬레이터에 푸시 알림이 와야 합니다.
   - 제목: "오늘도 놓친 습관이 있어요"
   - 본문: 습관명 + "1일 미달성" 또는 "외 N개 미달성"
 - **에뮬레이터**에서는 Google Play 서비스가 있는 이미지로 실행해야 푸시가 올 수 있고, 실제 기기보다 푸시가 안 올 수 있습니다. 실제 기기에서도 한 번 확인하는 것을 권장합니다.

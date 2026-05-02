@@ -80,3 +80,4 @@ windows/flutter/generated_plugins.cmake
 # Screenshots / local capture artifacts
 screenshot/
 *Screenshots*.zip
+*.zip

@@ -87,15 +87,18 @@ export class PushService {
     }
   }
 
-  /** 미달성 습관 리마인더(잠금 화면 Big Picture) 푸시 */
+  /**
+   * 미달성 습관 리마인더(잠금 화면 Big Picture) 푸시.
+   * @returns 전송 시도가 성공하면 true (스케줄러가 로그 롤백 판단에 사용).
+   */
   async sendMissedHabitReminderNotification(params: {
     userId: string;
     missedHabitNames: string[];
-  }): Promise<void> {
+  }): Promise<boolean> {
     const { userId, missedHabitNames } = params;
     const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user?.fcmToken?.trim()) return;
-    if (!this.messaging) return;
+    if (!user?.fcmToken?.trim()) return false;
+    if (!this.messaging) return false;
 
     // Big Picture용 이미지 URL (서버가 제공하는 endpoint)
     const assetBaseUrl = process.env.PUBLIC_ASSET_BASE_URL ?? 'http://10.0.2.2:3000';
@@ -122,17 +125,22 @@ export class PushService {
           priority: 'high' as const,
           notification: {
             imageUrl,
+            // 동일 tag로 시스템 트레이 중복 헤드 축소
+            tag: 'missed_habit_reminder',
+            channelId: 'habit_fable_inquiry_reply',
           },
         },
       });
+      return true;
     } catch (e: unknown) {
-      // 토큰 만료/네트워크 실패 등은 무시
+      // 토큰 만료/네트워크 실패 등
       // eslint-disable-next-line no-console
       console.log('[PushService] sendMissedHabitReminderNotification failed', {
         userId,
         missedCount: missedHabitNames.length,
         err: e instanceof Error ? e.message : String(e),
       });
+      return false;
     }
   }
 }

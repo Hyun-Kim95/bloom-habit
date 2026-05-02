@@ -291,7 +291,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String?>(
-              value: _selectedTemplateId,
+              initialValue: _selectedTemplateId,
               decoration: InputDecoration(
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radius),
@@ -353,7 +353,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String?>(
-              value: _selectedCategory,
+              initialValue: _selectedCategory,
               decoration: InputDecoration(
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radius),
@@ -399,7 +399,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _goalType,
+              initialValue: _goalType,
               decoration: InputDecoration(
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radius),
@@ -442,7 +442,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
             if (_goalType == 'duration' || _goalType == 'number') ...[
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _normalizedUnitForGoalType(_goalType, _unit),
+                initialValue: _normalizedUnitForGoalType(_goalType, _unit),
                 decoration: InputDecoration(
                   labelText: isEn ? 'Unit' : '단위',
                   border: OutlineInputBorder(
@@ -470,7 +470,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
             if (_goalType == 'number') ...[
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _numberDirection,
+                initialValue: _numberDirection,
                 decoration: InputDecoration(
                   labelText: l10n.goalNumberHint,
                   border: OutlineInputBorder(
@@ -540,8 +540,9 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                   firstDate: DateTime(2020),
                   lastDate: DateTime.now().add(const Duration(days: 365)),
                 );
-                if (picked != null && mounted)
+                if (picked != null && mounted) {
                   setState(() => _startDate = picked);
+                }
               },
             ),
             const SizedBox(height: 20),
