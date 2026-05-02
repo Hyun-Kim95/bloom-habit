@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:app_settings/app_settings.dart';
@@ -211,14 +212,19 @@ class NotificationService {
         imageUrl != null &&
         imageUrl.isNotEmpty &&
         fcmDataType == 'missed_habit_reminder') {
-      final bytes = await _tryDownloadNotificationImage(imageUrl);
-      if (bytes != null && bytes.isNotEmpty) {
-        styleInformation = BigPictureStyleInformation(
-          ByteArrayAndroidBitmap(bytes),
-          contentTitle: title,
-          summaryText: body,
+      try {
+        final bytes = await _tryDownloadNotificationImage(imageUrl).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () => null,
         );
-      }
+        if (bytes != null && bytes.isNotEmpty) {
+          styleInformation = BigPictureStyleInformation(
+            ByteArrayAndroidBitmap(bytes),
+            contentTitle: title,
+            summaryText: body,
+          );
+        }
+      } catch (_) {}
     }
 
     final androidDetails = AndroidNotificationDetails(

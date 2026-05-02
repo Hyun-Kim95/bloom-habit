@@ -55,6 +55,13 @@ final sessionRestoredProvider = FutureProvider<bool>((ref) async {
   return ref.read(authRepositoryProvider).restoreSession();
 });
 
+/// GET /me after [sessionRestoredProvider]. `null` = guest or failed fetch.
+final meProfileProvider = FutureProvider<MeProfile?>((ref) async {
+  final restored = await ref.watch(sessionRestoredProvider.future);
+  if (!restored) return null;
+  return ref.read(authRepositoryProvider).fetchProfile();
+});
+
 /// Isar local DB, initialized once for the app.
 final isarProvider = FutureProvider<Isar>((ref) => openIsar());
 

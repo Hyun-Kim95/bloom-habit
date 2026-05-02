@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import 'notification_service.dart';
 
@@ -15,6 +16,8 @@ Future<void> deliverFcmMessageToTray(
 ) async {
   final data = message.data;
   final type = data['type']?.toString();
+  final hasDataPayloadText = (data['title'] ?? '').toString().trim().isNotEmpty ||
+      (data['body'] ?? '').toString().trim().isNotEmpty;
   var title = (data['title'] ?? '').toString().trim();
   var body = (data['body'] ?? '').toString().trim();
   final n = message.notification;
@@ -32,7 +35,9 @@ Future<void> deliverFcmMessageToTray(
           defaultTargetPlatform == TargetPlatform.macOS)) {
     return;
   }
-  if (hasPlatformNotification && defaultTargetPlatform == TargetPlatform.android) {
+  if (hasPlatformNotification &&
+      defaultTargetPlatform == TargetPlatform.android &&
+      !hasDataPayloadText) {
     return;
   }
 
@@ -84,6 +89,7 @@ class FcmNotificationListener {
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  WidgetsFlutterBinding.ensureInitialized();
   try {
     await Firebase.initializeApp();
   } catch (_) {}
