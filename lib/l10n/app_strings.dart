@@ -6,8 +6,8 @@ class AppStrings {
 
   static String get authIdTokenMissing => isKo ? 'ID token 없음' : 'ID token missing';
   static String get authGoogleSetupNeeded => isKo
-      ? 'Google 로그인 설정이 필요합니다. 개발 PC에서 docs/guides/google-signin-setup.md를 참고해 Google Cloud에 SHA-1을 등록해 주세요.'
-      : 'Google sign-in setup is required. Please register SHA-1 in Google Cloud (see docs/guides/google-signin-setup.md).';
+      ? 'Google 로그인 설정이 필요합니다. 지금 설치한 APK와 같은 키스토어(디버그/릴리즈)의 SHA-1과 앱 패키지명을 Firebase·Google Cloud OAuth에 등록했는지 확인하세요. 절차: docs/guides/google-signin-setup.md'
+      : 'Google sign-in setup is required. Register the SHA-1 of the keystore used for this build (debug or release) and the app package in Firebase / Google Cloud OAuth. See docs/guides/google-signin-setup.md.';
   static String get authServerTimeout => isKo
       ? '서버 연결 시간이 초과되었습니다. 실제 폰은 PC와 같은 Wi-Fi에서 android/local.properties에 API_BASE_URL=http://PC_IP:3000 을 넣고 앱을 다시 빌드하세요. PC에서 서버(포트 3000) 실행·방화벽도 확인하세요.'
       : 'Connection timed out. On a real phone, set API_BASE_URL in android/local.properties to your PC IP (same Wi-Fi), rebuild, and ensure the server on port 3000 is reachable.';
@@ -22,14 +22,24 @@ class AppStrings {
       ? '카카오 SDK가 초기화되지 않았습니다. android/local.properties에 KAKAO_NATIVE_APP_KEY를 넣고 앱을 다시 빌드해 주세요.'
       : 'Kakao SDK is not initialized. Add KAKAO_NATIVE_APP_KEY to android/local.properties and rebuild.';
   static String get authKakaoKeyHashFailed => isKo
-      ? '카카오 Android 키 해시가 콘솔에 등록되지 않았습니다. 카카오 개발자 콘솔 → 앱 → 플랫폼(Android) → 키 해시에 등록하세요. 방법: docs/guides/kakao-android-keyhash.md'
-      : 'Kakao Android key hash is not registered. Add it in Kakao Developers → App → Android platform. See docs/guides/kakao-android-keyhash.md';
+      ? '카카오 Android 키 해시가 콘솔에 등록되지 않았습니다. 카카오 개발자 콘솔 → 내 애플리케이션 → 앱 설정 → 플랫폼(Android) → 키 해시에 등록하세요. 방법: docs/guides/kakao-android-keyhash.md'
+      : 'Kakao Android key hash is not registered. Add it in Kakao Developers → My Application → App → Android platform → Key hash. See docs/guides/kakao-android-keyhash.md';
+  static String get authKakaoAccessTokenMissing => isKo
+      ? '카카오 액세스 토큰을 받지 못했습니다. 잠시 후 다시 시도해 주세요.'
+      : 'Could not get Kakao access token. Please try again.';
   static String get authNaverNotConfigured => isKo
       ? '네이버 SDK가 초기화되지 않았습니다. android/local.properties에 NAVER_* 값을 넣고 앱을 다시 빌드해 주세요.'
       : 'Naver SDK is not initialized. Add NAVER_* keys to android/local.properties and rebuild.';
   static String get authNaverAccessTokenMissing => isKo
       ? '네이버 액세스 토큰을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.'
       : 'Could not obtain Naver access token. Please try again.';
+  /// 네이버 SDK가 `no_catagorized_error` 등으로만 돌려줄 때(콘솔·패키지·서명 불일치 등).
+  static String get authNaverSdkConfigNeeded => isKo
+      ? '네이버 로그인 설정을 확인해 주세요. 네이버 개발자 센터에서 Android 패키지명·서명(SHA)과 Client ID가 이 앱과 일치하는지 확인하고, android/local.properties의 NAVER_CLIENT_ID 등 값을 맞춘 뒤 다시 빌드하세요.'
+      : 'Check Naver login setup: package name and signing SHA in Naver Developers must match this app, and NAVER_* keys in android/local.properties must match. Rebuild after fixing.';
+  static String get authNaverLoginFailed => isKo
+      ? '네이버 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+      : 'Naver login failed. Please try again.';
 
   static String get notifChannelHabit => isKo ? '습관 리마인더' : 'Habit Reminder';
   static String get notifChannelInquiry => isKo ? '문의 답변 알림' : 'Inquiry Reply';

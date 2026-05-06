@@ -98,6 +98,24 @@ class AuthRepository {
   final GoogleSignIn _googleSignIn;
   StreamSubscription<String>? _fcmTokenRefreshSub;
 
+  /// Google Sign-In [DEVELOPER_ERROR] (status 10). 릴리즈 난독화 시 메시지가 `d4.d: 10:`처럼 짧게만 올 수 있음.
+  bool _isGoogleSignInDeveloperError(PlatformException e) {
+    if (e.code != 'sign_in_failed' || e.message == null) return false;
+    final m = e.message!;
+    if (m.contains('ApiException: 10')) return true;
+    if (m.contains('DEVELOPER_ERROR')) return true;
+    return RegExp(r':\s*10\s*(:|\s|,|$)').hasMatch(m);
+  }
+
+  /// 네이버 SDK가 영문 미분류 코드만 줄 때 사용자 안내로 치환.
+  String _mapNaverSdkFailureMessage(String raw) {
+    final lower = raw.toLowerCase();
+    if (lower.contains('no_catagorized') || lower.contains('no_categorized')) {
+      return AppStrings.authNaverSdkConfigNeeded;
+    }
+    return raw;
+  }
+
   /// Google login: fetch ID token and exchange for app token.
   Future<AuthResult> signInWithGoogle() async {
     try {
@@ -124,10 +142,8 @@ class AuthRepository {
       );
       return await _handleAuthResponse(res);
     } on PlatformException catch (e) {
-      // ApiException: 10 = DEVELOPER_ERROR (SHA-1/package not registered).
-      if (e.code == 'sign_in_failed' &&
-          e.message != null &&
-          e.message!.contains('ApiException: 10')) {
+      // ApiException: 10 = DEVELOPER_ERROR (SHA-1/package/OAuth). R8 빌드는 "d4.d: 10:"처럼 짧게만 노출될 수 있음.
+      if (_isGoogleSignInDeveloperError(e)) {
         return AuthResult.fail(AppStrings.authGoogleSetupNeeded);
       }
       return AuthResult.fail(e.message ?? e.code);
@@ -189,7 +205,7 @@ class AuthRepository {
       }
       final accessToken = token.accessToken;
       if (accessToken.trim().isEmpty) {
-        return AuthResult.fail('Kakao access token missing');
+        return AuthResult.fail(AppStrings.authKakaoAccessTokenMissing);
       }
       final res = await _api.dio.post<Map<String, dynamic>>(
         ApiEndpoints.authKakao,
@@ -219,10 +235,11 @@ class AuthRepository {
         if (result.status == NaverLoginStatus.loggedOut) {
           return AuthResult.cancelled();
         }
-        final msg = result.errorMessage?.trim();
-        return AuthResult.fail(
-          msg != null && msg.isNotEmpty ? msg : 'Naver login failed',
-        );
+        final raw = result.errorMessage?.trim();
+        final msg = raw != null && raw.isNotEmpty
+            ? _mapNaverSdkFailureMessage(raw)
+            : AppStrings.authNaverLoginFailed;
+        return AuthResult.fail(msg);
       }
       // Android plugin often returns loggedIn without accessToken in the map;
       // token is still in NaverIdLoginSDK — fetch explicitly.
