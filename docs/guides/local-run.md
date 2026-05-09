@@ -40,3 +40,17 @@ npm run dev
 
 - 기본 주소: `http://localhost:5173`
 - API 주소를 바꾸려면 `admin/.env`에서 `VITE_API_BASE` 값을 수정합니다.
+
+## 4) Android 배포 번들(AAB) 빌드
+
+Google Play(내부 테스트/비공개 테스트/출시) 업로드용 번들은 저장소 루트에서 생성합니다.
+
+```bash
+flutter clean
+flutter pub get
+flutter build appbundle
+```
+
+- 출력 파일: `build/app/outputs/bundle/release/app-release.aab`
+- Play 업로드 전 `pubspec.yaml`의 `version`(특히 `+buildNumber`)이 이전 업로드보다 큰지 확인하세요.
+
