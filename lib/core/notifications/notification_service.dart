@@ -130,6 +130,14 @@ class NotificationService {
 
   /// Rebuild full schedule from enabled habits.
   /// Concurrent calls are coalesced, and each habit is scheduled once.
+  Future<void> _safeCancelAll() async {
+    try {
+      await _plugin.cancelAll();
+    } catch (e, st) {
+      debugPrint('[NotificationService] cancelAll failed: $e\n$st');
+    }
+  }
+
   Future<void> rescheduleFromHabits(
     List<LocalHabit> habits, {
     Set<String> excludeCompletedHabitIds = const <String>{},
@@ -139,15 +147,15 @@ class NotificationService {
     try {
       await init();
       if (!await ensurePermission()) {
-        await _plugin.cancelAll();
+        await _safeCancelAll();
         return;
       }
       final prefs = await SharedPreferences.getInstance();
       if (prefs.getBool(app_prefs.keyNotificationsEnabled) == false) {
-        await _plugin.cancelAll();
+        await _safeCancelAll();
         return;
       }
-      await _plugin.cancelAll();
+      await _safeCancelAll();
       final toSchedule = habits.where((h) =>
           h.reminderEnabled == true &&
           h.reminderHour != null &&
@@ -200,7 +208,7 @@ class NotificationService {
   }
 
   Future<void> cancelAll() async {
-    await _plugin.cancelAll();
+    await _safeCancelAll();
   }
 
   /// Show local notification for FCM [data] payloads (data-only on Android).

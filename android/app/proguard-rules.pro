@@ -16,9 +16,20 @@
 -keep class com.navercorp.** { *; }
 -dontwarn com.navercorp.**
 
-# Gson (used by several OAuth stacks; helps ParameterizedType / TypeToken paths)
+# Gson (Naver OAuth, flutter_local_notifications scheduled storage, etc.)
+-keepattributes *Annotation*
 -keep class com.google.gson.** { *; }
--keep class * implements com.google.gson.TypeAdapter
+-keep class * extends com.google.gson.TypeAdapter
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
+-keepclassmembers,allowobfuscation class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+# R8 3+ / AGP 8 full mode: anonymous TypeToken subclasses need generic signatures
+-keep,allowobfuscation,allowshrinking class com.google.gson.reflect.TypeToken
+-keep,allowobfuscation,allowshrinking class * extends com.google.gson.reflect.TypeToken
+
+# --- flutter_local_notifications (release: loadScheduledNotifications / cancelAll) ---
+-keep class com.dexterous.flutterlocalnotifications.** { *; }
+-keep class org.xmlpull.** { *; }
