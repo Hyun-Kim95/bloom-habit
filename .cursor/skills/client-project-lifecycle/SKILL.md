@@ -17,6 +17,7 @@ description: 고객사 요구 붙여넣기부터 PRD 승인, 이중 목업, 디�
 ## 전제
 - `.cursor/agents/`, `.cursor/skills/`, `.cursor/rules/`, `AGENTS.md` 등 템플릿이 이미 워크스페이스에 있다.
 - 고객 요구사항 원문이 채팅 또는 `docs/requirements/` 등에 붙어 있다.
+- **수익·사업자:** `.cursor/rules/product-monetization-default.mdc` — 사업자 없음, 수익은 광고·후원만 기본. PRD·계획 초안부터 반영(`docs/agent/product-assumptions.md`). 유료·사업자는 사용자가 명시할 때만.
 
 ## 사람 승인(HUMAN) 규칙
 아래 단계에서 **HUMAN**이 표시되면, 에이전트는 **다음 단계로 넘어가지 않고** 사용자의 명시적 응답(승인 / 수정 지시 / 선택)을 기다린다.  
@@ -25,8 +26,8 @@ description: 고객사 요구 붙여넣기부터 PRD 승인, 이중 목업, 디�
 
 ## 출력/보고 형식
 - 사용자 입력은 문장형 지시를 기본으로 처리한다.
-- 단계별 결과 보고 형식과 승인 대기 표기는 User-level 출력/승인 규칙을 따른다.
-- 완료 상태 판정 보고는 User-level 완료 판정 규칙을 따른다.
+- 단계별 결과 보고 형식과 승인 대기 표기는 `shared/rules/working-principles.mdc` 출력/승인 규칙을 따른다.
+- 완료 상태 판정 보고는 동일 파일의 완료 판정(DoD) 규칙을 따른다.
 
 ---
 
@@ -37,7 +38,7 @@ description: 고객사 요구 붙여넣기부터 PRD 승인, 이중 목업, 디�
 
 ## 단계 1 — PRD 초안
 1. `prd-agent`로 PRD 초안을 작성한다. 저장 위치는 `docs/requirements/` 등 팀 규칙에 따른다.
-2. Gate 1 항목(목표, 흐름, 범위, 정책·예외, 미확정)을 PRD에 반영한다.
+2. Gate 1 항목(목표, 흐름, 범위, 정책·예외, 미확정)을 PRD에 반영한다. **「전제·가정」**에 수익·사업자 기본값(사업자 없음, 광고·후원)을 명시한다.
 
 ### HUMAN — PRD 승인
 3. **구현·목업 코드 작업을 시작하지 않는다.** PRD 초안을 사용자에게 제시하고 승인 또는 수정 요청을 받는다.
@@ -67,21 +68,35 @@ PRD가 확정된 뒤에만 진행한다.
 4. HUMAN 응답(진행/수정 지시) 전에는 단계 3으로 넘어가지 않는다.
 
 ## 단계 3 — 디자인 선택 후 병렬 완성
+
+**단계 2(이중 목업)는 여기서 종료한다.** 이후 작업의 기본값은 **선택된 한 안을 스펙으로 삼아 제품 코드베이스에서 구현·완성**하는 것이다.
+
 ### HUMAN — 디자인 선택
 1. 사용자가 **자체 목업** 또는 **Stitch 기반** 중 하나를 선택한다.
+2. **디자인 선택 완료 = 구현 착수**(`.cursor/rules/70-client-lifecycle-default.mdc`). 별도의 “구현만 승인” HUMAN을 추가로 요구하지 않는다.
 
-2. **3단계 착수 전 체크리스트를 문서화**한다. `docs/qa/stage3-entry-checklist.md` 또는 동등 문서에 아래를 최소 기록한다.
+### 선택 후 목업 vs 제품 구현 (필수)
+- 단계 2A 산출물(예: `/mock-internal`, 정적/프로토타입 사이트)과 2B Stitch 산출물은 **비교·스펙 근거**이며, 선택 후 **기본값은 본 제품 앱의 라우트·컴포넌트·모듈**에 구현한다.
+- **금지(기본):** Gate 2·`docs/qa/stage3-entry-checklist.md` 없이, 선택안만 보고 **새 목업 전용 사이트/페이지만** 다시 만드는 것. 이를 “구현 완료”로 보고하지 않는다.
+- **Stitch 선택 시:** Stitch·토큰·화면 스펙을 **앱 코드·전역 스타일 계약**으로 이전·반영한다. “Stitch/목업 3차”만 반복하지 않는다.
+- **허용:** 선택 목업의 레이아웃·토큰·패턴을 **기존 제품 구조**로 이전·통합하고, API 연동·상태 UI(로딩·빈·오류·권한)까지 포함한다.
+- **예외:** 사용자가 채팅에서 **명시적으로** “선택안으로 프로토/목업 1회 더”를 요청한 경우만. 사유·범위를 PRD 또는 stage3 체크리스트에 기록한다.
+
+3. **3단계 착수 전 체크리스트를 문서화**한다. `docs/qa/stage3-entry-checklist.md` 또는 동등 문서에 아래를 최소 기록한다.
    - 확정 PRD 문서 경로·버전(또는 최종 수정 시각)
    - 선택된 디자인 기준(자체 목업 또는 Stitch)과 근거 링크/ID
+   - **제품 구현 대상 경로**(라우트·모듈·패키지)와 mock 전용 경로 사용 여부(기본: 사용 안 함)
    - Gate 2 고정 대상(API 계약, 상태 UI: 기본·로딩·빈·오류·권한)
    - 미확정·리스크·오픈 이슈와 담당자
    체크리스트가 비어 있거나 승인 근거가 없으면 3단계를 시작하지 않는다.
 
-3. 선택된 기준으로 `.cursor/rules/60-delivery-gates.mdc`의 **Gate 2**를 충족하도록 API 계약·상태 UI를 확정한다.
+4. 선택된 기준으로 `.cursor/rules/60-delivery-gates.mdc`의 **Gate 2**를 충족하도록 API 계약·상태 UI를 확정한다.
 
-4. UI+API가 모두 필요하면 `parallel-delivery`로 `frontend-agent` + `backend-agent`를 투입한다. 그 외는 `start-feature`에 맞게 조정한다.
+5. **목표 산출물**은 연동된 기능 UI·확정 API와 일치하는 **제품 통합 코드**이다. UI+API가 모두 필요하면 `parallel-delivery`로 `frontend-agent` + `backend-agent`를 투입한다. 그 외는 `start-feature`에 맞게 조정한다.
 
-5. 계약 변경 시 `document-change`로 동기화한다.
+6. 계약 변경 시 `document-change`로 동기화한다.
+
+7. **기능·요구 일치·DoD**는 단계 4 `verify-change`(및 필요 시 `qa-agent`)에서 판정한다. 단계 3만으로 “완료”를 선언하지 않는다.
 
 ### 선택 — 완료 루프 하네스(Ralph류 반복)
 
@@ -170,8 +185,8 @@ PRD가 확정된 뒤에만 진행한다.
 |------|-----------------|
 | 요구·PRD | `plan-feature`, `prd-agent` |
 | Stitch | `docs/design/stitch-sop.md`, MCP `user-stitch` |
-| 목업·구현 | `design-system-agent`, `frontend-agent`, `backend-agent` |
-| 병렬 | `parallel-delivery`, `start-feature` |
+| 단계 2 목업(선택 전) | `design-system-agent`, `frontend-agent`(목업 전용 경로만) |
+| 단계 3+ 제품 구현 | `frontend-agent`, `backend-agent`, `parallel-delivery`, `start-feature` |
 | 검증 | `verify-change`, `qa-agent` |
 | 다축 검증·GATE (선택) | 단계 4B~4D, `docs/qa/reviewer-gate-rubric.md` |
 | 문서 | `document-change`, `docs-agent` |
@@ -180,4 +195,5 @@ PRD가 확정된 뒤에만 진행한다.
 ## 예외
 - 긴급 핫픽스·아주 작은 변경은 `AGENTS.md` **직접 처리 가능한 예외** 섹션에 따라 이 스킬 전체를 생략할 수 있다.
 - Stitch 미사용 시 단계 2B는 생략하고 자체 목업만으로 HUMAN 선택을 진행한다.
+- 사용자가 **명시적으로** 선택 후 재목업만 요청한 경우에만 2A/2B와 유사한 산출을 허용하며, 예외 사유를 문서에 남긴다.
 - 단계 4B~4D는 **선택**이다. 사용자가 “다축 검증·리뷰어 GATE 생략”을 명시하면 단계 4 직후 **단계 5**로 넘어간다.
