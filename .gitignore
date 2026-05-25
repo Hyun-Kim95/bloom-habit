@@ -79,5 +79,17 @@ windows/flutter/generated_plugins.cmake
 
 # Screenshots / local capture artifacts
 screenshot/
+AppMockUp Screenshots/
 *Screenshots*.zip
 *.zip
+
+# Cursor / kit — local session state (do not commit)
+.cursor/state/
+.cursor/quality-gate.json
+.cursor/guard-shell.local.json
+
+# Obsidian ingest (machine-local; see docs/obsidian/obsidian-ingest.example.json)
+.obsidian-ingest.json
+
+# Agent rule candidates (generated locally)
+docs/agent/rule-candidates.ndjson
