@@ -140,6 +140,14 @@ if (apiBaseUrlFromLocal.isNotBlank()) {
     extra["dart-defines"] = merged
 }
 
+// home_widget uses glance-appwidget:1.+ which resolves to 1.3.0-alpha01 (needs AGP 9.1 / compileSdk 37).
+configurations.configureEach {
+    resolutionStrategy {
+        force("androidx.glance:glance:1.0.0")
+        force("androidx.glance:glance-appwidget:1.0.0")
+    }
+}
+
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation("androidx.glance:glance:1.0.0")
