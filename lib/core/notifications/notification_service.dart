@@ -32,7 +32,8 @@ class NotificationService {
 
   FlutterLocalNotificationsPlugin get plugin => _plugin;
 
-  Future<void> init() async {
+  /// [requestPermission]: false on cold start — call [ensurePermission] after first frame.
+  Future<void> init({bool requestPermission = true}) async {
     if (_initialized) return;
     tz_data.initializeTimeZones();
     // Use device timezone. Emulator may return UTC unexpectedly.
@@ -82,7 +83,9 @@ class NotificationService {
     await _plugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(fcmChannel);
-    await ensurePermission();
+    if (requestPermission) {
+      await ensurePermission();
+    }
     _initialized = true;
   }
 

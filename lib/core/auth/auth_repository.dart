@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:dio/dio.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -444,7 +445,15 @@ class AuthRepository {
 
   /// Restore session from saved token.
   Future<bool> restoreSession() async {
-    final access = await _storage.getAccessToken();
+    String? access;
+    try {
+      access = await _storage.getAccessToken();
+    } catch (e, st) {
+      debugPrint('[AuthRepository] restoreSession token read failed: $e\n$st');
+      await _storage.clear();
+      _api.setAccessToken(null);
+      return false;
+    }
     if (access == null) return false;
     _api.setAccessToken(access);
     try {
@@ -484,6 +493,10 @@ class AuthRepository {
 
   /// Subscribe to FCM token rotation and PATCH `/me` when logged in.
   void attachFcmTokenRefreshListener() {
+    if (Firebase.apps.isEmpty) {
+      debugPrint('[AuthRepository] Skip FCM token listener: Firebase not initialized');
+      return;
+    }
     _fcmTokenRefreshSub?.cancel();
     _fcmTokenRefreshSub = FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
       final t = newToken.trim();

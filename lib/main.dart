@@ -1,4 +1,3 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,13 +5,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:habit_fable/l10n/app_localizations.dart';
 import 'dart:async';
 
-import 'core/notifications/notification_service.dart';
+import 'core/app_bootstrap.dart';
 import 'core/notifications/fcm_notification_listener.dart';
 import 'core/monetization/monetization_notifier.dart';
 import 'core/router/app_providers.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
-import 'core/social/android_social_sdk_init.dart';
 import 'core/settings/app_settings.dart';
 import 'core/config/app_flags.dart';
 import 'l10n/app_strings.dart';
@@ -22,16 +20,6 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final initialLocaleCode = prefs.getString(kSettingsLocaleKey) ?? 'ko';
   AppStrings.localeCode = initialLocaleCode;
-  await initAndroidSocialSdks();
-  scheduleAndroidSocialSdkWarmup();
-  try {
-    await Firebase.initializeApp();
-  } catch (_) {
-    // Firebase 미설정(google-services.json 등 없음) 시 무시
-  }
-  final notif = NotificationService();
-  await notif.init();
-  await FcmNotificationListener.init(notif);
   runApp(
     ProviderScope(child: HabitFableApp(initialLocaleCode: initialLocaleCode)),
   );
@@ -55,6 +43,7 @@ class _HabitFableAppState extends ConsumerState<HabitFableApp> {
   void initState() {
     super.initState();
     _router = createAppRouter(ref);
+    unawaited(bootstrapAppServices());
     _fcmTypeSub = FcmNotificationListener.messageTypes.listen((type) {
       if (type == 'inquiry_reply' || type == 'notice' || type == 'announcement') {
         ref.invalidate(unreadSummaryProvider);

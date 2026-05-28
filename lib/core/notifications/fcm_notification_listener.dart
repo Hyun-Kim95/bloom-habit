@@ -65,6 +65,10 @@ class FcmNotificationListener {
   static Stream<String> get messageTypes => _messageTypeController.stream;
 
   static Future<void> init(NotificationService notificationService) async {
+    if (Firebase.apps.isEmpty) {
+      debugPrint('[FCM] Skipping listener setup: Firebase not initialized');
+      return;
+    }
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
     if (defaultTargetPlatform == TargetPlatform.iOS) {

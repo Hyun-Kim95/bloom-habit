@@ -13,6 +13,7 @@
 
          This Theme is only used starting with V2 of Flutter's Android embedding. -->
     <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
-        <item name="android:windowBackground">?android:colorBackground</item>
+        <!-- Match light splash until Flutter first frame (avoid "screen off" black on cold start). -->
+        <item name="android:windowBackground">@android:color/white</item>
     </style>
 </resources>
