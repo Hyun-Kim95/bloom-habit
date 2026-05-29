@@ -5,24 +5,36 @@ const KNOWN_KEYS = {
   app_jwt_expires_seconds: '앱 JWT 만료 시간 (초, 예: 604800=7일)',
 } as const
 
+type ConfigKey = keyof typeof KNOWN_KEYS
+
+const DEFAULTS: Record<ConfigKey, string> = {
+  app_jwt_expires_seconds: '604800',
+}
+
 export default function SystemConfig() {
   const [error, setError] = useState('')
-  const [appJwtExpires, setAppJwtExpires] = useState('604800')
+  const [values, setValues] = useState<Record<ConfigKey, string>>({ ...DEFAULTS })
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    api.getConfig().then((c) => {
-      setAppJwtExpires(c.app_jwt_expires_seconds ?? '604800')
-    }).catch((e) => setError(e.message))
+    api
+      .getConfig()
+      .then((c) => {
+        setValues((prev) => ({
+          ...prev,
+          app_jwt_expires_seconds: c.app_jwt_expires_seconds ?? DEFAULTS.app_jwt_expires_seconds,
+        }))
+      })
+      .catch((e) => setError(e.message))
   }, [])
 
   const save = async () => {
     setSaving(true)
+    setError('')
     try {
-      const body: Record<string, string> = {
-        app_jwt_expires_seconds: appJwtExpires.trim() || '604800',
-      }
-      await api.patchConfig(body)
+      await api.patchConfig({
+        app_jwt_expires_seconds: values.app_jwt_expires_seconds.trim() || '604800',
+      })
     } catch (e) {
       setError(e instanceof Error ? e.message : '저장 실패')
     } finally {
@@ -44,8 +56,13 @@ export default function SystemConfig() {
           <input
             type="number"
             min={3600}
-            value={appJwtExpires}
-            onChange={(e) => setAppJwtExpires(e.target.value)}
+            value={values.app_jwt_expires_seconds}
+            onChange={(e) =>
+              setValues((prev) => ({
+                ...prev,
+                app_jwt_expires_seconds: e.target.value,
+              }))
+            }
             className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
             placeholder="604800"
           />
@@ -64,13 +81,31 @@ export default function SystemConfig() {
       </div>
 
       <div className="rounded-lg border border-border bg-card p-4">
+        <h3 className="text-sm font-medium text-foreground mb-2">앱 업데이트 (Android)</h3>
+        <p className="text-sm text-muted-foreground">
+          권장 업데이트 알림은 <strong>별도 설정 없이</strong> AAB를 Play에 올리고 게시하면 됩니다.
+          어드민·서버에서 버전을 맞출 필요가 없습니다.
+        </p>
+        <p className="text-sm text-muted-foreground mt-2">
+          강제 업데이트에 가깝게 쓰려면 Play Developer API로 priority(4~5)를 지정해야 합니다.
+          Play Console 화면에 priority 항목이 없는 경우가 많습니다.
+        </p>
+        <p className="text-sm text-muted-foreground mt-2">
+          자세한 내용:{' '}
+          <code className="font-mono text-xs">docs/guides/play-in-app-update.md</code>
+        </p>
+      </div>
+
+      <div className="rounded-lg border border-border bg-card p-4">
         <h3 className="text-sm font-medium text-foreground mb-2">설정값 관리 범위</h3>
         <p className="text-sm text-muted-foreground mb-2">
-          위 항목은 서버에서 즉시 반영됩니다. (JWT 만료: 다음 로그인부터)
+          JWT 만료는 다음 로그인부터 반영됩니다.
         </p>
         <ul className="text-sm text-muted-foreground space-y-1">
           {Object.entries(KNOWN_KEYS).map(([k, label]) => (
-            <li key={k}><span className="font-mono">{k}</span> — {label}</li>
+            <li key={k}>
+              <span className="font-mono">{k}</span> — {label}
+            </li>
           ))}
         </ul>
       </div>

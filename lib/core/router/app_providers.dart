@@ -16,6 +16,9 @@ import '../../data/habit/habit_repository.dart';
 import '../../data/inquiries/inquiry_repository.dart';
 import '../../data/legal/legal_repository.dart';
 import '../../data/notices/notice_repository.dart';
+import '../version/app_update_snooze.dart';
+import '../version/app_version_policy.dart';
+import '../version/play_update_checker.dart';
 
 class UnreadSummary {
   const UnreadSummary({
@@ -111,4 +114,18 @@ final unreadSummaryProvider = FutureProvider<UnreadSummary>((ref) async {
     noticeUnreadCount: (data['noticeUnreadCount'] as num?)?.toInt() ?? 0,
     inquiryUnreadCount: (data['inquiryUnreadCount'] as num?)?.toInt() ?? 0,
   );
+});
+
+final playUpdateCheckerProvider = Provider<PlayUpdateChecker>((ref) {
+  return PlayUpdateChecker();
+});
+
+/// Android: Play In-app update. Fail-open on errors. iOS/Web: none.
+final appVersionCheckProvider = FutureProvider<UpdateCheckResult>((ref) async {
+  return ref.watch(playUpdateCheckerProvider).checkForUpdate();
+});
+
+final appUpdateSnoozeProvider = FutureProvider<AppUpdateSnooze>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  return AppUpdateSnooze(prefs);
 });

@@ -30,6 +30,7 @@ VITE_API_BASE=http://localhost:3000
 - **회원 관리** — 앱 가입 사용자 목록
 - **습관 템플릿** — 템플릿 추가/수정/삭제
 - **공지 관리** — 공지 추가/수정/삭제
-- **AI 문구 / 설정** — AI fallback 문구 편집
+- **약관·개인정보** — 법적 문서 관리
+- **시스템 설정** — JWT 만료 등 (Android 앱 업데이트 알림은 Play 출시만으로 권장 동작, [`docs/guides/play-in-app-update.md`](../docs/guides/play-in-app-update.md) 참고)
 
 API 서버(`server`)가 `http://localhost:3000`에서 실행 중이어야 합니다.

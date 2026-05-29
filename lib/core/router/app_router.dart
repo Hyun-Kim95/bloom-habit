@@ -14,7 +14,6 @@ import '../../features/statistics/presentation/statistics_screen.dart';
 import '../../features/inquiries/presentation/inquiries_screen.dart';
 import '../../features/habit_list/presentation/habit_list_screen.dart';
 import '../../features/legal/presentation/legal_view_screen.dart';
-import '../../features/monetization/presentation/support_monetization_screen.dart';
 import '../../features/notices/presentation/notices_screen.dart';
 import '../../l10n/app_localizations.dart';
 import 'app_providers.dart';
@@ -35,7 +34,6 @@ class AppRoutes {
   static const String legalTerms = '/legal/terms';
   static const String legalPrivacy = '/legal/privacy';
   static const String notices = '/notices';
-  static const String supportMonetization = '/support';
 }
 
 GoRouter createAppRouter(WidgetRef ref) {
@@ -148,10 +146,6 @@ GoRouter createAppRouter(WidgetRef ref) {
       GoRoute(
         path: AppRoutes.notices,
         builder: (_, _) => const NoticesScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.supportMonetization,
-        builder: (_, _) => const SupportMonetizationScreen(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

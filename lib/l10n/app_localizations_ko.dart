@@ -381,6 +381,49 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get updateRequiredTitle => '업데이트가 필요합니다';
+
+  @override
+  String updateRequiredMessage(String version) {
+    return '계속 사용하려면 버전 $version 이상으로 업데이트해 주세요.';
+  }
+
+  @override
+  String get updateRequiredMessageGeneric =>
+      '계속 사용하려면 Play Store에서 최신 버전으로 업데이트해 주세요.';
+
+  @override
+  String get updateAvailableTitle => '새 버전이 있습니다';
+
+  @override
+  String updateAvailableMessage(String version) {
+    return 'Play Store에 버전 $version이(가) 있습니다. 업데이트하시겠어요?';
+  }
+
+  @override
+  String get updateAvailableMessageGeneric =>
+      'Play Store에 새 버전이 있습니다. 업데이트하시겠어요?';
+
+  @override
+  String get updateNow => '업데이트';
+
+  @override
+  String get updateLater => '나중에';
+
+  @override
+  String get updateSnoozeToday => '오늘 하루 보지 않기';
+
+  @override
+  String get updateStoreUnavailable => '스토어 링크를 열 수 없습니다. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get updateFlexibleReadyMessage =>
+      '업데이트 다운로드가 완료되었습니다. 앱을 재시작해 적용해 주세요.';
+
+  @override
+  String get updateRestartNow => '재시작';
+
+  @override
   String yearMonth(int year, int month) {
     return '$year년 $month월';
   }

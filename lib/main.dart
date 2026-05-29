@@ -13,6 +13,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/settings/app_settings.dart';
 import 'core/config/app_flags.dart';
+import 'core/version/app_update_listener.dart';
 import 'l10n/app_strings.dart';
 
 void main() async {
@@ -82,6 +83,11 @@ class _HabitFableAppState extends ConsumerState<HabitFableApp> {
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       routerConfig: _router,
+      builder: (context, child) {
+        return AppUpdateListener(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

@@ -812,6 +812,78 @@ abstract class AppLocalizations {
   /// **'버전 {version}'**
   String versionLabel(String version);
 
+  /// No description provided for @updateRequiredTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'업데이트가 필요합니다'**
+  String get updateRequiredTitle;
+
+  /// No description provided for @updateRequiredMessage.
+  ///
+  /// In ko, this message translates to:
+  /// **'계속 사용하려면 버전 {version} 이상으로 업데이트해 주세요.'**
+  String updateRequiredMessage(String version);
+
+  /// No description provided for @updateRequiredMessageGeneric.
+  ///
+  /// In ko, this message translates to:
+  /// **'계속 사용하려면 Play Store에서 최신 버전으로 업데이트해 주세요.'**
+  String get updateRequiredMessageGeneric;
+
+  /// No description provided for @updateAvailableTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'새 버전이 있습니다'**
+  String get updateAvailableTitle;
+
+  /// No description provided for @updateAvailableMessage.
+  ///
+  /// In ko, this message translates to:
+  /// **'Play Store에 버전 {version}이(가) 있습니다. 업데이트하시겠어요?'**
+  String updateAvailableMessage(String version);
+
+  /// No description provided for @updateAvailableMessageGeneric.
+  ///
+  /// In ko, this message translates to:
+  /// **'Play Store에 새 버전이 있습니다. 업데이트하시겠어요?'**
+  String get updateAvailableMessageGeneric;
+
+  /// No description provided for @updateNow.
+  ///
+  /// In ko, this message translates to:
+  /// **'업데이트'**
+  String get updateNow;
+
+  /// No description provided for @updateLater.
+  ///
+  /// In ko, this message translates to:
+  /// **'나중에'**
+  String get updateLater;
+
+  /// No description provided for @updateSnoozeToday.
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘 하루 보지 않기'**
+  String get updateSnoozeToday;
+
+  /// No description provided for @updateStoreUnavailable.
+  ///
+  /// In ko, this message translates to:
+  /// **'스토어 링크를 열 수 없습니다. 잠시 후 다시 시도해 주세요.'**
+  String get updateStoreUnavailable;
+
+  /// No description provided for @updateFlexibleReadyMessage.
+  ///
+  /// In ko, this message translates to:
+  /// **'업데이트 다운로드가 완료되었습니다. 앱을 재시작해 적용해 주세요.'**
+  String get updateFlexibleReadyMessage;
+
+  /// No description provided for @updateRestartNow.
+  ///
+  /// In ko, this message translates to:
+  /// **'재시작'**
+  String get updateRestartNow;
+
   /// No description provided for @yearMonth.
   ///
   /// In ko, this message translates to:

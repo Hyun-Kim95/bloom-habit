@@ -20,10 +20,11 @@ export class ConfigSeedService implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     const existing = await this.config.get(HABIT_CATEGORIES_KEY);
-    if (existing != null && existing.trim() !== '') return;
-    await this.config.set(
-      HABIT_CATEGORIES_KEY,
-      JSON.stringify(DEFAULT_HABIT_CATEGORIES),
-    );
+    if (existing == null || existing.trim() === '') {
+      await this.config.set(
+        HABIT_CATEGORIES_KEY,
+        JSON.stringify(DEFAULT_HABIT_CATEGORIES),
+      );
+    }
   }
 }

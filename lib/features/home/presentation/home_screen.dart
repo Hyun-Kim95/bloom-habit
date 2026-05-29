@@ -691,7 +691,6 @@ class _TodayProgressCard extends StatelessWidget {
                       style: GoogleFonts.lora(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        fontStyle: FontStyle.italic,
                         color: text,
                       ),
                     ),
@@ -804,7 +803,6 @@ class _TodaySection extends StatelessWidget {
               style: GoogleFonts.lora(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                fontStyle: FontStyle.italic,
                 color: text,
               ),
             ),
@@ -1205,7 +1203,6 @@ class _HeatmapSection extends StatelessWidget {
           style: GoogleFonts.lora(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            fontStyle: FontStyle.italic,
             color: text,
           ),
         ),

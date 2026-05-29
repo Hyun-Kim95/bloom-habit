@@ -11,6 +11,7 @@ const navPaths = [
   { path: '/notices', key: 'layout.nav.notices' },
   { path: '/inquiries', key: 'layout.nav.inquiries' },
   { path: '/legal', key: 'layout.nav.legal' },
+  { path: '/system-config', key: 'layout.nav.systemConfig' },
 ] as const
 
 const THEME_STORAGE_KEY = 'habit_fable_admin_theme'

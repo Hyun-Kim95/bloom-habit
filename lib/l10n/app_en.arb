@@ -158,6 +158,32 @@
       }
     }
   },
+  "updateRequiredTitle": "Update required",
+  "updateRequiredMessage": "Please update to version {version} or later on the Play Store to continue.",
+  "@updateRequiredMessage": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateRequiredMessageGeneric": "Please update to the latest version on the Play Store to continue.",
+  "updateAvailableTitle": "Update available",
+  "updateAvailableMessage": "Version {version} is available on the Play Store. Would you like to update?",
+  "@updateAvailableMessage": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateAvailableMessageGeneric": "A new version is available on the Play Store. Would you like to update?",
+  "updateNow": "Update",
+  "updateLater": "Later",
+  "updateSnoozeToday": "Don't show today",
+  "updateStoreUnavailable": "Could not open the store. Please try again later.",
+  "updateFlexibleReadyMessage": "The update has been downloaded. Restart the app to apply it.",
+  "updateRestartNow": "Restart",
   "yearMonth": "{year}-{month}",
   "@yearMonth": {
     "placeholders": {

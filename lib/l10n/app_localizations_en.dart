@@ -389,6 +389,50 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get updateRequiredTitle => 'Update required';
+
+  @override
+  String updateRequiredMessage(String version) {
+    return 'Please update to version $version or later on the Play Store to continue.';
+  }
+
+  @override
+  String get updateRequiredMessageGeneric =>
+      'Please update to the latest version on the Play Store to continue.';
+
+  @override
+  String get updateAvailableTitle => 'Update available';
+
+  @override
+  String updateAvailableMessage(String version) {
+    return 'Version $version is available on the Play Store. Would you like to update?';
+  }
+
+  @override
+  String get updateAvailableMessageGeneric =>
+      'A new version is available on the Play Store. Would you like to update?';
+
+  @override
+  String get updateNow => 'Update';
+
+  @override
+  String get updateLater => 'Later';
+
+  @override
+  String get updateSnoozeToday => 'Don\'t show today';
+
+  @override
+  String get updateStoreUnavailable =>
+      'Could not open the store. Please try again later.';
+
+  @override
+  String get updateFlexibleReadyMessage =>
+      'The update has been downloaded. Restart the app to apply it.';
+
+  @override
+  String get updateRestartNow => 'Restart';
+
+  @override
   String yearMonth(int year, int month) {
     return '$year-$month';
   }

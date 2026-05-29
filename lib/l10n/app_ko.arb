@@ -159,6 +159,32 @@
       }
     }
   },
+  "updateRequiredTitle": "업데이트가 필요합니다",
+  "updateRequiredMessage": "계속 사용하려면 버전 {version} 이상으로 업데이트해 주세요.",
+  "@updateRequiredMessage": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateRequiredMessageGeneric": "계속 사용하려면 Play Store에서 최신 버전으로 업데이트해 주세요.",
+  "updateAvailableTitle": "새 버전이 있습니다",
+  "updateAvailableMessage": "Play Store에 버전 {version}이(가) 있습니다. 업데이트하시겠어요?",
+  "@updateAvailableMessage": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateAvailableMessageGeneric": "Play Store에 새 버전이 있습니다. 업데이트하시겠어요?",
+  "updateNow": "업데이트",
+  "updateLater": "나중에",
+  "updateSnoozeToday": "오늘 하루 보지 않기",
+  "updateStoreUnavailable": "스토어 링크를 열 수 없습니다. 잠시 후 다시 시도해 주세요.",
+  "updateFlexibleReadyMessage": "업데이트 다운로드가 완료되었습니다. 앱을 재시작해 적용해 주세요.",
+  "updateRestartNow": "재시작",
   "yearMonth": "{year}년 {month}월",
   "@yearMonth": {
     "placeholders": {

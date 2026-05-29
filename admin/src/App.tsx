@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import Notices from './pages/Notices'
 import Inquiries from './pages/Inquiries'
 import Legal from './pages/Legal'
+import SystemConfig from './pages/SystemConfig'
 import Users from './pages/Users'
 import UserDetail from './pages/UserDetail'
 
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="notices" element={<Notices />} />
           <Route path="inquiries" element={<Inquiries />} />
           <Route path="legal" element={<Legal />} />
+          <Route path="system-config" element={<SystemConfig />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
