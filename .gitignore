@@ -93,3 +93,6 @@ AppMockUp Screenshots/
 
 # Agent rule candidates (generated locally)
 docs/agent/rule-candidates.ndjson
+
+# Naver login review — device captures may contain PII (keep locally; regenerate PDF via generate-pdf.ps1)
+docs/naver-login-review/screenshots/*.png
