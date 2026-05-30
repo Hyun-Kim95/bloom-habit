@@ -27,8 +27,33 @@ class AppLocalizationsKo extends AppLocalizations {
   String get pressBackAgainToExit => '한 번 더 누르면 앱이 종료됩니다.';
 
   @override
-  String get connectionErrorMessage =>
-      '서버에 연결할 수 없습니다.\n서버(포트 3000)가 켜져 있는지 확인하세요.\nWindows 에뮬레이터: 방화벽이 10.0.2.2를 막는 경우가 많습니다. PC에서 adb reverse tcp:3000 tcp:3000 실행 후 앱을 flutter run --dart-define=API_USE_LOCALHOST=true 로 다시 띄워 보세요.\n실기기: 같은 Wi-Fi의 PC IP로 API_BASE_URL을 지정하세요.';
+  String get connectionErrorUserMessage =>
+      '서버에 연결할 수 없습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.';
+
+  @override
+  String get connectionErrorDevHint =>
+      '서버(포트 3000) 실행, API_BASE_URL, adb reverse(에뮬레이터), API_USE_LOCALHOST=true — 자세한 내용은 개발 문서를 참고하세요.';
+
+  @override
+  String get unexpectedErrorTryAgain => '문제가 발생했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get loadFailedTryAgain => '불러오지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get saveFailedTryAgain => '저장하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get submitFailedTryAgain => '등록하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get authSessionExpired => '로그인이 만료되었어요. 다시 로그인해 주세요.';
+
+  @override
+  String get serverRequestFailed => '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get withdrawFailedTryAgain => '탈퇴 처리하지 못했어요. 다시 시도해 주세요.';
 
   @override
   String get retry => '다시 시도';
@@ -216,9 +241,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get loginWithNaver => '네이버로 로그인';
 
   @override
-  String loginError(String message) {
-    return '로그인 중 오류: $message';
-  }
+  String get loginError => '로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get hideHabit => '습관 숨기기';
@@ -524,9 +547,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get saved => '저장했어요.';
 
   @override
-  String saveFailed(String message) {
-    return '저장 실패: $message';
-  }
+  String get saveFailed => '저장하지 못했어요. 다시 시도해 주세요.';
 
   @override
   String get profilePhotoManageTitle => '프로필 사진';
@@ -563,9 +584,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get profilePhotoRemoved => '프로필 사진을 지웠어요.';
 
   @override
-  String processFailed(String message) {
-    return '처리 실패: $message';
-  }
+  String get processFailed => '처리하지 못했어요. 다시 시도해 주세요.';
 
   @override
   String get deleteAccount => '회원 탈퇴';
@@ -587,9 +606,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get withdraw => '탈퇴';
 
   @override
-  String withdrawFailed(String message) {
-    return '탈퇴 처리 중 오류가 났어요. $message';
-  }
+  String get withdrawFailed => '탈퇴 처리하지 못했어요. 다시 시도해 주세요.';
 
   @override
   String get noName => '이름 없음';
@@ -640,8 +657,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notificationPermissionRequired => '알림 권한이 필요합니다. 설정에서 허용해 주세요.';
 
   @override
-  String get serverSlowResponse =>
-      '서버 응답이 지연되고 있습니다. 서버와 PostgreSQL이 실행 중인지 확인해 주세요.';
+  String get serverSlowResponse => '응답이 지연되고 있어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get goalTypeCompletion => '완료 여부';
@@ -842,7 +858,5 @@ class AppLocalizationsKo extends AppLocalizations {
   String get monetizationUnsupported => '이 환경에서는 스토어 결제와 광고가 지원되지 않아요.';
 
   @override
-  String pageNotFound(String uri) {
-    return '페이지를 찾을 수 없습니다: $uri';
-  }
+  String get pageNotFound => '페이지를 찾을 수 없습니다.';
 }

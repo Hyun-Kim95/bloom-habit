@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import { adminErrorMessage } from '../apiErrors'
+import { useI18n } from '../i18n/I18nContext'
 
 const KNOWN_KEYS = {
   app_jwt_expires_seconds: '앱 JWT 만료 시간 (초, 예: 604800=7일)',
@@ -12,6 +14,7 @@ const DEFAULTS: Record<ConfigKey, string> = {
 }
 
 export default function SystemConfig() {
+  const { t } = useI18n()
   const [error, setError] = useState('')
   const [values, setValues] = useState<Record<ConfigKey, string>>({ ...DEFAULTS })
   const [saving, setSaving] = useState(false)
@@ -25,7 +28,7 @@ export default function SystemConfig() {
           app_jwt_expires_seconds: c.app_jwt_expires_seconds ?? DEFAULTS.app_jwt_expires_seconds,
         }))
       })
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(adminErrorMessage(e, t('errors.generic'))))
   }, [])
 
   const save = async () => {
@@ -36,7 +39,7 @@ export default function SystemConfig() {
         app_jwt_expires_seconds: values.app_jwt_expires_seconds.trim() || '604800',
       })
     } catch (e) {
-      setError(e instanceof Error ? e.message : '저장 실패')
+      setError(adminErrorMessage(e, t('errors.generic')))
     } finally {
       setSaving(false)
     }

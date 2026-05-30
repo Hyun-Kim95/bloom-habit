@@ -12,6 +12,7 @@ import {
 } from 'chart.js'
 import { Bar, Line } from 'react-chartjs-2'
 import { api } from '../api'
+import { adminErrorMessage } from '../apiErrors'
 import { useI18n } from '../i18n/I18nContext'
 import { interpolate } from '../i18n/messages'
 
@@ -72,7 +73,7 @@ export default function Dashboard() {
         setOverTime(overTimeRes)
         setUsers(usersRes)
       })
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(adminErrorMessage(e, t('errors.generic'))))
   }, [rangeDays])
 
   useEffect(() => {

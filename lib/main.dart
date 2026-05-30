@@ -8,6 +8,7 @@ import 'dart:async';
 import 'core/app_bootstrap.dart';
 import 'core/notifications/fcm_notification_listener.dart';
 import 'core/monetization/monetization_notifier.dart';
+import 'core/analytics/analytics_identity_listener.dart';
 import 'core/router/app_providers.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
@@ -84,8 +85,10 @@ class _HabitFableAppState extends ConsumerState<HabitFableApp> {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       routerConfig: _router,
       builder: (context, child) {
-        return AppUpdateListener(
-          child: child ?? const SizedBox.shrink(),
+        return AnalyticsIdentityListener(
+          child: AppUpdateListener(
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );

@@ -3,6 +3,8 @@ import 'package:habit_fable/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/errors/error_logger.dart';
+import '../../../core/errors/user_facing_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/utils/habit_display_localization.dart';
@@ -24,6 +26,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen>
   Map<String, int> _weekCompleted = {};
   Map<String, int> _monthCompleted = {};
   bool _loading = true;
+  String? _error;
   late TabController _tabController;
   int _sevenDayCompleted = 0;
   int _sevenDayPossible = 0;
@@ -69,7 +72,11 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen>
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
     final repo = ref.read(habitRepositoryProvider);
     final habits = await repo.getActiveHabits();
     final dayCompletedCount = await repo.getCompletedCountByHabitForDateRange(
@@ -132,6 +139,20 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen>
         _monthSuccessPercent = monthSuccess.percent;
         _loading = false;
       });
+    }
+    } catch (e, st) {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ErrorLogger.logError('StatisticsScreen._load', e, st);
+        setState(() {
+          _loading = false;
+          _error = UserFacingError.resolve(
+            e,
+            l10n: l10n,
+            kind: UserFacingErrorKind.load,
+          );
+        });
+      }
     }
   }
 
@@ -230,6 +251,30 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen>
       body: _loading
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.primary),
+            )
+          : _error != null
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _error!,
+                      style: GoogleFonts.dmSans(
+                        fontSize: 14,
+                        color: AppColors.destructive,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: _load,
+                      child: Text(l10n.retry),
+                    ),
+                  ],
+                ),
+              ),
             )
           : RefreshIndicator(
               onRefresh: _load,

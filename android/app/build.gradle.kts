@@ -53,7 +53,7 @@ android {
         applicationId = "com.khyun.bloom_habit"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = maxOf(flutter.minSdkVersion, 23)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -126,18 +126,39 @@ flutter {
     source = "../.."
 }
 
+// android/local.properties → Flutter --dart-define (Base64, comma-separated).
+fun encodeDartDefine(key: String, value: String): String =
+    Base64.getEncoder().encodeToString(
+        "$key=$value".toByteArray(StandardCharsets.UTF_8),
+    )
+
+fun mergeDartDefine(existing: String, key: String, value: String): String {
+    if (value.isBlank()) return existing
+    val encoded = encodeDartDefine(key, value)
+    return if (existing.isEmpty()) encoded else "$existing,$encoded"
+}
+
+var dartDefinesFromLocal = findProperty("dart-defines")?.toString()?.trim().orEmpty()
+
 // 실기기 테스트: PC와 같은 Wi-Fi에서 `ipconfig`로 본 IPv4로 설정 (에뮬레이터는 비워도 됨).
 // android/local.properties 예: API_BASE_URL=http://192.168.0.12:3000
-val apiBaseUrlFromLocal = localProp("API_BASE_URL")
-if (apiBaseUrlFromLocal.isNotBlank()) {
-    val encoded =
-        Base64.getEncoder().encodeToString(
-            "API_BASE_URL=$apiBaseUrlFromLocal".toByteArray(StandardCharsets.UTF_8),
-        )
-    val existingDartDefines = findProperty("dart-defines")?.toString()?.trim().orEmpty()
-    val merged =
-        if (existingDartDefines.isEmpty()) encoded else "$existingDartDefines,$encoded"
-    extra["dart-defines"] = merged
+dartDefinesFromLocal = mergeDartDefine(dartDefinesFromLocal, "API_BASE_URL", localProp("API_BASE_URL"))
+
+// PostHog: ANALYTICS_ENABLED=true + POSTHOG_API_KEY in local.properties (gitignored).
+// Omit or set ANALYTICS_ENABLED=false for Play AAB with analytics OFF.
+if (localProp("ANALYTICS_ENABLED").equals("true", ignoreCase = true)) {
+    dartDefinesFromLocal = mergeDartDefine(dartDefinesFromLocal, "ANALYTICS_ENABLED", "true")
+    dartDefinesFromLocal = mergeDartDefine(dartDefinesFromLocal, "POSTHOG_API_KEY", localProp("POSTHOG_API_KEY"))
+    val posthogHost =
+        localProp("POSTHOG_HOST").ifBlank { "https://us.i.posthog.com" }
+    dartDefinesFromLocal = mergeDartDefine(dartDefinesFromLocal, "POSTHOG_HOST", posthogHost)
+    val analyticsEnv =
+        localProp("ANALYTICS_ENVIRONMENT").ifBlank { "prelaunch" }
+    dartDefinesFromLocal = mergeDartDefine(dartDefinesFromLocal, "ANALYTICS_ENVIRONMENT", analyticsEnv)
+}
+
+if (dartDefinesFromLocal.isNotBlank()) {
+    extra["dart-defines"] = dartDefinesFromLocal
 }
 
 // home_widget uses glance-appwidget:1.+ which resolves to 1.3.0-alpha01 (needs AGP 9.1 / compileSdk 37).

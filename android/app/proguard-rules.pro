@@ -30,6 +30,10 @@
 -keep,allowobfuscation,allowshrinking class com.google.gson.reflect.TypeToken
 -keep,allowobfuscation,allowshrinking class * extends com.google.gson.reflect.TypeToken
 
+# --- PostHog Flutter SDK (release / R8) ---
+-keep class com.posthog.** { *; }
+-dontwarn com.posthog.**
+
 # --- flutter_local_notifications (release: loadScheduledNotifications / cancelAll) ---
 -keep class com.dexterous.flutterlocalnotifications.** { *; }
 -keep class org.xmlpull.** { *; }

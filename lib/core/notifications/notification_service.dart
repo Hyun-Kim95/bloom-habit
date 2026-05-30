@@ -12,6 +12,8 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import '../settings/app_settings.dart' as app_prefs;
 import '../../data/local/entity/local_habit.dart';
 import '../../l10n/app_strings.dart';
+import '../analytics/analytics_bootstrap.dart';
+import '../analytics/analytics_events.dart';
 
 /// Per-habit local reminder notifications.
 class NotificationService {
@@ -29,6 +31,7 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
   bool _rescheduling = false;
+  bool _permissionAnalyticsSent = false;
 
   FlutterLocalNotificationsPlugin get plugin => _plugin;
 
@@ -111,9 +114,23 @@ class NotificationService {
     final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     if (android == null) return true;
     final enabled = await android.areNotificationsEnabled();
-    if (enabled == true) return true;
+    if (enabled == true) {
+      await _captureNotificationPermission(granted: true);
+      return true;
+    }
     final granted = await android.requestNotificationsPermission();
-    return granted ?? false;
+    final result = granted ?? false;
+    await _captureNotificationPermission(granted: result);
+    return result;
+  }
+
+  Future<void> _captureNotificationPermission({required bool granted}) async {
+    if (_permissionAnalyticsSent) return;
+    _permissionAnalyticsSent = true;
+    await analyticsService.capture(
+      AnalyticsEvents.notificationPermissionResult,
+      properties: {'granted': granted},
+    );
   }
 
   /// Positive notification ID derived from habit serverId.

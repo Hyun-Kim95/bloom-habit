@@ -5,3 +5,13 @@
 # 실제 폰에서 같은 Wi-Fi의 PC 개발 서버(예: npm run start:dev)에 붙일 때만 설정합니다.
 # 에뮬레이터만 쓰면 비워 두거나 이 줄을 제거해도 됩니다.
 # API_BASE_URL=http://192.168.0.12:3000
+
+# 운영 API (실기기·Play 빌드)
+# API_BASE_URL=https://bloom-habit-production.up.railway.app
+
+# PostHog (선택) — ANALYTICS_ENABLED=true 일 때만 빌드에 포함됩니다. Git 커밋 금지.
+# 비공개 테스트: prelaunch / 정식 오픈: production
+# ANALYTICS_ENABLED=true
+# POSTHOG_API_KEY=phc_YOUR_TOKEN
+# POSTHOG_HOST=https://us.i.posthog.com
+# ANALYTICS_ENVIRONMENT=prelaunch

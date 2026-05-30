@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
+import { adminErrorMessage } from '../apiErrors'
 import { useI18n } from '../i18n/I18nContext'
 import {
   displayCategory,
@@ -190,7 +191,7 @@ function CategoriesModal({ open, onClose, onSaved }: CategoriesModalProps) {
         setInUse(new Set((u.inUse ?? []).map((s) => s.trim())))
         setError('')
       })
-      .catch((e) => setError(e instanceof Error ? e.message : t('habit.loadFail')))
+      .catch((e) => setError(adminErrorMessage(e, t('habit.loadFail'))))
       .finally(() => setLoading(false))
   }, [t])
 
@@ -236,7 +237,7 @@ function CategoriesModal({ open, onClose, onSaved }: CategoriesModalProps) {
       onSaved()
       onClose()
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('habit.saveFail'))
+      setError(adminErrorMessage(e, t('habit.saveFail')))
     } finally {
       setSaving(false)
     }
@@ -412,7 +413,10 @@ export default function HabitTemplates() {
 
   const load = useCallback(() => {
     setError('')
-    return api.getTemplates().then(setList).catch((e) => setError(e.message))
+    return api
+      .getTemplates()
+      .then(setList)
+      .catch((e) => setError(adminErrorMessage(e, t('errors.generic'))))
   }, [])
 
   useEffect(() => {
@@ -457,7 +461,7 @@ export default function HabitTemplates() {
       setIconName('')
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('habit.createFail'))
+      setError(adminErrorMessage(e, t('habit.createFail')))
     } finally {
       setLoading(false)
     }
@@ -501,7 +505,7 @@ export default function HabitTemplates() {
       setEditing(null)
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('habit.editFail'))
+      setError(adminErrorMessage(e, t('habit.editFail')))
     } finally {
       setEditSaving(false)
     }
@@ -513,7 +517,7 @@ export default function HabitTemplates() {
       await api.deleteTemplate(id)
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('habit.deleteFail'))
+      setError(adminErrorMessage(e, t('habit.deleteFail')))
     }
   }
 
@@ -528,7 +532,7 @@ export default function HabitTemplates() {
       await load()
       alert(t('habit.reseedDone', { n: r.inserted }))
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('habit.reseedFail'))
+      setError(adminErrorMessage(e, t('habit.reseedFail')))
     } finally {
       setReseeding(false)
     }

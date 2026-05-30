@@ -3,6 +3,8 @@ import 'package:habit_fable/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/errors/error_logger.dart';
+import '../../../core/errors/user_facing_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../data/inquiries/inquiry_repository.dart';
@@ -53,11 +55,17 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
           _loading = false;
         });
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ErrorLogger.logError('InquiriesScreen._load', e, st);
         setState(() {
           _loading = false;
-          _error = e.toString().split('\n').first;
+          _error = UserFacingError.resolve(
+            e,
+            l10n: l10n,
+            kind: UserFacingErrorKind.load,
+          );
         });
       }
     }
@@ -91,11 +99,16 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
           SnackBar(content: Text(l10n.inquirySubmitted)),
         );
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
+        ErrorLogger.logError('InquiriesScreen._submit', e, st);
         setState(() {
           _submitting = false;
-          _error = e.toString().split('\n').first;
+          _error = UserFacingError.resolve(
+            e,
+            l10n: l10n,
+            kind: UserFacingErrorKind.submit,
+          );
         });
       }
     }
@@ -185,9 +198,17 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
         _subjectController.clear();
         _bodyController.clear();
       });
-    } catch (e) {
+    } catch (e, st) {
       if (!mounted) return;
-      setState(() => _error = e.toString().split('\n').first);
+      final l10n = AppLocalizations.of(context)!;
+      ErrorLogger.logError('InquiriesScreen._saveEdit', e, st);
+      setState(
+        () => _error = UserFacingError.resolve(
+          e,
+          l10n: l10n,
+          kind: UserFacingErrorKind.save,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _editing = false);
     }
@@ -227,9 +248,17 @@ class _InquiriesScreenState extends ConsumerState<InquiriesScreen> {
         _list = _list.where((e) => e.id != item.id).toList();
       });
       ref.invalidate(unreadSummaryProvider);
-    } catch (e) {
+    } catch (e, st) {
       if (!mounted) return;
-      setState(() => _error = e.toString().split('\n').first);
+      final l10n = AppLocalizations.of(context)!;
+      ErrorLogger.logError('InquiriesScreen._deleteInquiry', e, st);
+      setState(
+        () => _error = UserFacingError.resolve(
+          e,
+          l10n: l10n,
+          kind: UserFacingErrorKind.process,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _deleting = false);
     }

@@ -4,6 +4,8 @@ import 'package:habit_fable/l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/errors/error_logger.dart';
+import '../../../core/errors/user_facing_error.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/api_config_stub.dart'
     if (dart.library.io) '../../../core/network/api_config_io.dart'
@@ -54,10 +56,16 @@ class _LegalViewScreenState extends ConsumerState<LegalViewScreen> {
           _loading = false;
         });
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ErrorLogger.logError('LegalViewScreen._load', e, st);
         setState(() {
-          _error = e.toString();
+          _error = UserFacingError.resolve(
+            e,
+            l10n: l10n,
+            kind: UserFacingErrorKind.load,
+          );
           _loading = false;
         });
       }
@@ -76,10 +84,9 @@ class _LegalViewScreenState extends ConsumerState<LegalViewScreen> {
     );
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!opened && mounted) {
-      final l10n = AppLocalizations.of(context)!;
       final openFail = locale == 'en' ? 'Could not open URL.' : 'URL을 열 수 없어요.';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.processFailed(openFail))),
+        SnackBar(content: Text(openFail)),
       );
     }
   }

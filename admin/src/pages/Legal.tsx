@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
+import { adminErrorMessage } from '../apiErrors'
 import { useI18n } from '../i18n/I18nContext'
 
 type LegalDoc = {
@@ -64,7 +65,7 @@ export default function Legal() {
     return api
       .getLegalDocuments(activeType, 'all')
       .then(setList)
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(adminErrorMessage(e, t('errors.generic'))))
   }, [activeType])
 
   useEffect(() => {
@@ -116,7 +117,7 @@ export default function Legal() {
       resetForm()
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('legal.saveFail'))
+      setError(adminErrorMessage(e, t('legal.saveFail')))
     } finally {
       setSaving(false)
     }

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:habit_fable/l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/errors/error_logger.dart';
+import '../../../core/errors/user_facing_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../data/notices/notice_repository.dart';
@@ -43,10 +45,16 @@ class _NoticesScreenState extends ConsumerState<NoticesScreen> {
           _loading = false;
         });
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ErrorLogger.logError('NoticesScreen._load', e, st);
         setState(() {
-          _error = e.toString().split('\n').first;
+          _error = UserFacingError.resolve(
+            e,
+            l10n: l10n,
+            kind: UserFacingErrorKind.load,
+          );
           _loading = false;
         });
       }

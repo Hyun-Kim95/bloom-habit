@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/analytics/analytics_events.dart';
 
 /// Figma-style onboarding with framed layout, illustration, typography, and CTA.
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -24,6 +25,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Future<void> _completeOnboarding() async {
     final settings = await ref.read(appSettingsProvider.future);
     await settings.setOnboardingSeen(true);
+    await ref.read(analyticsServiceProvider).capture(
+      AnalyticsEvents.onboardingCompleted,
+    );
     if (!mounted) return;
     final restored = await ref.read(sessionRestoredProvider.future);
     if (!mounted) return;

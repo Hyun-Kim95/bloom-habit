@@ -1,15 +1,24 @@
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:3000';
+import { AdminApiError, parseApiErrorBody } from './apiErrors'
+
+const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:3000'
 
 function getToken(): string | null {
-  return localStorage.getItem('habit_fable_admin_token');
+  return localStorage.getItem('habit_fable_admin_token')
 }
 
 export function setAdminToken(token: string) {
-  localStorage.setItem('habit_fable_admin_token', token);
+  localStorage.setItem('habit_fable_admin_token', token)
 }
 
 export function clearAdminToken() {
-  localStorage.removeItem('habit_fable_admin_token');
+  localStorage.removeItem('habit_fable_admin_token')
+}
+
+async function failResponse(res: Response, fallback: string): Promise<never> {
+  const text = await res.text()
+  const { userMessage, logDetail } = parseApiErrorBody(text, res.status, fallback)
+  console.error('[admin-api]', res.url, res.status, logDetail)
+  throw new AdminApiError(userMessage, logDetail)
 }
 
 export async function adminLogin(email: string, password: string): Promise<{ accessToken: string }> {
@@ -17,13 +26,15 @@ export async function adminLogin(email: string, password: string): Promise<{ acc
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  })
+  if (!res.ok) {
+    await failResponse(res, '로그인에 실패했습니다.')
+  }
+  return res.json()
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getToken();
+  const token = getToken()
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
@@ -31,14 +42,16 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
-  });
+  })
   if (res.status === 401) {
-    clearAdminToken();
-    window.location.href = '/login';
-    throw new Error('Unauthorized');
+    clearAdminToken()
+    window.location.href = '/login'
+    throw new AdminApiError('로그인이 필요합니다.', 'Unauthorized')
   }
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  if (!res.ok) {
+    await failResponse(res, '요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.')
+  }
+  return res.json()
 }
 
 export const api = {

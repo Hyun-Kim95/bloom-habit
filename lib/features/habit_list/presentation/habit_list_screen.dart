@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/errors/error_logger.dart';
+import '../../../core/errors/user_facing_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
@@ -50,10 +52,16 @@ class _HabitListScreenState extends ConsumerState<HabitListScreen> {
           _loading = false;
         });
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ErrorLogger.logError('HabitListScreen._load', e, st);
         setState(() {
-          _error = e.toString();
+          _error = UserFacingError.resolve(
+            e,
+            l10n: l10n,
+            kind: UserFacingErrorKind.load,
+          );
           _loading = false;
         });
       }

@@ -4,6 +4,9 @@ import 'package:isar/isar.dart';
 import '../local/entity/local_habit_record.dart';
 import '../local/entity/local_habit.dart';
 import '../../core/network/api_endpoints.dart';
+import '../../core/analytics/analytics_events.dart';
+import '../../core/analytics/analytics_service.dart';
+import '../../core/analytics/no_op_analytics_service.dart';
 
 /// Record summary for history list.
 class RecordSummary {
@@ -55,12 +58,17 @@ class HabitTemplateItem {
 
 /// Habit/record repository with API + local Isar persistence.
 class HabitRepository {
-  HabitRepository({required Dio dio, required Future<Isar> isarFuture})
-    : _dio = dio,
-      _isarFuture = isarFuture;
+  HabitRepository({
+    required Dio dio,
+    required Future<Isar> isarFuture,
+    AnalyticsService? analytics,
+  }) : _dio = dio,
+       _isarFuture = isarFuture,
+       _analytics = analytics ?? const NoOpAnalyticsService();
 
   final Dio _dio;
   final Future<Isar> _isarFuture;
+  final AnalyticsService _analytics;
 
   /// Clear all local habit/record data.
   Future<void> clearAllLocalData() async {
@@ -428,6 +436,13 @@ class HabitRepository {
     final isar = await _isarFuture;
     final local = _habitDtoToLocal(res.data!);
     await isar.writeTxn(() async => isar.localHabits.put(local));
+    await _analytics.capture(
+      AnalyticsEvents.habitCreated,
+      properties: {
+        'goal_type': goalType,
+        'has_reminder': local.reminderEnabled == true,
+      },
+    );
     return local;
   }
 
@@ -524,6 +539,14 @@ class HabitRepository {
       if (existing != null) local.id = existing.id;
       isar.localHabitRecords.put(local);
     });
+    if (completed == true || value != null) {
+      await _analytics.capture(
+        AnalyticsEvents.habitCompleted,
+        properties: {
+          'record_type': completed == true ? 'completion' : 'value',
+        },
+      );
+    }
     return local;
   }
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
+import { adminErrorMessage } from '../apiErrors'
 import { useI18n } from '../i18n/I18nContext'
 import { useNavigate } from 'react-router-dom'
 
@@ -39,7 +40,7 @@ export default function Users() {
     api
       .getUsers()
       .then(setUsers)
-      .catch((e) => setInitialError(e.message))
+      .catch((e) => setInitialError(adminErrorMessage(e, t('errors.generic'))))
   }, [])
 
   const filtered = useMemo(() => {
@@ -124,7 +125,7 @@ export default function Users() {
         ),
       )
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('users.errorState'))
+      setError(adminErrorMessage(e, t('users.errorState')))
     }
   }
 
@@ -154,7 +155,7 @@ export default function Users() {
       setDeactivateTarget(null)
       setDeactivateReason('')
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('users.errorState'))
+      setError(adminErrorMessage(e, t('users.errorState')))
     } finally {
       setSavingDeactivate(false)
     }

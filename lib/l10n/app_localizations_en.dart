@@ -27,8 +27,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pressBackAgainToExit => 'Press once more to exit.';
 
   @override
-  String get connectionErrorMessage =>
-      'Unable to connect to server.\nCheck the API server on port 3000.\nWindows emulator: firewall often blocks 10.0.2.2. Run adb reverse tcp:3000 tcp:3000, then flutter run --dart-define=API_USE_LOCALHOST=true.\nReal device: set API_BASE_URL to your PC IP on the same Wi-Fi.';
+  String get connectionErrorUserMessage =>
+      'Unable to connect to the server. Check your network and try again.';
+
+  @override
+  String get connectionErrorDevHint =>
+      'Ensure the API server (port 3000) is running, API_BASE_URL is set, and for emulators use adb reverse. See project docs.';
+
+  @override
+  String get unexpectedErrorTryAgain =>
+      'Something went wrong. Please try again later.';
+
+  @override
+  String get loadFailedTryAgain => 'Could not load data. Please try again.';
+
+  @override
+  String get saveFailedTryAgain => 'Could not save. Please try again.';
+
+  @override
+  String get submitFailedTryAgain => 'Could not submit. Please try again.';
+
+  @override
+  String get authSessionExpired =>
+      'Your session has expired. Please sign in again.';
+
+  @override
+  String get serverRequestFailed =>
+      'We could not complete your request. Please try again.';
+
+  @override
+  String get withdrawFailedTryAgain =>
+      'Could not complete account deletion. Please try again.';
 
   @override
   String get retry => 'Retry';
@@ -221,9 +250,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginWithNaver => 'Continue with Naver';
 
   @override
-  String loginError(String message) {
-    return 'Login error: $message';
-  }
+  String get loginError => 'Sign-in failed. Please try again later.';
 
   @override
   String get hideHabit => 'Hide Habit';
@@ -535,9 +562,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saved => 'Saved.';
 
   @override
-  String saveFailed(String message) {
-    return 'Save failed: $message';
-  }
+  String get saveFailed => 'Could not save. Please try again.';
 
   @override
   String get profilePhotoManageTitle => 'Profile photo';
@@ -576,9 +601,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profilePhotoRemoved => 'Profile photo removed.';
 
   @override
-  String processFailed(String message) {
-    return 'Process failed: $message';
-  }
+  String get processFailed => 'Could not process. Please try again.';
 
   @override
   String get deleteAccount => 'Delete Account';
@@ -600,9 +623,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get withdraw => 'Withdraw';
 
   @override
-  String withdrawFailed(String message) {
-    return 'Withdrawal failed: $message';
-  }
+  String get withdrawFailed =>
+      'Could not complete account deletion. Please try again.';
 
   @override
   String get noName => 'No name';
@@ -656,7 +678,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serverSlowResponse =>
-      'Server response is delayed. Check if server and PostgreSQL are running.';
+      'The response is taking longer than usual. Please try again later.';
 
   @override
   String get goalTypeCompletion => 'Completion';
@@ -871,7 +893,5 @@ class AppLocalizationsEn extends AppLocalizations {
       'Store purchases and ads are not available on this platform.';
 
   @override
-  String pageNotFound(String uri) {
-    return 'Page not found: $uri';
-  }
+  String get pageNotFound => 'Page not found.';
 }

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/errors/error_logger.dart';
+import '../../../core/errors/user_facing_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
@@ -232,16 +234,16 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
         ref.read(homeRefreshTriggerProvider.notifier).state++;
         context.go(AppRoutes.home);
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
-        final msg = e.toString();
-        final isTimeout =
-            msg.contains('receive timeout') ||
-            msg.contains('connection timeout') ||
-            msg.contains('connection error');
+        ErrorLogger.logError('HabitCreateScreen._submit', e, st);
         setState(() {
           _loading = false;
-          _error = isTimeout ? l10n.serverSlowResponse : msg;
+          _error = UserFacingError.resolve(
+            e,
+            l10n: l10n,
+            kind: UserFacingErrorKind.save,
+          );
         });
       }
     }

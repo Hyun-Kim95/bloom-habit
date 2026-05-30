@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:habit_fable/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/auth/auth_repository.dart';
+import '../../../core/errors/error_logger.dart';
+import '../../../core/errors/user_facing_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
@@ -114,11 +115,18 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.saved)));
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
+        ErrorLogger.logError('AccountScreen._saveNickname', e, st);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.saveFailed(e.toString().split('\n').first)),
+            content: Text(
+              UserFacingError.resolve(
+                e,
+                l10n: l10n,
+                kind: UserFacingErrorKind.save,
+              ),
+            ),
           ),
         );
       }
@@ -153,11 +161,18 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.profilePhotoRemoved)));
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
+        ErrorLogger.logError('AccountScreen._clearAvatar', e, st);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.processFailed(e.toString().split('\n').first)),
+            content: Text(
+              UserFacingError.resolve(
+                e,
+                l10n: l10n,
+                kind: UserFacingErrorKind.process,
+              ),
+            ),
           ),
         );
       }
@@ -201,19 +216,18 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.profilePhotoUpdated)));
       }
-    } catch (e) {
-      if (e is DioException) {
-        final location = e.response?.headers.value('location');
-        debugPrint(
-          'AccountScreen: avatar upload failed status=${e.response?.statusCode}, location=$location, data=${e.response?.data}',
-        );
-      } else {
-        debugPrint('AccountScreen: avatar upload failed error=$e');
-      }
+    } catch (e, st) {
+      ErrorLogger.logError('AccountScreen._uploadAvatar', e, st);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.processFailed(e.toString().split('\n').first)),
+            content: Text(
+              UserFacingError.resolve(
+                e,
+                l10n: l10n,
+                kind: UserFacingErrorKind.process,
+              ),
+            ),
           ),
         );
       }
@@ -333,12 +347,19 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       if (!mounted) return;
       ref.invalidate(sessionRestoredProvider);
       context.go(AppRoutes.login);
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
+        ErrorLogger.logError('AccountScreen._withdraw', e, st);
         setState(() => _withdrawing = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.withdrawFailed(e.toString().split('\n').first)),
+            content: Text(
+              UserFacingError.resolve(
+                e,
+                l10n: l10n,
+                kind: UserFacingErrorKind.withdraw,
+              ),
+            ),
           ),
         );
       }

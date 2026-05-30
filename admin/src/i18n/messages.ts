@@ -13,6 +13,9 @@ export const messages: Record<AdminLang, Record<string, string>> = {
     'common.delete': '삭제',
     'common.edit': '수정',
 
+    'errors.generic': '요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    'errors.network': '서버에 연결할 수 없습니다. 네트워크를 확인해 주세요.',
+
     'layout.brand': 'HabitFable',
     'layout.subtitle': '관리자',
     'layout.nav.dashboard': '대시보드',
@@ -241,6 +244,9 @@ export const messages: Record<AdminLang, Record<string, string>> = {
     'common.cancel': 'Cancel',
     'common.delete': 'Delete',
     'common.edit': 'Edit',
+
+    'errors.generic': 'Could not complete the request. Please try again.',
+    'errors.network': 'Unable to reach the server. Check your network.',
 
     'layout.brand': 'HabitFable',
     'layout.subtitle': 'Admin',

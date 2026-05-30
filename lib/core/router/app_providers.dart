@@ -19,6 +19,8 @@ import '../../data/notices/notice_repository.dart';
 import '../version/app_update_snooze.dart';
 import '../version/app_version_policy.dart';
 import '../version/play_update_checker.dart';
+import '../analytics/analytics_bootstrap.dart';
+import '../analytics/analytics_service.dart';
 
 class UnreadSummary {
   const UnreadSummary({
@@ -53,6 +55,10 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   );
 });
 
+final analyticsServiceProvider = Provider<AnalyticsService>(
+  (ref) => analyticsService,
+);
+
 /// Runs once at app start. true means session is restored.
 final sessionRestoredProvider = FutureProvider<bool>((ref) async {
   return ref.read(authRepositoryProvider).restoreSession();
@@ -79,7 +85,11 @@ final syncRepositoryProvider = Provider<SyncRepository>((ref) {
 final habitRepositoryProvider = Provider<HabitRepository>((ref) {
   final api = ref.watch(apiClientProvider);
   final isarFuture = ref.watch(isarProvider.future);
-  return HabitRepository(dio: api.dio, isarFuture: isarFuture);
+  return HabitRepository(
+    dio: api.dio,
+    isarFuture: isarFuture,
+    analytics: ref.watch(analyticsServiceProvider),
+  );
 });
 
 /// Trigger to refresh Home list after habit create/update.

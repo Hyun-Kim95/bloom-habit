@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api'
+import { adminErrorMessage } from '../apiErrors'
 import { useI18n } from '../i18n/I18nContext'
 
 type UserDetailResponse = Awaited<ReturnType<typeof api.getUserDetail>>
@@ -25,7 +26,7 @@ export default function UserDetail() {
     api
       .getUserDetail(id)
       .then(setData)
-      .catch((e) => setError(e instanceof Error ? e.message : t('users.detailLoadFail')))
+      .catch((e) => setError(adminErrorMessage(e, t('users.detailLoadFail'))))
       .finally(() => setLoading(false))
   }, [id, t])
 

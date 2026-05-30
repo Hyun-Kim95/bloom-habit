@@ -12,6 +12,8 @@ import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
 import 'package:flutter_naver_login/flutter_naver_login.dart';
 import 'package:flutter_naver_login/interface/types/naver_login_status.dart';
 
+import '../errors/error_logger.dart';
+import '../errors/user_facing_error.dart';
 import '../network/api_client.dart';
 import '../network/api_endpoints.dart';
 import '../social/android_social_sdk_init.dart';
@@ -114,7 +116,16 @@ class AuthRepository {
     if (lower.contains('no_catagorized') || lower.contains('no_categorized')) {
       return AppStrings.authNaverSdkConfigNeeded;
     }
-    return raw;
+    return UserFacingError.resolveAuth(raw);
+  }
+
+  AuthResult _authFail(
+    Object error,
+    String context, [
+    StackTrace? stackTrace,
+  ]) {
+    ErrorLogger.logError(context, error, stackTrace);
+    return AuthResult.fail(UserFacingError.resolveAuth(error));
   }
 
   /// Google login: fetch ID token and exchange for app token.
@@ -142,36 +153,22 @@ class AuthRepository {
         },
       );
       return await _handleAuthResponse(res);
-    } on PlatformException catch (e) {
-      // ApiException: 10 = DEVELOPER_ERROR (SHA-1/package/OAuth). R8 빌드는 "d4.d: 10:"처럼 짧게만 노출될 수 있음.
+    } on PlatformException catch (e, st) {
       if (_isGoogleSignInDeveloperError(e)) {
-        return AuthResult.fail(AppStrings.authGoogleSetupNeeded);
+        ErrorLogger.logError('signInWithGoogle DEVELOPER_ERROR', e, st);
+        if (kDebugMode) {
+          debugPrint(
+            '[Auth] Google sign-in setup: register SHA-1 and package in '
+            'Firebase/Google Cloud. See docs/guides/google-signin-setup.md',
+          );
+        }
       }
-      return AuthResult.fail(e.message ?? e.code);
-    } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.sendTimeout ||
-          e.type == DioExceptionType.receiveTimeout) {
-        return AuthResult.fail(AppStrings.authServerTimeout);
-      }
-      if (e.type == DioExceptionType.connectionError) {
-        return AuthResult.fail(AppStrings.authServerUnreachable);
-      }
-      final msg = e.response?.data is Map
-          ? (e.response!.data as Map)['message']?.toString()
-          : null;
-      return AuthResult.fail(msg ?? e.message ?? AppStrings.authNetworkError);
-    } catch (e) {
-      return AuthResult.fail(e.toString().split('\n').first);
+      return _authFail(e, 'signInWithGoogle', st);
+    } on DioException catch (e, st) {
+      return _authFail(e, 'signInWithGoogle', st);
+    } catch (e, st) {
+      return _authFail(e, 'signInWithGoogle', st);
     }
-  }
-
-  String _kakaoLoginErrorMessage(Object e) {
-    final s = e.toString();
-    if (s.contains('keyHash') || s.contains('key hash')) {
-      return AppStrings.authKakaoKeyHashFailed;
-    }
-    return s.split('\n').first;
   }
 
   bool _isUserCancelledSocialLogin(Object e) {
@@ -213,16 +210,13 @@ class AuthRepository {
         data: {'accessToken': accessToken},
       );
       return _handleAuthResponse(res);
-    } on DioException catch (e) {
-      final msg = e.response?.data is Map
-          ? (e.response!.data as Map)['message']?.toString()
-          : null;
-      return AuthResult.fail(msg ?? e.message ?? AppStrings.authNetworkError);
-    } catch (e) {
+    } on DioException catch (e, st) {
+      return _authFail(e, 'signInWithKakao', st);
+    } catch (e, st) {
       if (_isUserCancelledSocialLogin(e)) {
         return AuthResult.cancelled();
       }
-      return AuthResult.fail(_kakaoLoginErrorMessage(e));
+      return _authFail(e, 'signInWithKakao', st);
     }
   }
 
@@ -257,13 +251,10 @@ class AuthRepository {
         data: {'accessToken': accessToken},
       );
       return _handleAuthResponse(res);
-    } on DioException catch (e) {
-      final msg = e.response?.data is Map
-          ? (e.response!.data as Map)['message']?.toString()
-          : null;
-      return AuthResult.fail(msg ?? e.message ?? AppStrings.authNetworkError);
-    } catch (e) {
-      return AuthResult.fail(e.toString().split('\n').first);
+    } on DioException catch (e, st) {
+      return _authFail(e, 'signInWithNaver', st);
+    } catch (e, st) {
+      return _authFail(e, 'signInWithNaver', st);
     }
   }
 
@@ -406,11 +397,8 @@ class AuthRepository {
               status != null && status >= 200 && status < 400,
         ),
       );
-    } on DioException catch (e) {
-      final location = e.response?.headers.value('location');
-      debugPrint(
-        'AuthRepository: avatar upload failed status=${e.response?.statusCode} location=$location',
-      );
+    } on DioException catch (e, st) {
+      ErrorLogger.logError('AuthRepository.uploadAvatarFile', e, st);
       rethrow;
     }
   }

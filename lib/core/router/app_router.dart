@@ -15,6 +15,7 @@ import '../../features/inquiries/presentation/inquiries_screen.dart';
 import '../../features/habit_list/presentation/habit_list_screen.dart';
 import '../../features/legal/presentation/legal_view_screen.dart';
 import '../../features/notices/presentation/notices_screen.dart';
+import '../errors/error_logger.dart';
 import '../../l10n/app_localizations.dart';
 import 'app_providers.dart';
 import 'main_shell.dart';
@@ -148,12 +149,13 @@ GoRouter createAppRouter(WidgetRef ref) {
         builder: (_, _) => const NoticesScreen(),
       ),
     ],
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(
-        child: Text(
-          AppLocalizations.of(context)!.pageNotFound(state.uri.toString()),
+    errorBuilder: (context, state) {
+      ErrorLogger.logError('AppRouter.pageNotFound', state.uri.toString());
+      return Scaffold(
+        body: Center(
+          child: Text(AppLocalizations.of(context)!.pageNotFound),
         ),
-      ),
-    ),
+      );
+    },
   );
 }

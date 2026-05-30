@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../core/errors/user_facing_exception.dart';
 import '../../core/network/api_endpoints.dart';
 import '../../l10n/app_strings.dart';
 
@@ -61,7 +62,9 @@ class InquiryRepository {
       ApiEndpoints.inquiries,
       data: {'subject': subject, 'body': body},
     );
-    if (res.data == null) throw Exception(AppStrings.inquiryCreateFailed);
+    if (res.data == null) {
+      throw UserFacingException(AppStrings.inquiryCreateFailed);
+    }
     final m = res.data!;
     return InquiryItem(
       id: m['id'] as String? ?? '',

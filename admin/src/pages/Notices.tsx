@@ -3,6 +3,7 @@ import DatePicker, { registerLocale } from 'react-datepicker'
 import { ko } from 'date-fns/locale'
 import 'react-datepicker/dist/react-datepicker.css'
 import { api } from '../api'
+import { adminErrorMessage } from '../apiErrors'
 import { useI18n } from '../i18n/I18nContext'
 import { displayNoticeBody, displayNoticeTitle } from '../i18n/dataDisplay'
 
@@ -118,7 +119,8 @@ export default function Notices() {
   const [editDisplayStartAt, setEditDisplayStartAt] = useState<Date | null>(null)
   const [editDisplayEndAt, setEditDisplayEndAt] = useState<Date | null>(null)
 
-  const load = () => api.getNotices().then(setList).catch((e) => setError(e.message))
+  const load = () =>
+    api.getNotices().then(setList).catch((e) => setError(adminErrorMessage(e, t('errors.generic'))))
 
   useEffect(() => {
     load()
@@ -149,7 +151,7 @@ export default function Notices() {
       setDisplayEndAt(null)
       load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('notices.createFail'))
+      setError(adminErrorMessage(e, t('notices.createFail')))
     } finally {
       setLoading(false)
     }
@@ -185,7 +187,7 @@ export default function Notices() {
       setEditing(null)
       load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('notices.updateFail'))
+      setError(adminErrorMessage(e, t('notices.updateFail')))
     } finally {
       setEditSaving(false)
     }
@@ -197,7 +199,7 @@ export default function Notices() {
       await api.deleteNotice(id)
       load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('notices.deleteFail'))
+      setError(adminErrorMessage(e, t('notices.deleteFail')))
     }
   }
 

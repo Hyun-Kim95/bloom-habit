@@ -7,9 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/errors/error_logger.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/router/app_providers.dart';
+import '../../../core/analytics/analytics_events.dart';
 import 'sns_login_buttons.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -24,6 +26,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String? _loadingFor;
   String? _error;
 
+  Future<void> _onLoginSuccess(String provider) async {
+    final repo = ref.read(authRepositoryProvider);
+    final analytics = ref.read(analyticsServiceProvider);
+    if (mounted) setState(() => _loadingFor = null);
+    await analytics.capture(
+      AnalyticsEvents.loginSuccess,
+      properties: {'provider': provider},
+    );
+    await repo.registerFcmToken();
+    ref.invalidate(sessionRestoredProvider);
+    ref.invalidate(meProfileProvider);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.go(AppRoutes.home);
+    });
+  }
+
   Future<void> _signInWithGoogle() async {
     final l10n = AppLocalizations.of(context)!;
     setState(() {
@@ -36,24 +55,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       if (result.cancelled) return;
       if (result.isSuccess) {
-        // Stop button spinner as soon as auth succeeds; FCM registration can be
-        // slow or stall on emulators (Firebase Play Services).
-        if (mounted) setState(() => _loadingFor = null);
-        await repo.registerFcmToken();
-        ref.invalidate(sessionRestoredProvider);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          context.go(AppRoutes.home);
-        });
+        await _onLoginSuccess('google');
       } else {
         setState(() => _error = result.error ?? l10n.loginFailed);
       }
     } catch (e, st) {
       if (!mounted) return;
-      setState(() {
-        _error = l10n.loginError(e.toString().split('\n').first);
-      });
-      debugPrintStack(stackTrace: st, label: e.toString());
+      ErrorLogger.logError('LoginScreen._signInWithGoogle', e, st);
+      setState(() => _error = l10n.loginError);
     } finally {
       if (mounted) setState(() => _loadingFor = null);
     }
@@ -71,22 +80,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       if (result.cancelled) return;
       if (result.isSuccess) {
-        if (mounted) setState(() => _loadingFor = null);
-        await repo.registerFcmToken();
-        ref.invalidate(sessionRestoredProvider);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          context.go(AppRoutes.home);
-        });
+        await _onLoginSuccess('kakao');
       } else {
         setState(() => _error = result.error ?? l10n.loginFailed);
       }
     } catch (e, st) {
       if (!mounted) return;
-      setState(() {
-        _error = l10n.loginError(e.toString().split('\n').first);
-      });
-      debugPrintStack(stackTrace: st, label: e.toString());
+      ErrorLogger.logError('LoginScreen._signInWithKakao', e, st);
+      setState(() => _error = l10n.loginError);
     } finally {
       if (mounted) setState(() => _loadingFor = null);
     }
@@ -104,22 +105,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       if (result.cancelled) return;
       if (result.isSuccess) {
-        if (mounted) setState(() => _loadingFor = null);
-        await repo.registerFcmToken();
-        ref.invalidate(sessionRestoredProvider);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          context.go(AppRoutes.home);
-        });
+        await _onLoginSuccess('naver');
       } else {
         setState(() => _error = result.error ?? l10n.loginFailed);
       }
     } catch (e, st) {
       if (!mounted) return;
-      setState(() {
-        _error = l10n.loginError(e.toString().split('\n').first);
-      });
-      debugPrintStack(stackTrace: st, label: e.toString());
+      ErrorLogger.logError('LoginScreen._signInWithNaver', e, st);
+      setState(() => _error = l10n.loginError);
     } finally {
       if (mounted) setState(() => _loadingFor = null);
     }

@@ -6,7 +6,15 @@
   "navStats": "Stats",
   "navSettings": "Settings",
   "pressBackAgainToExit": "Press once more to exit.",
-  "connectionErrorMessage": "Unable to connect to server.\nCheck the API server on port 3000.\nWindows emulator: firewall often blocks 10.0.2.2. Run adb reverse tcp:3000 tcp:3000, then flutter run --dart-define=API_USE_LOCALHOST=true.\nReal device: set API_BASE_URL to your PC IP on the same Wi-Fi.",
+  "connectionErrorUserMessage": "Unable to connect to the server. Check your network and try again.",
+  "connectionErrorDevHint": "Ensure the API server (port 3000) is running, API_BASE_URL is set, and for emulators use adb reverse. See project docs.",
+  "unexpectedErrorTryAgain": "Something went wrong. Please try again later.",
+  "loadFailedTryAgain": "Could not load data. Please try again.",
+  "saveFailedTryAgain": "Could not save. Please try again.",
+  "submitFailedTryAgain": "Could not submit. Please try again.",
+  "authSessionExpired": "Your session has expired. Please sign in again.",
+  "serverRequestFailed": "We could not complete your request. Please try again.",
+  "withdrawFailedTryAgain": "Could not complete account deletion. Please try again.",
   "retry": "Retry",
   "todayHabitsTitle": "Today's Habits",
   "addNewHabit": "Add New Habit",
@@ -78,14 +86,7 @@
   "loginWithGoogle": "Continue with Google",
   "loginWithKakao": "Continue with Kakao",
   "loginWithNaver": "Continue with Naver",
-  "loginError": "Login error: {message}",
-  "@loginError": {
-    "placeholders": {
-      "message": {
-        "type": "String"
-      }
-    }
-  },
+  "loginError": "Sign-in failed. Please try again later.",
   "hideHabit": "Hide Habit",
   "hideHabitDescription": "Hide this habit? Hidden habits disappear from Home and are shown under Hidden Habits.",
   "cancel": "Cancel",
@@ -254,8 +255,7 @@
   "max20Chars": "Max 20 characters",
   "save": "Save",
   "saved": "Saved.",
-  "saveFailed": "Save failed: {message}",
-  "@saveFailed": {"placeholders": {"message": {"type": "String"}}},
+  "saveFailed": "Could not save. Please try again.",
   "profilePhotoManageTitle": "Profile photo",
   "profilePhotoManageSubtitle": "Change the image URL or revert to the default icon.",
   "profilePhotoDialogTitle": "Change profile photo",
@@ -267,16 +267,14 @@
   "removeProfilePhotoDescription": "Remove saved profile photo? (It may sync again after Google login.)",
   "remove": "Remove",
   "profilePhotoRemoved": "Profile photo removed.",
-  "processFailed": "Process failed: {message}",
-  "@processFailed": {"placeholders": {"message": {"type": "String"}}},
+  "processFailed": "Could not process. Please try again.",
   "deleteAccount": "Delete Account",
   "deleteAccountDescription": "Your account is deactivated immediately and you cannot sign in again.\nHabits and records on the server are kept for up to one year (365 days) from deactivation, then deleted permanently. They cannot be restored before or after deletion.\nPlease enter a reason before proceeding.",
   "withdrawReason": "Withdrawal reason",
   "withdrawReasonHint": "Please enter the reason for withdrawal.",
   "withdrawReasonRequired": "Please enter a withdrawal reason.",
   "withdraw": "Withdraw",
-  "withdrawFailed": "Withdrawal failed: {message}",
-  "@withdrawFailed": {"placeholders": {"message": {"type": "String"}}},
+  "withdrawFailed": "Could not complete account deletion. Please try again.",
   "noName": "No name",
   "loginWithProvider": "Login with {provider}",
   "@loginWithProvider": {"placeholders": {"provider": {"type": "String"}}},
@@ -293,7 +291,7 @@
   "withdrawing": "Withdrawing…",
   "enterHabitName": "Please enter a habit name.",
   "notificationPermissionRequired": "Notification permission is required. Please allow it in settings.",
-  "serverSlowResponse": "Server response is delayed. Check if server and PostgreSQL are running.",
+  "serverSlowResponse": "The response is taking longer than usual. Please try again later.",
   "goalTypeCompletion": "Completion",
   "goalTypeCount": "Count",
   "goalTypeDuration": "Duration",
@@ -359,12 +357,5 @@
   "purchaseFailed": "The purchase could not be completed.",
   "storeBillingUnavailable": "In-app purchases are unavailable. Check that you are signed in to the store and that the device date and time are correct.",
   "monetizationUnsupported": "Store purchases and ads are not available on this platform.",
-  "pageNotFound": "Page not found: {uri}",
-  "@pageNotFound": {
-    "placeholders": {
-      "uri": {
-        "type": "String"
-      }
-    }
-  }
+  "pageNotFound": "Page not found."
 }

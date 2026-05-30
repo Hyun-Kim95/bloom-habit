@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../../core/errors/error_logger.dart';
+import '../../../core/errors/user_facing_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../../core/router/app_providers.dart';
@@ -40,10 +42,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       );
       if (!mounted) return;
       ref.invalidate(meProfileProvider);
-    } catch (_) {
+    } catch (e, st) {
       if (!mounted) return;
+      ErrorLogger.logError('SettingsScreen._pickMissedPushTime', e, st);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.connectionErrorMessage.split('\n').first)),
+        SnackBar(
+          content: Text(
+            UserFacingError.resolve(e, l10n: l10n, kind: UserFacingErrorKind.save),
+          ),
+        ),
       );
     }
   }
@@ -54,10 +61,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await ref.read(authRepositoryProvider).clearMissedHabitPushLocalTime();
       if (!mounted) return;
       ref.invalidate(meProfileProvider);
-    } catch (_) {
+    } catch (e, st) {
       if (!mounted) return;
+      ErrorLogger.logError('SettingsScreen._resetMissedPushTime', e, st);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.connectionErrorMessage.split('\n').first)),
+        SnackBar(
+          content: Text(
+            UserFacingError.resolve(e, l10n: l10n, kind: UserFacingErrorKind.save),
+          ),
+        ),
       );
     }
   }
@@ -435,6 +447,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             titleColor: AppColors.destructive,
             onTap: () async {
               await ref.read(habitRepositoryProvider).clearAllLocalData();
+              await ref.read(analyticsServiceProvider).reset();
               await ref.read(authRepositoryProvider).logout();
               if (!context.mounted) return;
               ref.invalidate(meProfileProvider);

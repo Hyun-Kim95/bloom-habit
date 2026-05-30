@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminLogin, setAdminToken } from '../api'
+import { adminErrorMessage } from '../apiErrors'
 import { useI18n } from '../i18n/I18nContext'
 import type { AdminLang } from '../i18n/messages'
 
@@ -21,7 +22,7 @@ export default function Login() {
       setAdminToken(accessToken)
       navigate('/', { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('login.error'))
+      setError(adminErrorMessage(err, t('login.error')))
     } finally {
       setLoading(false)
     }

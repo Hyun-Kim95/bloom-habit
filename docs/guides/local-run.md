@@ -43,14 +43,28 @@ npm run dev
 
 ## 4) Android 배포 번들(AAB) 빌드
 
-Google Play(내부 테스트/비공개 테스트/출시) 업로드용 번들은 저장소 루트에서 생성합니다.
+Google Play 업로드용 번들은 저장소 루트에서 생성합니다.
 
-```bash
-flutter clean
-flutter pub get
+**PostHog OFF (기본):**
+
+```powershell
 flutter build appbundle
+# 또는
+.\scripts\build_aab_release.ps1
 ```
 
-- 출력 파일: `build/app/outputs/bundle/release/app-release.aab`
-- Play 업로드 전 `pubspec.yaml`의 `version`(특히 `+buildNumber`)이 이전 업로드보다 큰지 확인하세요.
+**PostHog ON (비공개 테스트 등):** `android/local.properties`에 `ANALYTICS_ENABLED=true`, `POSTHOG_API_KEY=...` 설정 후:
+
+```powershell
+.\scripts\build_aab_prelaunch.ps1
+```
+
+Gradle이 `local.properties` → `--dart-define`을 자동 주입합니다. 상세: `docs/guides/posthog-local-test.md`
+
+- 출력: `build/app/outputs/bundle/release/app-release.aab`
+- Play 업로드 전 `pubspec.yaml`의 `version`(+buildNumber)이 이전보다 큰지 확인
+
+## 5) PostHog (선택)
+
+기본 빌드는 분석 OFF. `local.properties` + `scripts/build_aab_prelaunch.ps1` 또는 `scripts/build_apk_analytics.ps1` — `docs/guides/posthog-local-test.md`
 

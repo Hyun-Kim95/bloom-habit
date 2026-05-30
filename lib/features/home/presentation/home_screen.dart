@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/errors/error_logger.dart';
+import '../../../core/errors/user_facing_error.dart';
 import '../../../core/feedback/habit_completion_feedback.dart';
 import '../../../core/timer/duration_timer_service.dart';
 import '../../../core/theme/app_theme.dart';
@@ -254,21 +256,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         );
         await authRepo.registerFcmToken();
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
-        final msg = e.toString();
-        final isConnectionError =
-            msg.contains('connection timeout') ||
-            msg.contains('connection error') ||
-            msg.contains('Connection refused') ||
-            msg.contains('ConnectionTimeout') ||
-            msg.contains('DioException [unknown]') ||
-            (msg.contains('DioException') && msg.endsWith('null'));
+        final l10n = AppLocalizations.of(context)!;
+        ErrorLogger.logError('HomeScreen._load', e, st);
         setState(() {
           _loading = false;
-          _error = isConnectionError
-              ? AppLocalizations.of(context)!.connectionErrorMessage
-              : msg.split('\n').first;
+          _error = UserFacingError.resolve(
+            e,
+            l10n: l10n,
+            kind: UserFacingErrorKind.load,
+          );
         });
       }
     }

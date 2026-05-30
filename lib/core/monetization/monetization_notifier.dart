@@ -6,6 +6,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../errors/error_logger.dart';
 import 'monetization_platform.dart';
 import 'monetization_product_ids.dart';
 
@@ -103,11 +104,12 @@ class MonetizationNotifier extends Notifier<MonetizationState> {
 
     _sub = iap.purchaseStream.listen(
       _onPurchases,
-      onError: (Object e, _) {
+      onError: (Object e, st) {
+        ErrorLogger.logError('MonetizationNotifier.purchaseStream', e, st);
         state = state.copyWith(
           purchasePending: false,
           snack: MonetizationSnack.purchaseError,
-          snackDetail: e.toString(),
+          snackDetail: null,
         );
       },
     );
@@ -135,10 +137,11 @@ class MonetizationNotifier extends Notifier<MonetizationState> {
     try {
       await _iap!.restorePurchases();
       state = state.copyWith(snack: MonetizationSnack.restoreRequested);
-    } catch (e) {
+    } catch (e, st) {
+      ErrorLogger.logError('MonetizationNotifier.requestRestore', e, st);
       state = state.copyWith(
         snack: MonetizationSnack.purchaseError,
-        snackDetail: e.toString(),
+        snackDetail: null,
       );
     }
   }
@@ -154,11 +157,12 @@ class MonetizationNotifier extends Notifier<MonetizationState> {
       await _iap!.buyNonConsumable(
         purchaseParam: PurchaseParam(productDetails: details),
       );
-    } catch (e) {
+    } catch (e, st) {
+      ErrorLogger.logError('MonetizationNotifier.buyRemoveAds', e, st);
       state = state.copyWith(
         purchasePending: false,
         snack: MonetizationSnack.purchaseError,
-        snackDetail: e.toString(),
+        snackDetail: null,
       );
     }
   }
@@ -174,11 +178,12 @@ class MonetizationNotifier extends Notifier<MonetizationState> {
       await _iap!.buyConsumable(
         purchaseParam: PurchaseParam(productDetails: details),
       );
-    } catch (e) {
+    } catch (e, st) {
+      ErrorLogger.logError('MonetizationNotifier.buyDonation', e, st);
       state = state.copyWith(
         purchasePending: false,
         snack: MonetizationSnack.purchaseError,
-        snackDetail: e.toString(),
+        snackDetail: null,
       );
     }
   }
@@ -192,9 +197,13 @@ class MonetizationNotifier extends Notifier<MonetizationState> {
       if (response.error != null) {
         state = state.copyWith(productsLoading: false);
         if (!silent) {
+          ErrorLogger.logError(
+            'MonetizationNotifier.queryProductDetails',
+            response.error ?? 'unknown',
+          );
           state = state.copyWith(
             snack: MonetizationSnack.purchaseError,
-            snackDetail: response.error?.message,
+            snackDetail: null,
           );
         }
         return;
@@ -204,9 +213,10 @@ class MonetizationNotifier extends Notifier<MonetizationState> {
     } catch (e) {
       state = state.copyWith(productsLoading: false);
       if (!silent) {
+        ErrorLogger.logError('MonetizationNotifier._reloadProducts', e);
         state = state.copyWith(
           snack: MonetizationSnack.purchaseError,
-          snackDetail: e.toString(),
+          snackDetail: null,
         );
       }
     }
@@ -219,10 +229,14 @@ class MonetizationNotifier extends Notifier<MonetizationState> {
         continue;
       }
       if (purchase.status == PurchaseStatus.error) {
+        ErrorLogger.logError(
+          'MonetizationNotifier.purchaseError',
+          purchase.error ?? 'unknown',
+        );
         state = state.copyWith(
           purchasePending: false,
           snack: MonetizationSnack.purchaseError,
-          snackDetail: purchase.error?.message,
+          snackDetail: null,
         );
         if (purchase.pendingCompletePurchase) {
           await _iap?.completePurchase(purchase);

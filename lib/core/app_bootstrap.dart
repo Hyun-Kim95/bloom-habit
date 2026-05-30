@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 
+import 'analytics/analytics_bootstrap.dart';
 import 'notifications/fcm_notification_listener.dart';
 import 'notifications/notification_service.dart';
 import 'social/android_social_sdk_init.dart';
@@ -26,6 +27,8 @@ Future<void> bootstrapAppServices() async {
     if (Firebase.apps.isNotEmpty) {
       await FcmNotificationListener.init(notif);
     }
+
+    await initAnalytics();
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
       unawaited(notif.ensurePermission());

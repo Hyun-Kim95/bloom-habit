@@ -14,6 +14,9 @@
 - Kakao Android Key Hash: `docs/guides/kakao-android-keyhash.md`
 - iOS 설정: `docs/guides/ios-setup.md`
 - Play Console 법률 URL 운영: `docs/guides/play-console-legal-url.md`
+- PostHog·Play AAB 빌드: `docs/guides/posthog-local-test.md` (`scripts/build_aab_prelaunch.ps1`)
+- 개인정보처리방침(PostHog 반영) 한국어 초안: `docs/guides/privacy-policy-ko-posthog.md`
+- Privacy Policy (PostHog) English draft: `docs/guides/privacy-policy-en-posthog.md`
 
 ## 데이터베이스 운영
 

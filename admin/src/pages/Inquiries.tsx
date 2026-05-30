@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import { adminErrorMessage } from '../apiErrors'
 import { useI18n } from '../i18n/I18nContext'
 
 type Inquiry = {
@@ -26,7 +27,8 @@ export default function Inquiries() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  const load = () => api.getInquiries().then(setList).catch((e) => setError(e.message))
+  const load = () =>
+    api.getInquiries().then(setList).catch((e) => setError(adminErrorMessage(e, t('errors.generic'))))
 
   useEffect(() => {
     load()
@@ -51,7 +53,7 @@ export default function Inquiries() {
       setSelected(updated)
       setList((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('inquiries.saveFail'))
+      setError(adminErrorMessage(e, t('inquiries.saveFail')))
     } finally {
       setSaving(false)
     }
@@ -66,7 +68,7 @@ export default function Inquiries() {
       setSelected(updated)
       setList((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('inquiries.saveFail'))
+      setError(adminErrorMessage(e, t('inquiries.saveFail')))
     } finally {
       setSaving(false)
     }
@@ -81,7 +83,7 @@ export default function Inquiries() {
       setList((prev) => prev.filter((i) => i.id !== selected.id))
       setSelected(null)
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('inquiries.saveFail'))
+      setError(adminErrorMessage(e, t('inquiries.saveFail')))
     } finally {
       setDeleting(false)
     }
