@@ -226,7 +226,26 @@ class HabitRepository {
   /// Today's date string (YYYY-MM-DD).
   static String todayString() {
     final n = DateTime.now();
-    return '${n.year}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
+    return dateStringFrom(n);
+  }
+
+  /// Local calendar date string (YYYY-MM-DD).
+  static String dateStringFrom(DateTime d) {
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Local calendar date string from epoch milliseconds.
+  static String dateStringFromEpochMs(int epochMs) {
+    final local = DateTime.fromMillisecondsSinceEpoch(epochMs);
+    return dateStringFrom(
+      DateTime(local.year, local.month, local.day),
+    );
+  }
+
+  /// Local calendar date (midnight) from epoch milliseconds.
+  static DateTime localDateFromEpochMs(int epochMs) {
+    final local = DateTime.fromMillisecondsSinceEpoch(epochMs);
+    return DateTime(local.year, local.month, local.day);
   }
 
   /// Today's completion status by habit (local).
@@ -515,14 +534,19 @@ class HabitRepository {
     }
   }
 
-  /// Add today's record (API + local upsert).
+  /// Add a record for [recordDate] or today when omitted (API + local upsert).
   Future<LocalHabitRecord> recordToday(
     String habitServerId, {
+    DateTime? recordDate,
     bool? completed,
     double? value,
   }) async {
-    final today = todayString();
-    final body = <String, dynamic>{'recordDate': today};
+    final dateStr = recordDate != null
+        ? dateStringFrom(
+            DateTime(recordDate.year, recordDate.month, recordDate.day),
+          )
+        : todayString();
+    final body = <String, dynamic>{'recordDate': dateStr};
     if (completed != null) body['completed'] = completed;
     if (value != null) body['value'] = value;
     final res = await _dio.post<Map<String, dynamic>>(
@@ -673,8 +697,7 @@ class HabitRepository {
     return null;
   }
 
-  String _dateString(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  String _dateString(DateTime d) => dateStringFrom(d);
 
   String? _normalizeUnit({String? goalType, String? unit}) {
     final normalizedGoalType = (goalType ?? '').toLowerCase().trim();

@@ -19,6 +19,7 @@ import '../../../core/utils/completion_praise.dart';
 import '../../../core/utils/habit_icon_color.dart';
 import '../../../core/utils/habit_display_localization.dart';
 import '../../../core/widget/home_widget_update.dart';
+import '../../../data/habit/habit_repository.dart';
 import '../../../data/local/entity/local_habit.dart';
 
 /// Figma Home Dashboard (new style) color constants.
@@ -459,7 +460,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             });
           }
           int? elapsedMs;
+          int? startedAtMs;
           try {
+            final timerState = await DurationTimerService.getState();
+            startedAtMs = timerState.startedAtMs;
             elapsedMs = await DurationTimerService.stop();
           } catch (_) {
             if (mounted) {
@@ -483,8 +487,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             return;
           }
           final minutes = (elapsed ~/ 60000).toDouble();
+          final recordDate = startedAtMs != null
+              ? HabitRepository.localDateFromEpochMs(startedAtMs)
+              : null;
           try {
-            await repo.recordToday(sid, value: minutes);
+            await repo.recordToday(
+              sid,
+              recordDate: recordDate,
+              value: minutes,
+            );
             shouldPlayFeedback = true;
           } catch (_) {
             if (mounted) {

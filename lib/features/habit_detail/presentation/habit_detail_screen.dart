@@ -168,11 +168,20 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen>
       _durationTicker = null;
       try {
         final repo = ref.read(habitRepositoryProvider);
+        final timerState = await DurationTimerService.getState();
+        final startedAtMs = timerState.startedAtMs;
         final elapsedMs = await DurationTimerService.stop();
         final minutes = (((elapsedMs ?? 0).clamp(0, 2147483647)) ~/ 60000)
             .toDouble();
         if (minutes >= 1) {
-          await repo.recordToday(_habit.serverId!, value: minutes);
+          final recordDate = startedAtMs != null
+              ? HabitRepository.localDateFromEpochMs(startedAtMs)
+              : null;
+          await repo.recordToday(
+            _habit.serverId!,
+            recordDate: recordDate,
+            value: minutes,
+          );
           if (mounted) {
             final settings = ref.read(appSettingsProvider).value;
             debugPrint(
