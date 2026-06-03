@@ -46,6 +46,10 @@ app.*.map.json
 
 # Server env (DB 비밀번호 등)
 server/.env
+# Server — 로컬 시드·법률 문안 초안 (SSOT는 src/config·마이그레이션; 루트 txt는 커밋하지 않음)
+server/git-*-seed.txt
+server/v2-*.txt
+server/v3-*.txt
 # Firebase/Google 서비스 계정 키 (로컬만 사용)
 server/keys/
 android/app/google-services.json
