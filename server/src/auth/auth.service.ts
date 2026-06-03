@@ -636,11 +636,13 @@ async function fetchNaverProfile(accessToken: string): Promise<{
   avatarUrl: string | null;
 }> {
   const token = accessToken.trim();
-  if (token === '') throw new BadRequestException('Naver accessToken is required');
+  if (token === '') throw new BadRequestException('네이버 로그인 토큰이 없습니다. 다시 시도해 주세요.');
   const res = await fetch('https://openapi.naver.com/v1/nid/me', {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) throw new BadRequestException('Naver token verification failed');
+  if (!res.ok) {
+    throw new BadRequestException('네이버 로그인 인증에 실패했습니다. 다시 시도해 주세요.');
+  }
   const data = (await res.json()) as {
     response?: {
       id?: string;
@@ -651,7 +653,7 @@ async function fetchNaverProfile(accessToken: string): Promise<{
     };
   };
   const id = data.response?.id?.trim() ?? '';
-  if (id == '') throw new BadRequestException('Invalid Naver profile');
+  if (id == '') throw new BadRequestException('네이버 프로필을 확인할 수 없습니다. 다시 시도해 주세요.');
   return {
     id,
     email: data.response?.email?.trim() || null,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
@@ -8,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/errors/error_logger.dart';
+import '../../../core/social/android_social_sdk_init.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/router/app_providers.dart';
@@ -25,6 +27,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   /// Which provider is currently signing in: google | kakao | naver
   String? _loadingFor;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb && Platform.isAndroid) {
+      unawaited(initAndroidSocialSdks());
+    }
+  }
 
   Future<void> _onLoginSuccess(String provider) async {
     final repo = ref.read(authRepositoryProvider);

@@ -111,13 +111,18 @@ android {
                 } else {
                     signingConfigs.getByName("debug")
                 }
-            // 네이버 SDK 등은 R8 제거 시 NidOAuthLogin 쪽 ClassCastException이 날 수 있음 → 규칙 적용을 위해 명시.
-            isMinifyEnabled = true
+            // Naver SDK: 릴리즈 R8 시 no_catagorized_error. 기본은 minify OFF(로그인 안정).
+            // 실험 시에만 local.properties 에 RELEASE_ENABLE_MINIFY=true
+            val releaseMinify =
+                localProp("RELEASE_ENABLE_MINIFY").equals("true", ignoreCase = true)
+            isMinifyEnabled = releaseMinify
             isShrinkResources = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
-            )
+            if (releaseMinify) {
+                proguardFiles(
+                    getDefaultProguardFile("proguard-android.txt"),
+                    "proguard-rules.pro",
+                )
+            }
         }
     }
 }

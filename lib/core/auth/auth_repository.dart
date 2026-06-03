@@ -110,13 +110,125 @@ class AuthRepository {
     return RegExp(r':\s*10\s*(:|\s|,|$)').hasMatch(m);
   }
 
+  /// SDK [errorCode:…] 를 짧게 붙여 릴리즈 APK에서도 원인 파악 가능하게 함.
+  String _naverFailMessage(String msg, String? raw) {
+    if (raw == null || raw.isEmpty) return msg;
+    final code = RegExp(
+      r'errorCode:([^,\s]+)',
+      caseSensitive: false,
+    ).firstMatch(raw)?.group(1)?.trim();
+    if (code == null || code.isEmpty) return msg;
+    return '$msg ($code)';
+  }
+
   /// 네이버 SDK가 영문 미분류 코드만 줄 때 사용자 안내로 치환.
   String _mapNaverSdkFailureMessage(String raw) {
     final lower = raw.toLowerCase();
-    if (lower.contains('no_catagorized') || lower.contains('no_categorized')) {
-      return AppStrings.authNaverSdkConfigNeeded;
+    if (lower.contains('certification') ||
+        lower.contains('client_error_certification')) {
+      return AppStrings.authNaverCertificationError;
     }
-    return UserFacingError.resolveAuth(raw);
+    if (lower.contains('client_error_no_clientid') ||
+        lower.contains('no_clientid') ||
+        lower.contains('no_clientsecret') ||
+        lower.contains('no_clientname')) {
+      return AppStrings.authNaverKeysMissingAtBuild;
+    }
+    if (lower.contains('no_catagorized') ||
+        lower.contains('no_categorized') ||
+        lower.contains('sdk_execution_error')) {
+      return AppStrings.authNaverReleaseR8Error;
+    }
+    if (lower.contains('sdk not initialized') ||
+        lower.contains('sdk_is_not_initialized')) {
+      return AppStrings.authNaverNotConfigured;
+    }
+    if (lower.contains('failed to get user info') ||
+        lower.contains('failed to parse user info')) {
+      return AppStrings.authNaverProfileFailed;
+    }
+    if (lower.contains('activity is null')) {
+      return AppStrings.authNaverNotConfigured;
+    }
+    final resolved = UserFacingError.resolveAuth(raw);
+    if (resolved != AppStrings.authSessionExpired &&
+        resolved != AppStrings.loginFailedGeneric) {
+      return resolved;
+    }
+    return AppStrings.authNaverLoginFailed;
+  }
+
+  Future<void> _clearNaverSdkSession() async {
+    try {
+      await FlutterNaverLogin.logOut();
+    } catch (_) {}
+    try {
+      await FlutterNaverLogin.logOutAndDeleteToken();
+    } catch (_) {}
+  }
+
+  Future<AuthResult> _exchangeNaverAccessToken(String accessToken) async {
+    final res = await _api.dio.post<Map<String, dynamic>>(
+      ApiEndpoints.authNaver,
+      data: {'accessToken': accessToken},
+    );
+    return _handleAuthResponse(res);
+  }
+
+  /// SDK에 남은 토큰으로 서버 로그인. [FlutterNaverLogin.logIn]의 로그인 전 logout을 피함.
+  Future<AuthResult?> _tryNaverSilentSignIn() async {
+    try {
+      if (!await FlutterNaverLogin.isLoggedIn()) return null;
+      final token = await FlutterNaverLogin.getCurrentAccessToken();
+      final accessToken = token.accessToken.trim();
+      if (accessToken.isEmpty) return null;
+      return await _exchangeNaverAccessToken(accessToken);
+    } on DioException catch (e, st) {
+      ErrorLogger.logError('signInWithNaver.silent', e, st);
+      return _authFail(e, 'signInWithNaver.silent', st);
+    } catch (e, st) {
+      ErrorLogger.logError('signInWithNaver.silent', e, st);
+      return null;
+    }
+  }
+
+  Future<AuthResult> _finishNaverFromAccessToken(String accessToken) async {
+    if (accessToken.isEmpty) {
+      return AuthResult.fail(AppStrings.authNaverAccessTokenMissing);
+    }
+    try {
+      return await _exchangeNaverAccessToken(accessToken);
+    } on DioException catch (e, st) {
+      return _authFail(e, 'signInWithNaver', st);
+    }
+  }
+
+  Future<AuthResult> _naverInteractiveLogIn() async {
+    final result = await FlutterNaverLogin.logIn();
+    if (result.status != NaverLoginStatus.loggedIn) {
+      if (result.status == NaverLoginStatus.loggedOut) {
+        return AuthResult.cancelled();
+      }
+      final raw = result.errorMessage?.trim();
+      if (raw != null && raw.isNotEmpty) {
+        ErrorLogger.logError('signInWithNaver.sdk', raw, null);
+        if (kDebugMode) debugPrint('[Auth] Naver logIn failed: $raw');
+      }
+      final msg = raw != null && raw.isNotEmpty
+          ? _mapNaverSdkFailureMessage(raw)
+          : AppStrings.authNaverLoginFailed;
+      return AuthResult.fail(_naverFailMessage(msg, raw));
+    }
+    var accessToken = result.accessToken?.accessToken.trim() ?? '';
+    if (accessToken.isEmpty) {
+      final t = await FlutterNaverLogin.getCurrentAccessToken();
+      accessToken = t.accessToken.trim();
+    }
+    final exchange = await _finishNaverFromAccessToken(accessToken);
+    if (!exchange.isSuccess && !exchange.cancelled) {
+      await _clearNaverSdkSession();
+    }
+    return exchange;
   }
 
   AuthResult _authFail(
@@ -223,34 +335,18 @@ class AuthRepository {
   Future<AuthResult> signInWithNaver() async {
     if (!kIsWeb && Platform.isAndroid) {
       await initAndroidSocialSdks();
+      if (!isNaverSdkReady) {
+        return AuthResult.fail(AppStrings.authNaverNotConfigured);
+      }
     }
     try {
-      final result = await FlutterNaverLogin.logIn();
-      if (result.status != NaverLoginStatus.loggedIn) {
-        if (result.status == NaverLoginStatus.loggedOut) {
-          return AuthResult.cancelled();
-        }
-        final raw = result.errorMessage?.trim();
-        final msg = raw != null && raw.isNotEmpty
-            ? _mapNaverSdkFailureMessage(raw)
-            : AppStrings.authNaverLoginFailed;
-        return AuthResult.fail(msg);
+      final silent = await _tryNaverSilentSignIn();
+      if (silent != null) {
+        if (silent.isSuccess || silent.cancelled) return silent;
+        await _clearNaverSdkSession();
       }
-      // Android plugin often returns loggedIn without accessToken in the map;
-      // token is still in NaverIdLoginSDK — fetch explicitly.
-      var accessToken = result.accessToken?.accessToken.trim() ?? '';
-      if (accessToken.isEmpty) {
-        final t = await FlutterNaverLogin.getCurrentAccessToken();
-        accessToken = t.accessToken.trim();
-      }
-      if (accessToken.isEmpty) {
-        return AuthResult.fail(AppStrings.authNaverAccessTokenMissing);
-      }
-      final res = await _api.dio.post<Map<String, dynamic>>(
-        ApiEndpoints.authNaver,
-        data: {'accessToken': accessToken},
-      );
-      return _handleAuthResponse(res);
+
+      return _naverInteractiveLogIn();
     } on DioException catch (e, st) {
       return _authFail(e, 'signInWithNaver', st);
     } catch (e, st) {

@@ -7,14 +7,26 @@
 -dontwarn org.openjsse.net.ssl.OpenJSSE
 
 # --- Naver Login SDK (R8 / release) ---
-# Log: ClassCastException: java.lang.Class cannot be cast to java.lang.reflect.ParameterizedType
-# in NaverIdLogin / NidOAuthLogin — keep generics + SDK entrypoints for Gson/reflection.
+# ERROR_NO_CATEGORIZED / no_catagorized_error: release-only when OAuth/profile classes are stripped.
+# See https://github.com/yoonjaepark/flutter_naver_login/issues/129
 -keepattributes Signature, InnerClasses, EnclosingMethod
 -keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
 
 -keep class com.navercorp.nid.** { *; }
 -keep class com.navercorp.** { *; }
+-keep public class com.navercorp.nid.oauth.** { *; }
+-keep public class com.navercorp.nid.profile.** { *; }
+-keep class com.example.flutter_naver_login.** { *; }
 -dontwarn com.navercorp.**
+
+# Naver SDK uses Retrofit/OkHttp/Moshi internally (release-only no_categorized if stripped).
+-keep class okhttp3.** { *; }
+-keep interface retrofit2.** { *; }
+-keep class retrofit2.** { *; }
+-keep class com.squareup.moshi.** { *; }
+-dontwarn okhttp3.**
+-dontwarn retrofit2.**
+-dontwarn com.squareup.moshi.**
 
 # Gson (Naver OAuth, flutter_local_notifications scheduled storage, etc.)
 -keepattributes *Annotation*

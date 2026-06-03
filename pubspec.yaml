@@ -42,7 +42,9 @@ dependencies:
   # Auth
   google_sign_in: ^6.2.1
   kakao_flutter_sdk_user: ^1.9.7+3
-  flutter_naver_login: ^2.1.1
+  # 로그인 전 logout 제거·프로필 JSON 파싱 보강 (third_party 패치)
+  flutter_naver_login:
+    path: third_party/flutter_naver_login
 
   # Network & storage
   dio: ^5.4.0

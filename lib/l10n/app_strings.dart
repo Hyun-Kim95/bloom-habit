@@ -50,9 +50,30 @@ class AppStrings {
   static String get authKakaoNotConfigured => loginFailedGeneric;
   static String get authKakaoKeyHashFailed => loginFailedGeneric;
   static String get authKakaoAccessTokenMissing => loginFailedGeneric;
-  static String get authNaverNotConfigured => loginFailedGeneric;
-  static String get authNaverAccessTokenMissing => loginFailedGeneric;
-  static String get authNaverSdkConfigNeeded => loginFailedGeneric;
+  static String get authNaverNotConfigured => isKo
+      ? '네이버 로그인 설정을 불러오지 못했어요. 앱을 완전히 종료한 뒤 다시 시도해 주세요.'
+      : 'Could not load Naver login settings. Fully close the app and try again.';
+  static String get authNaverAccessTokenMissing => isKo
+      ? '네이버 로그인 인증이 끝나지 않았어요. 다시 시도해 주세요.'
+      : 'Naver sign-in did not finish. Please try again.';
+  static String get authNaverSdkConfigNeeded => isKo
+      ? '네이버 로그인 처리 중 오류가 났어요. 잠시 후 다시 시도해 주세요.'
+      : 'Naver sign-in failed. Please try again later.';
+  static String get authNaverReleaseR8Error => isKo
+      ? '네이버 로그인에 실패했어요. 최신 APK를 다시 설치한 뒤 시도해 주세요. (no_catagorized)'
+      : 'Naver sign-in failed. Reinstall the latest APK and try again.';
+  static String get authNaverConsoleMismatch => isKo
+      ? '네이버 개발자 센터 > 내 애플리케이션 > Android 환경에서 패키지명(com.khyun.bloom_habit)과 Client ID·Secret이 앱 빌드 값과 같은지 확인해 주세요.'
+      : 'In Naver developer console, check Android package com.khyun.bloom_habit and that Client ID/Secret match your app build.';
+  static String get authNaverCertificationError => isKo
+      ? '네이버 로그인 통신(인증서) 오류예요. 기기 날짜·시간과 네트워크를 확인한 뒤 다시 시도해 주세요.'
+      : 'Naver sign-in certificate error. Check device date/time and network, then try again.';
+  static String get authNaverKeysMissingAtBuild => isKo
+      ? '앱 빌드에 네이버 로그인 키가 포함되지 않았어요. (android/local.properties의 NAVER_CLIENT_ID 등)'
+      : 'Naver login keys were missing at build time (NAVER_CLIENT_ID in android/local.properties).';
+  static String get authNaverProfileFailed => isKo
+      ? '네이버 프로필을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.'
+      : 'Could not load your Naver profile. Please try again later.';
   static String get authNaverLoginFailed => loginFailedGeneric;
 
   static String get notifChannelHabit => isKo ? '습관 리마인더' : 'Habit Reminder';
