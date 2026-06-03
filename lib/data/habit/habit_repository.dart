@@ -296,6 +296,39 @@ class HabitRepository {
     return map;
   }
 
+  /// Habit ids that should not receive incomplete-habit reminders today.
+  Future<Set<String>> getTodayExcludeFromIncompleteReminderHabitIds() async {
+    final habits = await getActiveHabits();
+    final isar = await _isarFuture;
+    final today = DateTime.parse(todayString());
+    final records = await isar.localHabitRecords
+        .filter()
+        .recordDateEqualTo(today)
+        .findAll();
+    final recordByHabit = <String, LocalHabitRecord>{};
+    for (final r in records) {
+      final hid = r.habitId;
+      if (hid != null) recordByHabit[hid] = r;
+    }
+    final excludeIds = <String>{};
+    for (final h in habits) {
+      final sid = h.serverId;
+      if (sid == null) continue;
+      final r = recordByHabit[sid];
+      if (!isHabitMissedForReminder(
+        goalType: h.goalType,
+        numberDirection: h.numberDirection,
+        goalValue: h.goalValue,
+        dayValue: r?.value,
+        recordCompleted: r?.completed,
+        hasRecord: r != null,
+      )) {
+        excludeIds.add(sid);
+      }
+    }
+    return excludeIds;
+  }
+
   /// Completed day count by habit for last N days.
   Future<Map<String, int>> getCompletedCountByHabitForDays(int days) async {
     final end = DateTime.now();

@@ -820,11 +820,8 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen>
         minute: minute,
       );
       final habits = await repo.getActiveHabits();
-      final completedByHabit = await repo.getTodayCompletedByHabit();
-      final excludeIds = completedByHabit.entries
-          .where((e) => e.value)
-          .map((e) => e.key)
-          .toSet();
+      final excludeIds =
+          await repo.getTodayExcludeFromIncompleteReminderHabitIds();
       await NotificationService().rescheduleFromHabits(
         habits,
         excludeCompletedHabitIds: excludeIds,

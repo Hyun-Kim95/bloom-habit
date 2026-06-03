@@ -27,3 +27,47 @@ export function mergeNumericRecordValue(
   const prev = Number.isFinite(Number(existingValue)) ? Number(existingValue) : 0;
   return prev + step;
 }
+
+type MissedReminderHabit = {
+  goalType: string;
+  numberDirection: string;
+  goalValue: number | null;
+};
+
+type MissedReminderRecord = {
+  value: number | null;
+  completed: boolean;
+};
+
+/**
+ * Whether a habit should appear in end-of-day "incomplete habit" reminders.
+ * Number lte: no record (implicit 0) and over-limit failures are not "incomplete".
+ */
+export function isHabitMissedForReminder(
+  habit: MissedReminderHabit,
+  record: MissedReminderRecord | null | undefined,
+): boolean {
+  const goalType = (habit.goalType ?? 'completion').trim().toLowerCase() as GoalType;
+  const numberDirection = (habit.numberDirection ?? 'gte').trim().toLowerCase() as NumberDirection;
+
+  if (goalType === 'number' && numberDirection === 'lte') {
+    if (!record) {
+      if (habit.goalValue != null && Number.isFinite(Number(habit.goalValue))) {
+        return false;
+      }
+      return true;
+    }
+    const value = Number(record.value ?? 0);
+    if (
+      habit.goalValue != null &&
+      Number.isFinite(Number(habit.goalValue)) &&
+      value > Number(habit.goalValue)
+    ) {
+      return false;
+    }
+    return !computeGoalCompleted(goalType, value, habit.goalValue, numberDirection);
+  }
+
+  if (record?.completed) return false;
+  return true;
+}

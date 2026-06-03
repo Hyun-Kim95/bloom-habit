@@ -6,6 +6,7 @@ import cron from 'node-cron';
 import { DateTime } from 'luxon';
 
 import { Habit, HabitRecord, MissedHabitPushLog, User } from '../entities';
+import { isHabitMissedForReminder } from '../habits/habits-goal-completion';
 import { PushService } from './push.service';
 
 /** DB에 타임존이 없을 때 미달성 푸시·로컬일 판정에 사용 */
@@ -164,23 +165,31 @@ export class MissedHabitReminderScheduler {
     }
 
     const uniqueDates = [...new Set(candidates.map((c) => c.localDate))];
-    const completedByDate = new Map<string, Set<string>>();
+    const recordsByDate = new Map<
+      string,
+      Map<string, { value: number | null; completed: boolean }>
+    >();
     for (const d of uniqueDates) {
       const rows = await this.habitRecordRepo.find({
-        where: { recordDate: d, completed: true },
-        select: ['habitId'],
+        where: { recordDate: d },
+        select: ['habitId', 'value', 'completed'],
       });
-      completedByDate.set(d, new Set(rows.map((r) => r.habitId)));
+      const byHabit = new Map<string, { value: number | null; completed: boolean }>();
+      for (const r of rows) {
+        byHabit.set(r.habitId, { value: r.value, completed: r.completed });
+      }
+      recordsByDate.set(d, byHabit);
     }
 
     let sent = 0;
     for (const { user, localDate } of candidates) {
-      const completedHabitIds = completedByDate.get(localDate) ?? new Set();
+      const recordsByHabit = recordsByDate.get(localDate) ?? new Map();
       const userHabits = habitsByUser.get(user.id) ?? [];
       const missedNames: string[] = [];
       for (const h of userHabits) {
         if (h.startDate && h.startDate > localDate) continue;
-        if (completedHabitIds.has(h.id)) continue;
+        const record = recordsByHabit.get(h.id);
+        if (!isHabitMissedForReminder(h, record)) continue;
         missedNames.push(h.name);
       }
       if (missedNames.length === 0) continue;

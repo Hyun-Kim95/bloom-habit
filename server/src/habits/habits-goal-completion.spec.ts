@@ -1,5 +1,6 @@
 import {
   computeGoalCompleted,
+  isHabitMissedForReminder,
   mergeNumericRecordValue,
 } from './habits-goal-completion';
 
@@ -22,6 +23,58 @@ describe('computeGoalCompleted', () => {
   it('count uses gte semantics', () => {
     expect(computeGoalCompleted('count', 3, 3, 'gte')).toBe(true);
     expect(computeGoalCompleted('count', 2, 3, 'gte')).toBe(false);
+  });
+});
+
+describe('isHabitMissedForReminder', () => {
+  const lteHabit = {
+    goalType: 'number',
+    numberDirection: 'lte',
+    goalValue: 5,
+  };
+
+  it('lte number: no record is not missed (implicit 0)', () => {
+    expect(isHabitMissedForReminder(lteHabit, undefined)).toBe(false);
+    expect(isHabitMissedForReminder(lteHabit, null)).toBe(false);
+  });
+
+  it('lte number: over goal is not missed (failed, not incomplete)', () => {
+    expect(
+      isHabitMissedForReminder(lteHabit, { value: 6, completed: false }),
+    ).toBe(false);
+  });
+
+  it('lte number: at or under goal is not missed', () => {
+    expect(
+      isHabitMissedForReminder(lteHabit, { value: 3, completed: true }),
+    ).toBe(false);
+  });
+
+  it('gte count: no record is missed', () => {
+    expect(
+      isHabitMissedForReminder(
+        { goalType: 'count', numberDirection: 'gte', goalValue: 3 },
+        undefined,
+      ),
+    ).toBe(true);
+  });
+
+  it('gte count: incomplete record is missed', () => {
+    expect(
+      isHabitMissedForReminder(
+        { goalType: 'count', numberDirection: 'gte', goalValue: 3 },
+        { value: 1, completed: false },
+      ),
+    ).toBe(true);
+  });
+
+  it('gte count: completed record is not missed', () => {
+    expect(
+      isHabitMissedForReminder(
+        { goalType: 'count', numberDirection: 'gte', goalValue: 3 },
+        { value: 3, completed: true },
+      ),
+    ).toBe(false);
   });
 });
 

@@ -219,13 +219,9 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
           final habits = await ref
               .read(habitRepositoryProvider)
               .getActiveHabits();
-          final completedByHabit = await ref
+          final excludeIds = await ref
               .read(habitRepositoryProvider)
-              .getTodayCompletedByHabit();
-          final excludeIds = completedByHabit.entries
-              .where((e) => e.value)
-              .map((e) => e.key)
-              .toSet();
+              .getTodayExcludeFromIncompleteReminderHabitIds();
           await NotificationService().rescheduleFromHabits(
             habits,
             excludeCompletedHabitIds: excludeIds,

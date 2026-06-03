@@ -102,11 +102,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<void> _rescheduleRemindersOnce(List<LocalHabit> habits) async {
     if (_remindersRescheduled) return;
     _remindersRescheduled = true;
-    final completedByHabit = await ref.read(habitRepositoryProvider).getTodayCompletedByHabit();
-    final excludeIds = completedByHabit.entries
-        .where((e) => e.value)
-        .map((e) => e.key)
-        .toSet();
+    final excludeIds = await ref
+        .read(habitRepositoryProvider)
+        .getTodayExcludeFromIncompleteReminderHabitIds();
     await NotificationService().rescheduleFromHabits(
       habits,
       excludeCompletedHabitIds: excludeIds,
