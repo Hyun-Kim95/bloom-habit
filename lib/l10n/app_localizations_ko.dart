@@ -702,6 +702,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get goalNumberHint => '완료값';
 
   @override
+  String get goalNumberDirection => '비교 방향';
+
+  @override
+  String get goalNumberDirectionGte => '이상';
+
+  @override
+  String get goalNumberDirectionLte => '이하';
+
+  @override
   String get startDate => '시작일';
 
   @override

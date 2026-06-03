@@ -17,6 +17,7 @@ import '../../../core/router/app_router.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../../core/utils/completion_praise.dart';
 import '../../../core/utils/habit_icon_color.dart';
+import '../../../core/habit/goal_evaluation.dart';
 import '../../../core/utils/habit_display_localization.dart';
 import '../../../core/widget/home_widget_update.dart';
 import '../../../data/habit/habit_repository.dart';
@@ -541,8 +542,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       } else {
         final input = await _askRecordValue(goalType, h.unit);
         if (input == null) return;
-        await repo.recordToday(sid, value: input);
-        shouldPlayFeedback = true;
+        final record = await repo.recordToday(sid, value: input);
+        shouldPlayFeedback = isDaySuccessful(
+          goalType: h.goalType,
+          numberDirection: h.numberDirection,
+          goalValue: h.goalValue,
+          dayValue: record.value,
+          recordCompleted: record.completed,
+        );
       }
       if (!mounted) return;
       if (shouldPlayFeedback) {
@@ -568,14 +575,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           }
         }
       }
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(completionPraiseMessage(l10n, h)),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      if (shouldPlayFeedback) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(completionPraiseMessage(l10n, h)),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
       // Refresh list and heatmap after server/local persistence.
       await _load();
     } catch (_) {
@@ -846,12 +855,24 @@ class _TodaySection extends StatelessWidget {
           )
         else
           ...habits.map(
-            (h) => _DashboardHabitCard(
+            (h) {
+              final sid = h.serverId;
+              final todayValue = sid != null ? todayValues[sid] : null;
+              final completed = sid != null && (todayCompleted[sid] ?? false);
+              final recordEnabled = canRecordAfterSuccess(
+                goalType: h.goalType,
+                numberDirection: h.numberDirection,
+                goalValue: h.goalValue,
+                dayValue: todayValue,
+                recordCompleted: completed ? true : null,
+              );
+              return _DashboardHabitCard(
               habit: h,
-              completed: todayCompleted[h.serverId] ?? false,
+              completed: completed,
+              recordEnabled: recordEnabled,
               onTap: () => onTapHabit(h),
               onRecord: () => onRecord(h),
-              todayValue: todayValues[h.serverId],
+              todayValue: todayValue,
               durationRunning:
                   h.serverId != null &&
                   durationRunningHabits.contains(h.serverId),
@@ -866,7 +887,8 @@ class _TodaySection extends StatelessWidget {
               text: text,
               textMuted: textMuted,
               iconBg: iconBg,
-            ),
+            );
+            },
           ),
       ],
     );
@@ -877,6 +899,7 @@ class _DashboardHabitCard extends StatelessWidget {
   const _DashboardHabitCard({
     required this.habit,
     required this.completed,
+    required this.recordEnabled,
     required this.onTap,
     required this.onRecord,
     this.todayValue,
@@ -893,6 +916,7 @@ class _DashboardHabitCard extends StatelessWidget {
 
   final LocalHabit habit;
   final bool completed;
+  final bool recordEnabled;
   final VoidCallback onTap;
   final VoidCallback onRecord;
   final double? todayValue;
@@ -909,6 +933,14 @@ class _DashboardHabitCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final languageCode = Localizations.localeOf(context).languageCode;
+    final canTapRecord = recordEnabled || !completed;
+    final goalType = (habit.goalType ?? 'completion').toLowerCase().trim();
+    final isLteFailed = isNumberLteGoal(
+          goalType: habit.goalType,
+          numberDirection: habit.numberDirection,
+        ) &&
+        !completed &&
+        (todayValue ?? 0) > 0;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Material(
@@ -980,15 +1012,22 @@ class _DashboardHabitCard extends StatelessWidget {
                             final currentValue = isDurationRunning
                                 ? (runningElapsedMs! ~/ 60000).toDouble()
                                 : (todayValue ?? 0);
+                            final unitSuffix = goalType == 'count'
+                                ? (languageCode == 'en' ? ' times' : '회')
+                                : (habit.unit != null
+                                      ? ' ${localizeHabitUnit(habit.unit!, languageCode)}'
+                                      : '');
+                            final goalPrefix = goalProgressPrefix(
+                              goalType: habit.goalType,
+                              numberDirection: habit.numberDirection,
+                              languageCode: languageCode,
+                            );
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const SizedBox(height: 4),
                                 Text(
-                                  '${currentValue.toStringAsFixed(0)}'
-                                  '${(habit.goalType ?? 'completion').toLowerCase().trim() == 'count' ? (languageCode == 'en' ? ' times' : '회') : (habit.unit != null ? ' ${localizeHabitUnit(habit.unit!, languageCode)}' : '')}'
-                                  ' / ${habit.goalValue!.toStringAsFixed(0)}'
-                                  '${(habit.goalType ?? 'completion').toLowerCase().trim() == 'count' ? (languageCode == 'en' ? ' times' : '회') : (habit.unit != null ? ' ${localizeHabitUnit(habit.unit!, languageCode)}' : '')}',
+                                  '${currentValue.toStringAsFixed(0)}$unitSuffix / $goalPrefix${habit.goalValue!.toStringAsFixed(0)}$unitSuffix',
                                   style: GoogleFonts.dmSans(
                                     fontSize: 12,
                                     color: textMuted,
@@ -1021,12 +1060,14 @@ class _DashboardHabitCard extends StatelessWidget {
                         ),
                       ),
                     InkWell(
-                      onTap: completed ? null : onRecord,
+                      onTap: canTapRecord ? onRecord : null,
                       customBorder: const CircleBorder(),
                       child: Padding(
                         padding: const EdgeInsets.all(4),
                         child: completed
                             ? Icon(Icons.check_circle, size: 32, color: primary)
+                            : isLteFailed
+                            ? Icon(Icons.cancel_outlined, size: 32, color: textMuted)
                             : (habit.goalType == 'duration' && durationRunning)
                             ? Icon(
                                 Icons.pause_circle_filled,

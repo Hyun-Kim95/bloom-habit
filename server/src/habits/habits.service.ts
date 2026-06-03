@@ -7,6 +7,10 @@ import {
   HabitRecord as HabitRecordEntity,
   HabitTemplate as HabitTemplateEntity,
 } from '../entities';
+import {
+  computeGoalCompleted,
+  mergeNumericRecordValue,
+} from './habits-goal-completion';
 
 export interface HabitDto {
   id: string;
@@ -397,12 +401,10 @@ export class HabitsService {
       };
     }
 
-    const step = Number.isFinite(Number(incomingValue)) ? Number(incomingValue) : 1;
-    const prev = Number.isFinite(Number(existingValue)) ? Number(existingValue) : 0;
-    const nextValue = prev + step;
+    const nextValue = mergeNumericRecordValue(existingValue, incomingValue);
     return {
       value: nextValue,
-      completed: this.computeCompleted(
+      completed: computeGoalCompleted(
         goalType,
         nextValue,
         habit.goalValue,
@@ -434,29 +436,12 @@ export class HabitsService {
           : 0;
     return {
       value: nextValue,
-      completed: this.computeCompleted(
+      completed: computeGoalCompleted(
         goalType,
         nextValue,
         habit.goalValue,
         this.normalizeNumberDirection(habit.numberDirection),
       ),
     };
-  }
-
-  private computeCompleted(
-    goalType: 'completion' | 'count' | 'duration' | 'number',
-    value: number,
-    goalValue?: number | null,
-    numberDirection: 'gte' | 'lte' = 'gte',
-  ): boolean {
-    if (goalType === 'completion') return true;
-    if (goalValue == null || !Number.isFinite(Number(goalValue))) {
-      return value > 0;
-    }
-    const goal = Number(goalValue);
-    if (goalType === 'number' && numberDirection === 'lte') {
-      return value <= goal;
-    }
-    return value >= goal;
   }
 }

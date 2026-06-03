@@ -15,6 +15,7 @@ import '../../../core/router/app_providers.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../../core/utils/habit_icon_color.dart';
+import '../../../core/habit/goal_evaluation.dart';
 import '../../../core/utils/habit_display_localization.dart';
 import '../../../data/habit/habit_repository.dart';
 import '../../../data/local/entity/local_habit.dart';
@@ -269,8 +270,14 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen>
           if (mounted) setState(() => _recording = false);
           return;
         }
-        await repo.recordToday(_habit.serverId!, value: inputValue);
-        shouldPlayFeedback = true;
+        final record = await repo.recordToday(_habit.serverId!, value: inputValue);
+        shouldPlayFeedback = isDaySuccessful(
+          goalType: _habit.goalType,
+          numberDirection: _habit.numberDirection,
+          goalValue: _habit.goalValue,
+          dayValue: record.value,
+          recordCompleted: record.completed,
+        );
       }
       if (!mounted) return;
       if (shouldPlayFeedback) {
@@ -303,14 +310,16 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen>
       _loadStats();
       _loadRecordHistory();
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(completionPraiseMessage(l10n, _habit)),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      if (shouldPlayFeedback) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(completionPraiseMessage(l10n, _habit)),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     } catch (_) {
       debugPrint('HabitDetailScreen: record today failed goalType=$goalType');
       if (mounted) setState(() => _recording = false);
@@ -530,13 +539,13 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen>
           : (h.unit != null
                 ? ' ${localizeHabitUnit(h.unit!, languageCode)}'
                 : '');
-      if (goalType == 'number' && h.numberDirection == 'lte') {
-        progressText =
-            '${current.toStringAsFixed(0)}$unitSuffix / <= ${goalValue.toStringAsFixed(0)}$unitSuffix';
-      } else {
-        progressText =
-            '${current.toStringAsFixed(0)}$unitSuffix / ${goalValue.toStringAsFixed(0)}$unitSuffix';
-      }
+      final goalPrefix = goalProgressPrefix(
+        goalType: h.goalType,
+        numberDirection: h.numberDirection,
+        languageCode: languageCode,
+      );
+      progressText =
+          '${current.toStringAsFixed(0)}$unitSuffix / $goalPrefix${goalValue.toStringAsFixed(0)}$unitSuffix';
     }
 
     return Scaffold(

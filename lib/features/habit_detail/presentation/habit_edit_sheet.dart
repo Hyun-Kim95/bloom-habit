@@ -221,12 +221,18 @@ Future<HabitEditResult?> showHabitEditSheet(
                     DropdownButtonFormField<String>(
                       initialValue: numberDirection,
                       decoration: InputDecoration(
-                        labelText: l10n.goalNumberHint,
+                        labelText: l10n.goalNumberDirection,
                         border: const OutlineInputBorder(),
                       ),
-                      items: const [
-                        DropdownMenuItem(value: 'gte', child: Text('>=')),
-                        DropdownMenuItem(value: 'lte', child: Text('<=')),
+                      items: [
+                        DropdownMenuItem(
+                          value: 'gte',
+                          child: Text(l10n.goalNumberDirectionGte),
+                        ),
+                        DropdownMenuItem(
+                          value: 'lte',
+                          child: Text(l10n.goalNumberDirectionLte),
+                        ),
                       ],
                       onChanged: (v) =>
                           setModalState(() => numberDirection = v ?? 'gte'),

@@ -723,6 +723,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get goalNumberHint => 'Completed value';
 
   @override
+  String get goalNumberDirection => 'Comparison';
+
+  @override
+  String get goalNumberDirectionGte => 'At least';
+
+  @override
+  String get goalNumberDirectionLte => 'At most';
+
+  @override
   String get startDate => 'Start date';
 
   @override

@@ -474,7 +474,7 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
               DropdownButtonFormField<String>(
                 initialValue: _numberDirection,
                 decoration: InputDecoration(
-                  labelText: l10n.goalNumberHint,
+                  labelText: l10n.goalNumberDirection,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radius),
                   ),
@@ -483,9 +483,21 @@ class _HabitCreateScreenState extends ConsumerState<HabitCreateScreen> {
                     vertical: 12,
                   ),
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'gte', child: Text('>=')),
-                  DropdownMenuItem(value: 'lte', child: Text('<=')),
+                items: [
+                  DropdownMenuItem(
+                    value: 'gte',
+                    child: Text(
+                      l10n.goalNumberDirectionGte,
+                      style: GoogleFonts.dmSans(),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'lte',
+                    child: Text(
+                      l10n.goalNumberDirectionLte,
+                      style: GoogleFonts.dmSans(),
+                    ),
+                  ),
                 ],
                 onChanged: (v) => setState(() => _numberDirection = v ?? 'gte'),
               ),

@@ -7,6 +7,7 @@ import '../../core/network/api_endpoints.dart';
 import '../../core/analytics/analytics_events.dart';
 import '../../core/analytics/analytics_service.dart';
 import '../../core/analytics/no_op_analytics_service.dart';
+import '../../core/habit/goal_evaluation.dart';
 
 /// Record summary for history list.
 class RecordSummary {
@@ -248,18 +249,49 @@ class HabitRepository {
     return DateTime(local.year, local.month, local.day);
   }
 
-  /// Today's completion status by habit (local).
+  bool _isHabitDaySuccessful(
+    LocalHabit habit, {
+    double? dayValue,
+    bool? recordCompleted,
+  }) {
+    return isDaySuccessful(
+      goalType: habit.goalType,
+      numberDirection: habit.numberDirection,
+      goalValue: habit.goalValue,
+      dayValue: dayValue,
+      recordCompleted: recordCompleted,
+    );
+  }
+
+  String _habitDayKey(String habitServerId, DateTime day) =>
+      '$habitServerId|${_dateString(day)}';
+
+  /// Today's completion status by habit (local, goal-type aware).
   Future<Map<String, bool>> getTodayCompletedByHabit() async {
+    final habits = await getActiveHabits();
     final isar = await _isarFuture;
-    final today = todayString();
+    final today = DateTime.parse(todayString());
     final records = await isar.localHabitRecords
         .filter()
-        .recordDateEqualTo(DateTime.parse(today))
-        .completedEqualTo(true)
+        .recordDateEqualTo(today)
         .findAll();
-    final map = <String, bool>{};
+    final recordByHabit = <String, LocalHabitRecord>{};
     for (final r in records) {
-      if (r.habitId != null) map[r.habitId!] = true;
+      final hid = r.habitId;
+      if (hid != null) recordByHabit[hid] = r;
+    }
+    final map = <String, bool>{};
+    for (final h in habits) {
+      final sid = h.serverId;
+      if (sid == null) continue;
+      final r = recordByHabit[sid];
+      if (_isHabitDaySuccessful(
+        h,
+        dayValue: r?.value,
+        recordCompleted: r?.completed,
+      )) {
+        map[sid] = true;
+      }
     }
     return map;
   }
@@ -322,20 +354,42 @@ class HabitRepository {
           includeLower: true,
           includeUpper: false,
         )
-        .completedEqualTo(true)
         .findAll();
-
-    final completedKeys = <String>{};
+    final recordByKey = <String, LocalHabitRecord>{};
     for (final r in records) {
       final hid = r.habitId;
       if (hid == null || r.recordDate == null) continue;
-      final habitStart = startByHabit[hid];
-      if (habitStart == null) continue;
       final rd = r.recordDate!.toLocal();
       final day = DateTime(rd.year, rd.month, rd.day);
-      if (day.isBefore(windowStart) || day.isAfter(endDay)) continue;
-      if (day.isBefore(habitStart)) continue;
-      completedKeys.add('$hid|${_dateString(day)}');
+      recordByKey[_habitDayKey(hid, day)] = r;
+    }
+
+    final habitById = <String, LocalHabit>{
+      for (final h in habits)
+        if (h.serverId != null) h.serverId!: h,
+    };
+
+    final completedKeys = <String>{};
+    for (final entry in startByHabit.entries) {
+      final hid = entry.key;
+      final habitStart = entry.value;
+      final h = habitById[hid];
+      if (h == null) continue;
+      var d = windowStart;
+      while (!d.isAfter(endDay)) {
+        if (!d.isBefore(habitStart)) {
+          final key = _habitDayKey(hid, d);
+          final r = recordByKey[key];
+          if (_isHabitDaySuccessful(
+            h,
+            dayValue: r?.value,
+            recordCompleted: r?.completed,
+          )) {
+            completedKeys.add(key);
+          }
+        }
+        d = d.add(const Duration(days: 1));
+      }
     }
 
     final completed = completedKeys.length;
@@ -356,6 +410,7 @@ class HabitRepository {
     DateTime start,
     DateTime end,
   ) async {
+    final habits = await getActiveHabits();
     final isar = await _isarFuture;
     final startDay = DateTime(start.year, start.month, start.day);
     final endDay = DateTime(end.year, end.month, end.day);
@@ -368,13 +423,39 @@ class HabitRepository {
           includeLower: true,
           includeUpper: false,
         )
-        .completedEqualTo(true)
         .findAll();
-    final map = <String, int>{};
+    final recordByKey = <String, LocalHabitRecord>{};
     for (final r in records) {
-      if (r.habitId != null) {
-        map[r.habitId!] = (map[r.habitId!] ?? 0) + 1;
+      final hid = r.habitId;
+      if (hid == null || r.recordDate == null) continue;
+      final rd = r.recordDate!.toLocal();
+      final day = DateTime(rd.year, rd.month, rd.day);
+      recordByKey[_habitDayKey(hid, day)] = r;
+    }
+
+    final map = <String, int>{};
+    for (final h in habits) {
+      final sid = h.serverId;
+      if (sid == null) continue;
+      final habitStart = h.startDate != null
+          ? DateTime(h.startDate!.year, h.startDate!.month, h.startDate!.day)
+          : startDay;
+      var count = 0;
+      var d = startDay;
+      while (!d.isAfter(endDay)) {
+        if (!d.isBefore(habitStart)) {
+          final r = recordByKey[_habitDayKey(sid, d)];
+          if (_isHabitDaySuccessful(
+            h,
+            dayValue: r?.value,
+            recordCompleted: r?.completed,
+          )) {
+            count++;
+          }
+        }
+        d = d.add(const Duration(days: 1));
       }
+      if (count > 0) map[sid] = count;
     }
     return map;
   }
@@ -390,26 +471,52 @@ class HabitRepository {
     DateTime start,
     DateTime end,
   ) async {
+    final habits = await getActiveHabits();
     final isar = await _isarFuture;
     final startDay = DateTime(start.year, start.month, start.day);
     final endDay = DateTime(end.year, end.month, end.day);
+    final endExclusive = endDay.add(const Duration(days: 1));
     final records = await isar.localHabitRecords
         .filter()
         .recordDateBetween(
           startDay,
-          endDay,
+          endExclusive,
           includeLower: true,
-          includeUpper: true,
+          includeUpper: false,
         )
-        .completedEqualTo(true)
         .findAll();
-    final counts = <String, int>{};
+    final recordByKey = <String, LocalHabitRecord>{};
     for (final r in records) {
-      if (r.recordDate != null) {
-        final d = r.recordDate!.toLocal();
-        final key = _dateString(DateTime(d.year, d.month, d.day));
-        counts[key] = (counts[key] ?? 0) + 1;
+      final hid = r.habitId;
+      if (hid == null || r.recordDate == null) continue;
+      final rd = r.recordDate!.toLocal();
+      final day = DateTime(rd.year, rd.month, rd.day);
+      recordByKey[_habitDayKey(hid, day)] = r;
+    }
+
+    final counts = <String, int>{};
+    var d = startDay;
+    while (!d.isAfter(endDay)) {
+      final dateKey = _dateString(d);
+      var dayCount = 0;
+      for (final h in habits) {
+        final sid = h.serverId;
+        if (sid == null) continue;
+        final habitStart = h.startDate != null
+            ? DateTime(h.startDate!.year, h.startDate!.month, h.startDate!.day)
+            : startDay;
+        if (d.isBefore(habitStart)) continue;
+        final r = recordByKey[_habitDayKey(sid, d)];
+        if (_isHabitDaySuccessful(
+          h,
+          dayValue: r?.value,
+          recordCompleted: r?.completed,
+        )) {
+          dayCount++;
+        }
       }
+      if (dayCount > 0) counts[dateKey] = dayCount;
+      d = d.add(const Duration(days: 1));
     }
     return counts;
   }
@@ -663,23 +770,26 @@ class HabitRepository {
         .filter()
         .habitIdEqualTo(habitServerId)
         .recordDateBetween(start, end, includeLower: true, includeUpper: false)
-        .completedEqualTo(true)
         .findAll();
-    final completedDateKeys = <String>{};
+    final recordByDay = <String, LocalHabitRecord>{};
     for (final r in records) {
-      if (r.recordDate != null) {
-        final local = r.recordDate!.toLocal();
-        completedDateKeys.add(
-          _dateString(DateTime(local.year, local.month, local.day)),
-        );
-      }
+      if (r.recordDate == null) continue;
+      final local = r.recordDate!.toLocal();
+      recordByDay[_dateString(DateTime(local.year, local.month, local.day))] = r;
     }
     int streak = 0;
     for (int offset = 0; offset < 365; offset++) {
       final d = today.subtract(Duration(days: offset));
       if (d.isBefore(startDay)) break;
       final key = _dateString(d);
-      if (!completedDateKeys.contains(key)) break;
+      final r = recordByDay[key];
+      if (!_isHabitDaySuccessful(
+        habit,
+        dayValue: r?.value,
+        recordCompleted: r?.completed,
+      )) {
+        break;
+      }
       streak++;
     }
     return streak;

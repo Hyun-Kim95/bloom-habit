@@ -1406,6 +1406,24 @@ abstract class AppLocalizations {
   /// **'완료값'**
   String get goalNumberHint;
 
+  /// No description provided for @goalNumberDirection.
+  ///
+  /// In ko, this message translates to:
+  /// **'비교 방향'**
+  String get goalNumberDirection;
+
+  /// No description provided for @goalNumberDirectionGte.
+  ///
+  /// In ko, this message translates to:
+  /// **'이상'**
+  String get goalNumberDirectionGte;
+
+  /// No description provided for @goalNumberDirectionLte.
+  ///
+  /// In ko, this message translates to:
+  /// **'이하'**
+  String get goalNumberDirectionLte;
+
   /// No description provided for @startDate.
   ///
   /// In ko, this message translates to:
