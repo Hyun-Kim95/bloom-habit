@@ -16,6 +16,14 @@ class PlayUpdateChecker {
       final info = await InAppUpdate.checkForUpdate();
       final kind = resolveUpdateKindFromPlayInfo(info);
       if (kind == UpdateKind.none) {
+        if (info.updateAvailability == UpdateAvailability.updateAvailable) {
+          debugPrint(
+            '[PlayUpdateChecker] update available but kind=none '
+            '(flexible=${info.flexibleUpdateAllowed}, '
+            'immediate=${info.immediateUpdateAllowed}, '
+            'priority=${info.updatePriority})',
+          );
+        }
         return UpdateCheckResult.none;
       }
 

@@ -47,7 +47,9 @@ UpdateKind resolveUpdateKindFromPlayInfo(
   if (info.immediateUpdateAllowed) {
     return UpdateKind.forced;
   }
-  return UpdateKind.none;
+  // Update exists on Play but in-app flexible/immediate are blocked on this device
+  // (common on some tester builds). Still show dialog; [AppUpdateService] opens store.
+  return UpdateKind.optional;
 }
 
 String displayVersionFromPlayInfo(AppUpdateInfo info) {

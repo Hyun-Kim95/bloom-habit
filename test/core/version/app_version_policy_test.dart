@@ -65,7 +65,7 @@ void main() {
       );
     });
 
-    test('returns none when no update path allowed', () {
+    test('returns optional when in-app blocked but update is available', () {
       expect(
         resolveUpdateKindFromPlayInfo(
           _playInfo(
@@ -73,7 +73,7 @@ void main() {
             immediateUpdateAllowed: false,
           ),
         ),
-        UpdateKind.none,
+        UpdateKind.optional,
       );
     });
   });
